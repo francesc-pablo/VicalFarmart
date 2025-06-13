@@ -11,14 +11,14 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext, // Keep if you want controls, otherwise remove
-  CarouselPrevious, // Keep if you want controls, otherwise remove
+  CarouselNext, 
+  CarouselPrevious, 
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import {
   MoveRight,
   ShoppingBasket,
-  Leaf, // For general Vical Farmart branding, if needed
+  Leaf, 
 } from 'lucide-react';
 
 // Using Lucide icons for categories with added colors
@@ -82,7 +82,7 @@ export default function HomePage() {
             >
               <CarouselContent className="h-full">
                 {carouselImages.map((image, index) => (
-                  <CarouselItem key={index} className="h-full">
+                  <CarouselItem key={index} className="h-full relative"> {/* Added relative class here */}
                     <Image
                       src={image.src}
                       alt={image.alt}
