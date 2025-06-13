@@ -13,69 +13,13 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel";
+} from "@/components/ui/carousel"; // Make sure this path is correct
 import Autoplay from "embla-carousel-autoplay";
 import {
   MoveRight,
   ShoppingBasket,
+  Citrus, Carrot, Wheat, Milk // Lucide icons for categories
 } from 'lucide-react';
-
-// Define SVG components for categories
-const FruitIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2C8.68629 2 6 4.68629 6 8C6 11.3137 8.68629 14 12 14C15.3137 14 18 11.3137 18 8C18 4.68629 15.3137 2 12 2Z" fill="url(#paint0_linear_fruit)" stroke="#A0522D" strokeWidth="1.5"/>
-    <path d="M12 14C9.5 14 7.5 15 6.5 16.5C8 19 10.5 22 12 22C13.5 22 16 19 17.5 16.5C16.5 15 14.5 14 12 14Z" fill="url(#paint1_linear_fruit)" stroke="#A0522D" strokeWidth="1.5"/>
-    <path d="M14 5C14 4.44772 13.5523 4 13 4C12.4477 4 12 4.44772 12 5C12 5.55228 12.4477 6 13 6C13.5523 6 14 5.55228 14 5Z" fill="#FFF"/>
-    <defs>
-      <linearGradient id="paint0_linear_fruit" x1="12" y1="2" x2="12" y2="14" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#FF8C00"/>
-        <stop offset="1" stopColor="#FFA500"/>
-      </linearGradient>
-      <linearGradient id="paint1_linear_fruit" x1="12" y1="14" x2="12" y2="22" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#FFD700"/>
-        <stop offset="1" stopColor="#FFFFE0"/>
-      </linearGradient>
-    </defs>
-  </svg>
-);
-
-const VegetableIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M17 14C17 11.2386 14.7614 9 12 9C9.23858 9 7 11.2386 7 14C7 19 12 22 12 22C12 22 17 19 17 14Z" fill="url(#paint0_linear_veg)" stroke="#A0522D" strokeWidth="1.5"/>
-    <path d="M12 9V4M12 4L10 6M12 4L14 6" stroke="#228B22" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <defs>
-      <linearGradient id="paint0_linear_veg" x1="12" y1="9" x2="12" y2="22" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#FF6347"/>
-        <stop offset="1" stopColor="#FF4500"/>
-      </linearGradient>
-    </defs>
-  </svg>
-);
-
-const GrainIcon = ({ className }: { className?: string }) => (
- <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M19 12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12C5 8.13401 8.13401 5 12 5C15.866 5 19 8.13401 19 12Z" fill="url(#paint0_linear_grain)" stroke="#A0522D" strokeWidth="1.5"/>
-    <path d="M12 5V2M12 19V22" stroke="#DAA520" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M15.5 6.5L17.5 4.5M8.5 17.5L6.5 19.5" stroke="#DAA520" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M17.5 10.5L19.5 8.5M6.5 15.5L4.5 13.5" stroke="#DAA520" strokeWidth="1.5" strokeLinecap="round"/>
-    <defs>
-      <linearGradient id="paint0_linear_grain" x1="12" y1="5" x2="12" y2="19" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#F5DEB3"/>
-        <stop offset="1" stopColor="#DEB887"/>
-      </linearGradient>
-    </defs>
-  </svg>
-);
-
-const DairyIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M8 7H16V5C16 3.89543 15.1046 3 14 3H10C8.89543 3 8 3.89543 8 5V7Z" fill="#E6E6FA" stroke="#A0522D" strokeWidth="1.5"/>
-    <path d="M7 7H17L16 20C16 21.1046 15.1046 22 14 22H10C8.89543 22 8 21.1046 8 20L7 7Z" fill="#F0F8FF" stroke="#A0522D" strokeWidth="1.5"/>
-    <path d="M10 12C10 11.4477 10.4477 11 11 11C11.5523 11 12 11.4477 12 12C12 12.5523 11.5523 13 11 13C10.4477 13 10 12.5523 10 12Z" fill="#ADD8E6"/>
-    <path d="M13 15C13 14.4477 13.4477 14 14 14C14.5523 14 15 14.4477 15 15C15 15.5523 14.5523 16 14 16C13.4477 16 13 15.5523 13 15Z" fill="#ADD8E6"/>
-  </svg>
-);
-
 
 // Mock data for featured products
 const mockFeaturedProducts: Product[] = [
@@ -86,16 +30,16 @@ const mockFeaturedProducts: Product[] = [
 ];
 
 const categoryDisplayData = [
-  { name: "Fruits", IconComponent: FruitIcon, imageHint: "fruits assortment", color: "text-orange-400" },
-  { name: "Vegetables", IconComponent: VegetableIcon, imageHint: "vegetables basket", color: "text-emerald-400" },
-  { name: "Grains", IconComponent: GrainIcon, imageHint: "grains bread", color: "text-amber-400" },
-  { name: "Dairy", IconComponent: DairyIcon, imageHint: "dairy products", color: "text-sky-400" },
+  { name: "Fruits", IconComponent: Citrus, imageHint: "fruits assortment", color: "text-orange-500" },
+  { name: "Vegetables", IconComponent: Carrot, imageHint: "vegetables basket", color: "text-emerald-500" },
+  { name: "Grains", IconComponent: Wheat, imageHint: "grains bread", color: "text-amber-500" },
+  { name: "Dairy", IconComponent: Milk, imageHint: "dairy products", color: "text-sky-500" },
 ];
 
 const carouselImages = [
-  { src: "https://placehold.co/1000x600.png", alt: "Fresh vegetables at a market stall", dataAiHint: "vegetables market" },
-  { src: "https://placehold.co/1000x600.png", alt: "Colorful fruits display", dataAiHint: "fruits display" },
-  { src: "https://placehold.co/1000x600.png", alt: "Artisan bread and grains", dataAiHint: "bread grains" },
+  { src: "https://placehold.co/1300x600.png", alt: "Fresh vegetables at a market stall", dataAiHint: "vegetables market" },
+  { src: "https://placehold.co/1300x600.png", alt: "Colorful fruits display", dataAiHint: "fruits display" },
+  { src: "https://placehold.co/1300x600.png", alt: "Artisan bread and grains", dataAiHint: "bread grains" },
 ];
 
 
@@ -141,7 +85,7 @@ export default function HomePage() {
             >
               <CarouselContent>
                 {carouselImages.map((image, index) => (
-                  <CarouselItem key={index} className="relative aspect-[5/3]">
+                  <CarouselItem key={index} className="relative aspect-[13/6]">
                     <Image
                       src={image.src}
                       alt={image.alt}
