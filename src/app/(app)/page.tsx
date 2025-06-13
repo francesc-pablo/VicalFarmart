@@ -9,7 +9,7 @@ export default function HomePage() {
       <header className="py-12 md:py-20">
         <Leaf className="w-24 h-24 text-primary mx-auto mb-6" />
         <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tight mb-6">
-          Welcome to <span className="text-primary">AgriConnect</span>
+          Welcome to <span className="text-primary">AgriShop</span>
         </h1>
         <p className="text-lg md:text-xl text-foreground/80 max-w-2xl mx-auto mb-10">
           Your one-stop platform for fresh agricultural produce directly from local sellers. Discover quality, support farmers, and eat healthy.

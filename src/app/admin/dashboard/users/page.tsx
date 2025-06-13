@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 const mockUsers: User[] = [
   { id: "user001", name: "Alice Wonderland", email: "alice@example.com", role: "customer", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
   { id: "user002", name: "Bob The Farmer", email: "bob@farmfresh.com", role: "seller", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
-  { id: "user003", name: "Charlie Admin", email: "charlie@agriconnect.com", role: "admin", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
+  { id: "user003", name: "Charlie Admin", email: "charlie@agrishop.com", role: "admin", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
   { id: "user004", name: "Diana Deactivated", email: "diana@inactive.com", role: "seller", isActive: false, avatarUrl: "https://placehold.co/40x40.png" },
 ];
 

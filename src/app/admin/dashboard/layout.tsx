@@ -43,7 +43,7 @@ export default function AdminDashboardLayout({
               </Avatar>
               <div className="group-data-[collapsible=icon]:hidden">
                 <p className="text-sm font-medium">Admin User</p>
-                <p className="text-xs text-sidebar-foreground/70">admin@agriconnect.com</p>
+                <p className="text-xs text-sidebar-foreground/70">admin@agrishop.com</p>
               </div>
             </div>
             <Button variant="ghost" className="w-full justify-start mt-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:aspect-square">

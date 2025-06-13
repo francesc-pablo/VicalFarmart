@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'AgriConnect',
+  title: 'AgriShop',
   description: 'Connecting farmers and buyers for fresh agricultural produce.',
 };
 

@@ -79,7 +79,7 @@ export function AuthForm({ type }: AuthFormProps) {
             {isLogin ? "Welcome Back!" : "Create an Account"}
           </CardTitle>
           <CardDescription>
-            {isLogin ? "Login to access your AgriConnect dashboard." : "Join AgriConnect as a seller."}
+            {isLogin ? "Login to access your AgriShop dashboard." : "Join AgriShop as a seller."}
           </CardDescription>
         </CardHeader>
         <CardContent>
