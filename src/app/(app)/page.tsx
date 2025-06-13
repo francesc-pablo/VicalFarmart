@@ -52,7 +52,7 @@ export default function HomePage() {
       <section className="relative w-full overflow-hidden bg-background">
         <div className="container mx-auto px-0 md:px-4 flex flex-col md:flex-row gap-0 md:gap-8 items-stretch">
           {/* Left Vertical Category List */}
-          <div className="w-full md:w-auto md:max-w-[240px] md:shrink-0 space-y-3 py-4 md:py-8 px-4 md:px-0 md:border-r md:border-border/70 md:pr-8 bg-background md:bg-transparent z-10">
+          <div className="w-full md:w-auto md:max-w-[240px] md:shrink-0 space-y-3 py-4 md:py-4 px-4 md:px-0 md:border-r md:border-border/70 md:pr-8 bg-background md:bg-transparent z-10">
             <h2 className="text-xl font-semibold mb-3 text-left text-foreground">Categories</h2>
             {categoryDisplayData.map((category) => (
               <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
@@ -70,7 +70,7 @@ export default function HomePage() {
           </div>
 
           {/* Right Main Hero Content */}
-          <div className="flex-1 flex flex-col items-center justify-center text-center md:text-left py-4 md:py-8 px-4 md:pl-6 lg:pl-8">
+          <div className="flex-1 flex flex-col items-center justify-center text-center md:text-left py-4 md:py-4 px-4 md:pl-6 lg:pl-8">
             <Carousel
               opts={{
                 align: "start",
