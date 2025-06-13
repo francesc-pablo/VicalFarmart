@@ -82,7 +82,7 @@ export function Header() {
             className={cn(
               "text-sm font-medium transition-colors rounded-md px-3 py-1 border",
               isMarketActive
-                ? "text-primary font-semibold border-primary bg-primary/5"
+                ? "text-primary-foreground font-semibold border-primary bg-primary"
                 : "text-foreground/70 hover:text-foreground border-border hover:border-primary/50"
             )}
           >
