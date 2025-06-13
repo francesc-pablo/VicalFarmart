@@ -11,8 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
 import {
-  Leaf,
-  ShoppingBasket,
+  ShoppingBasket, // Changed from Leaf
   Search,
   Apple,
   Carrot,
@@ -55,7 +54,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="w-full bg-gradient-to-br from-primary/10 via-background to-accent/10 py-16 md:py-20 text-center">
         <div className="container mx-auto px-4">
-          <Leaf className="w-20 h-20 text-primary mx-auto mb-4" />
+          <ShoppingBasket className="w-20 h-20 text-primary mx-auto mb-4" /> {/* Changed from Leaf */}
           <h1 className="font-headline text-4xl md:text-6xl font-bold tracking-tight mb-4">
             Discover Freshness at <span className="text-primary">Vical Farmart</span>
           </h1>
