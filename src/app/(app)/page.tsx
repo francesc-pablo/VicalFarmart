@@ -11,10 +11,10 @@ import type { Product } from '@/types';
 import {
   MoveRight,
   ShoppingBasket,
-  Citrus, // Changed from custom SVG
-  Carrot, // Changed from custom SVG
-  Wheat,  // Changed from custom SVG
-  Milk    // Changed from custom SVG
+  Citrus,
+  Carrot,
+  Wheat,
+  Milk
 } from 'lucide-react';
 
 // Mock data for featured products
@@ -26,10 +26,10 @@ const mockFeaturedProducts: Product[] = [
 ];
 
 const categoryDisplayData = [
-  { name: "Fruits", icon: Citrus, imageHint: "fruits assortment" },
-  { name: "Vegetables", icon: Carrot, imageHint: "vegetables basket" },
-  { name: "Grains", icon: Wheat, imageHint: "grains bread" },
-  { name: "Dairy", icon: Milk, imageHint: "dairy products" },
+  { name: "Fruits", icon: Citrus, imageHint: "fruits assortment", color: "text-orange-500" },
+  { name: "Vegetables", icon: Carrot, imageHint: "vegetables basket", color: "text-emerald-600" },
+  { name: "Grains", icon: Wheat, imageHint: "grains bread", color: "text-amber-500" },
+  { name: "Dairy", icon: Milk, imageHint: "dairy products", color: "text-sky-500" },
 ];
 
 
@@ -47,7 +47,7 @@ export default function HomePage() {
             {categoryDisplayData.map((category) => (
               <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
                 <Button variant="outline" className="w-full justify-start h-auto py-3 px-4 shadow-sm hover:bg-primary/10 hover:border-primary group">
-                  <category.icon className="w-6 h-6 mr-3 shrink-0 text-primary group-hover:text-primary transition-colors" />
+                  <category.icon className={`w-6 h-6 mr-3 shrink-0 ${category.color} transition-colors`} />
                   <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{category.name}</span>
                 </Button>
               </Link>
