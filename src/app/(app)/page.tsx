@@ -7,16 +7,23 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
-// Carousel imports removed
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 import {
   MoveRight,
   ShoppingBasket,
-  Leaf, 
+  Leaf,
+  Citrus,
+  Carrot,
+  Wheat,
+  Milk,
 } from 'lucide-react';
-
-// Using Lucide icons for categories with added colors
-import { Citrus, Carrot, Wheat, Milk } from 'lucide-react';
-
 
 // Mock data for featured products
 const mockFeaturedProducts: Product[] = [
@@ -33,7 +40,12 @@ const categoryDisplayData = [
   { name: "Dairy", icon: Milk, imageHint: "dairy products", color: "text-sky-400" },
 ];
 
-// carouselImages array removed
+const carouselImages = [
+  { src: "https://placehold.co/800x400.png", alt: "Fresh vegetables at a market stall", dataAiHint: "vegetables market" },
+  { src: "https://placehold.co/800x400.png", alt: "Colorful fruits display", dataAiHint: "fruits display" },
+  { src: "https://placehold.co/800x400.png", alt: "Artisan bread and grains", dataAiHint: "bread grains" },
+];
+
 
 export default function HomePage() {
   const router = useRouter();
@@ -62,24 +74,52 @@ export default function HomePage() {
           </div>
 
           {/* Right Main Hero Content */}
-          <div className="flex-1 flex flex-col items-center justify-center text-center md:text-left py-16 md:py-20 px-4 md:items-start md:pl-12 lg:pl-16">
-            <ShoppingBasket className="w-20 h-20 text-primary mx-auto md:mx-0 mb-4" />
-            <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-foreground">
-              Discover Freshness at <span className="text-accent">Vical Farmart</span>
-            </h1>
-            <p className="text-lg md:text-xl text-foreground/80 max-w-2xl mx-auto md:mx-0 mb-8">
-              Shop the best local produce, artisanal goods, and more. Quality ingredients delivered to your door.
-            </p>
-            <Button
-              size="lg"
-              asChild
-              className="shadow-md px-10 py-3 text-lg h-auto"
+          <div className="flex-1 flex flex-col items-center justify-center text-center md:text-left py-8 md:py-16 px-4 md:items-start md:pl-12 lg:pl-16">
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              plugins={[
+                Autoplay({
+                  delay: 4000,
+                }),
+              ]}
+              className="w-full max-w-2xl mx-auto md:mx-0 mb-6 rounded-lg overflow-hidden shadow-xl"
             >
-              <Link href="/market">
-                <ShoppingBasket className="mr-2 h-6 w-6" />
-                 Start Shopping
-              </Link>
-            </Button>
+              <CarouselContent>
+                {carouselImages.map((image, index) => (
+                  <CarouselItem key={index} className="relative aspect-[2/1]">
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      layout="fill"
+                      objectFit="cover"
+                      className="brightness-90"
+                      data-ai-hint={image.dataAiHint}
+                    />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 border-none" />
+              <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 border-none" />
+            </Carousel>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full md:w-auto justify-center md:justify-start">
+              <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground text-center sm:text-left">
+                Discover Freshness at <span className="text-accent">Vical Farmart</span>
+              </h1>
+              <Button
+                size="lg"
+                asChild
+                className="shadow-md px-8 py-3 text-base h-auto shrink-0" 
+              >
+                <Link href="/market">
+                  <ShoppingBasket className="mr-2 h-5 w-5" />
+                  Start Shopping
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
