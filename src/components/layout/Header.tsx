@@ -69,7 +69,7 @@ export function Header() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const isMarketActive = pathname === '/market' || pathname.startsWith('/market/') || pathname === '/';
+  const isMarketActive = pathname === '/' || pathname === '/market' || pathname.startsWith('/market/');
 
 
   return (
@@ -77,16 +77,18 @@ export function Header() {
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
         <Logo />
         <nav className="flex items-center gap-4">
-          <Link 
-            href="/market" 
+          <Link
+            href="/market"
             className={cn(
-              "text-sm font-medium transition-colors",
-              isMarketActive ? "text-primary font-semibold" : "text-foreground/70 hover:text-foreground"
+              "text-sm font-medium transition-colors rounded-md px-3 py-1 border",
+              isMarketActive
+                ? "text-primary font-semibold border-primary bg-primary/5"
+                : "text-foreground/70 hover:text-foreground border-border hover:border-primary/50"
             )}
           >
             Market
           </Link>
-          
+
           {authStatus.isAuthenticated ? (
             <>
               <DropdownMenu>
@@ -108,7 +110,6 @@ export function Header() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {/* Common links for all authenticated users (customers & sellers created by admin) */}
                   {(authStatus.userRole === 'customer' || authStatus.userRole === 'seller') && (
                     <>
                       <DropdownMenuItem asChild>
