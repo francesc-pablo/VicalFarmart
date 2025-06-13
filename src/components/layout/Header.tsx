@@ -138,7 +138,7 @@ export function Header() {
               <Button variant="ghost" asChild>
                 <Link href="/login">Login</Link>
               </Button>
-              <Button asChild>
+              <Button variant="outline" asChild>
                 <Link href="/register">Register</Link>
               </Button>
             </>
