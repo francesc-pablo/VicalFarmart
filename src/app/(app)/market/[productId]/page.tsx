@@ -1,3 +1,4 @@
+
 "use client";
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -8,12 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input'; // Added Input
 
 // Mock data for products
 const mockProducts: Product[] = [
-  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally using sustainable farming practices. Each apple is hand-picked to ensure the highest quality. Enjoy the natural goodness!", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/600x400.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards" },
-  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads, sauces, and sandwiches. These tomatoes are grown in rich soil and picked at peak ripeness for maximum taste.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/600x400.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms" },
-  // Add other products if needed for direct navigation testing
+  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally using sustainable farming practices. Each apple is hand-picked to ensure the highest quality. Enjoy the natural goodness!", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/600x400.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "North" },
+  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads, sauces, and sandwiches. These tomatoes are grown in rich soil and picked at peak ripeness for maximum taste.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/600x400.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "South" },
+  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 6.00, category: "Grains", imageUrl: "https://placehold.co/600x400.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "West" },
 ];
 
 export default function ProductDetailPage({ params }: { params: { productId: string } }) {
@@ -57,7 +59,10 @@ export default function ProductDetailPage({ params }: { params: { productId: str
 
         {/* Product Details */}
         <div className="flex flex-col">
-          <Badge variant="secondary" className="w-fit mb-2">{product.category}</Badge>
+          <div className="flex justify-between items-start">
+            <Badge variant="secondary" className="w-fit mb-2">{product.category}</Badge>
+            {product.region && <Badge variant="outline" className="w-fit mb-2">Region: {product.region}</Badge>}
+          </div>
           <h1 className="text-4xl font-bold font-headline mb-3">{product.name}</h1>
           
           <div className="flex items-center gap-4 mb-4">
@@ -82,7 +87,7 @@ export default function ProductDetailPage({ params }: { params: { productId: str
           {/* Quantity Selector and Add to Cart */}
           <div className="flex items-center gap-4 mt-auto pt-6 border-t">
             {/* Mock quantity selector */}
-            <Input type="number" defaultValue="1" min="1" max={product.stock} className="w-20 text-center" disabled={product.stock === 0} />
+            <Input type="number" defaultValue="1" min="1" max={product.stock > 0 ? product.stock : 1} className="w-20 text-center" disabled={product.stock === 0} aria-label="Quantity"/>
             <Button size="lg" className="flex-grow shadow-md" disabled={product.stock === 0}>
               <ShoppingCart className="mr-2 h-5 w-5" /> {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
             </Button>
@@ -108,6 +113,7 @@ export default function ProductDetailPage({ params }: { params: { productId: str
                      <CardTitle className="text-lg font-semibold hover:text-primary transition-colors line-clamp-1">{relProduct.name}</CardTitle>
                    </Link>
                   <p className="text-md font-semibold text-primary mt-1">${relProduct.price.toFixed(2)}</p>
+                   {relProduct.region && <Badge variant="outline" size="sm" className="mt-2">Region: {relProduct.region}</Badge>}
                   <Button variant="outline" size="sm" className="w-full mt-3" asChild>
                      <Link href={`/market/${relProduct.id}`}>View</Link>
                   </Button>

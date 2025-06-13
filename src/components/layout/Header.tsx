@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import type { UserRole } from '@/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // Added useSearchParams
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -18,7 +18,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-// import { cn } from '@/lib/utils'; // No longer needed for market link styling
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // Added Select
+import { PRODUCT_REGIONS } from '@/lib/constants'; // Added PRODUCT_REGIONS
 
 interface AuthStatus {
   isAuthenticated: boolean;
@@ -29,9 +36,21 @@ interface AuthStatus {
 
 export function Header() {
   const router = useRouter();
-  // const pathname = usePathname(); // No longer needed for market link styling
+  const searchParams = useSearchParams();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
-  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Initialize searchTerm and selectedRegion from URL query parameters
+  const initialSearchTerm = searchParams.get('search') || "";
+  const initialRegion = searchParams.get('region') || "All";
+
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const [selectedRegion, setSelectedRegion] = useState<string>(initialRegion);
+
+  useEffect(() => {
+    // Update local state if URL params change (e.g., browser back/forward)
+    setSearchTerm(searchParams.get('search') || "");
+    setSelectedRegion(searchParams.get('region') || "All");
+  }, [searchParams]);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -42,9 +61,9 @@ export function Header() {
       setAuthStatus({ isAuthenticated, userName, userEmail, userRole });
     };
 
-    checkAuth(); // Initial check
-    window.addEventListener('storage', checkAuth); // Listen for storage changes from other tabs
-    window.addEventListener('authChange', checkAuth); // Listen for custom auth change event
+    checkAuth();
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('authChange', checkAuth);
 
     return () => {
       window.removeEventListener('storage', checkAuth);
@@ -58,7 +77,7 @@ export function Header() {
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userRole");
     setAuthStatus({ isAuthenticated: false });
-    window.dispatchEvent(new Event("authChange")); // Notify other components
+    window.dispatchEvent(new Event("authChange"));
     router.push("/login");
   };
 
@@ -73,50 +92,52 @@ export function Header() {
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const queryParams = new URLSearchParams();
     if (searchTerm.trim()) {
-      router.push(`/market?search=${encodeURIComponent(searchTerm.trim())}`);
-    } else {
-      router.push('/market');
+      queryParams.set('search', searchTerm.trim());
     }
+    if (selectedRegion && selectedRegion !== "All") {
+      queryParams.set('region', selectedRegion);
+    }
+    router.push(`/market?${queryParams.toString()}`);
   };
 
-  // const isMarketActive = pathname === '/' || pathname === '/market' || pathname.startsWith('/market/'); // No longer needed
+  const SearchBarForm = ({ isMobile }: { isMobile?: boolean }) => (
+    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobile ? '' : 'flex-grow max-w-xl'}`}>
+      <Input
+        type="search"
+        placeholder="Search products..."
+        className="h-9 flex-grow"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        aria-label="Search products"
+      />
+      <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+        <SelectTrigger className={`h-9 ${isMobile ? 'w-[130px]' : 'w-[150px]'}`}>
+          <SelectValue placeholder="Region" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="All">All Regions</SelectItem>
+          {PRODUCT_REGIONS.map(region => (
+            <SelectItem key={region} value={region}>{region}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
+        <Search className="h-4 w-4" />
+        <span className="sr-only">Search</span>
+      </Button>
+    </form>
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between gap-4">
         <Logo />
         <nav className="flex items-center gap-2 md:gap-4 flex-grow">
-          {/* Market Link Removed */}
-          {/* 
-          <Link
-            href="/market"
-            className={cn(
-              "text-sm font-medium transition-colors rounded-md px-3 py-1.5 border whitespace-nowrap",
-              isMarketActive
-                ? "text-primary-foreground font-semibold border-primary bg-primary"
-                : "text-foreground/70 hover:text-foreground border-border hover:border-primary/50"
-            )}
-          >
-            Market
-          </Link> 
-          */}
-
-          {/* Search Bar in Header */}
-          <form onSubmit={handleSearchSubmit} className="hidden sm:flex flex-grow max-w-md items-center gap-2">
-            <Input
-              type="search"
-              placeholder="Search products..."
-              className="h-9 flex-grow"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              aria-label="Search products"
-            />
-            <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
-              <Search className="h-4 w-4" />
-              <span className="sr-only">Search</span>
-            </Button>
-          </form>
+          <div className="hidden sm:flex flex-grow justify-center">
+             <SearchBarForm />
+          </div>
           
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
             {authStatus.isAuthenticated ? (
@@ -182,22 +203,8 @@ export function Header() {
           </div>
         </nav>
       </div>
-      {/* Search Bar for Mobile - shown below header items */}
-      <div className="container px-4 pb-2 sm:hidden">
-        <form onSubmit={handleSearchSubmit} className="flex w-full items-center gap-2">
-            <Input
-              type="search"
-              placeholder="Search products..."
-              className="h-9 flex-grow"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              aria-label="Search products"
-            />
-            <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
-              <Search className="h-4 w-4" />
-              <span className="sr-only">Search</span>
-            </Button>
-          </form>
+      <div className="container px-4 pb-3 sm:hidden">
+        <SearchBarForm isMobile />
       </div>
     </header>
   );
