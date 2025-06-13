@@ -4,11 +4,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-// Removed React, { useRef } as autoplayPlugin is no longer used
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
-// Carousel imports removed
 import {
   MoveRight,
   ShoppingBasket,
@@ -33,20 +31,16 @@ const categoryDisplayData = [
   { name: "Dairy", icon: Milk, imageHint: "dairy products", color: "text-sky-400" },
 ];
 
-// carouselImages array removed
-
 export default function HomePage() {
   const router = useRouter();
-  // autoplayPlugin ref removed
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section - Reverted to static background */}
+      {/* Hero Section */}
       <section className="relative w-full py-16 md:py-20 overflow-hidden bg-gradient-to-br from-primary/10 via-background to-accent/10">
-        {/* Carousel component removed from here */}
         <div className="container mx-auto px-4 flex flex-col md:flex-row gap-8 lg:gap-12 items-start relative z-[1]">
-          {/* Left Vertical Category List - Reverted text colors and button styles */}
-          <div className="w-full md:w-1/4 lg:w-1/5 space-y-3 pt-4 md:pt-0">
+          {/* Left Vertical Category List */}
+          <div className="w-full md:w-auto md:max-w-[240px] md:shrink-0 space-y-3 pt-4 md:pt-0 md:border-r md:border-border/70 md:pr-8">
             <h2 className="text-xl font-semibold mb-3 text-left text-foreground">Categories</h2>
             {categoryDisplayData.map((category) => (
               <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
@@ -63,13 +57,13 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Right Main Hero Content - Reverted text colors */}
+          {/* Right Main Hero Content */}
           <div className="flex-1 text-center md:text-left md:pt-8 lg:pt-12">
-            <ShoppingBasket className="w-20 h-20 text-primary mx-auto md:mx-0 mb-4" /> {/* Icon color reverted to primary */}
-            <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-foreground"> {/* Text color reverted */}
-              Discover Freshness at <span className="text-primary drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">Vical Farmart</span> {/* Span color reverted */}
+            <ShoppingBasket className="w-20 h-20 text-primary mx-auto md:mx-0 mb-4" />
+            <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-foreground">
+              Discover Freshness at <span className="text-primary drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">Vical Farmart</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto md:mx-0 mb-8"> {/* Text color reverted */}
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto md:mx-0 mb-8">
               Shop the best local produce, artisanal goods, and more. Quality ingredients delivered to your door.
             </p>
             <Button
