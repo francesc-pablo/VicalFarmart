@@ -4,7 +4,8 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import type { UserRole } from '@/types';
 import { useRouter, usePathname } from 'next/navigation';
@@ -30,6 +31,7 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const checkAuth = () => {
@@ -69,18 +71,26 @@ export function Header() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const isMarketActive = pathname === '/' || pathname === '/market' || pathname.startsWith('/market/');
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/market?search=${encodeURIComponent(searchTerm.trim())}`);
+    } else {
+      router.push('/market');
+    }
+  };
 
+  const isMarketActive = pathname === '/' || pathname === '/market' || pathname.startsWith('/market/');
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
+      <div className="container flex h-16 max-w-screen-2xl items-center justify-between gap-4">
         <Logo />
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-2 md:gap-4 flex-grow">
           <Link
             href="/market"
             className={cn(
-              "text-sm font-medium transition-colors rounded-md px-3 py-1 border",
+              "text-sm font-medium transition-colors rounded-md px-3 py-1.5 border whitespace-nowrap",
               isMarketActive
                 ? "text-primary-foreground font-semibold border-primary bg-primary"
                 : "text-foreground/70 hover:text-foreground border-border hover:border-primary/50"
@@ -89,67 +99,102 @@ export function Header() {
             Market
           </Link>
 
-          {authStatus.isAuthenticated ? (
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={`https://placehold.co/40x40.png?text=${getUserInitials(authStatus.userName)}`} alt={authStatus.userName || "User"} data-ai-hint="person face"/>
-                      <AvatarFallback>{getUserInitials(authStatus.userName)}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{authStatus.userName || "User"}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {authStatus.userEmail || "No email"}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {(authStatus.userRole === 'customer' || authStatus.userRole === 'seller') && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/my-orders"><ListOrdered className="mr-2 h-4 w-4" /> My Orders</Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {authStatus.userRole === 'admin' && (
-                     <DropdownMenuItem asChild>
-                      <Link href="/admin/dashboard"><LayoutDashboardIcon className="mr-2 h-4 w-4" /> Admin Dashboard</Link>
-                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/register">Register</Link>
-              </Button>
-            </>
-          )}
-           <Button variant="outline" size="icon" asChild>
-            <Link href="/checkout">
-              <ShoppingCart className="h-5 w-5" />
-              <span className="sr-only">Cart</span>
-            </Link>
-          </Button>
+          {/* Search Bar in Header */}
+          <form onSubmit={handleSearchSubmit} className="hidden sm:flex flex-grow max-w-md items-center gap-2">
+            <Input
+              type="search"
+              placeholder="Search products..."
+              className="h-9 flex-grow"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search products"
+            />
+            <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
+              <Search className="h-4 w-4" />
+              <span className="sr-only">Search</span>
+            </Button>
+          </form>
+          
+          <div className="flex items-center gap-2 md:gap-3 ml-auto">
+            {authStatus.isAuthenticated ? (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={`https://placehold.co/40x40.png?text=${getUserInitials(authStatus.userName)}`} alt={authStatus.userName || "User"} data-ai-hint="person face"/>
+                        <AvatarFallback>{getUserInitials(authStatus.userName)}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{authStatus.userName || "User"}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {authStatus.userEmail || "No email"}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {(authStatus.userRole === 'customer' || authStatus.userRole === 'seller') && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/my-orders"><ListOrdered className="mr-2 h-4 w-4" /> My Orders</Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {authStatus.userRole === 'admin' && (
+                       <DropdownMenuItem asChild>
+                        <Link href="/admin/dashboard"><LayoutDashboardIcon className="mr-2 h-4 w-4" /> Admin Dashboard</Link>
+                       </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/login">Login</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/register">Register</Link>
+                </Button>
+              </>
+            )}
+             <Button variant="outline" size="icon" asChild className="h-9 w-9">
+              <Link href="/checkout">
+                <ShoppingCart className="h-5 w-5" />
+                <span className="sr-only">Cart</span>
+              </Link>
+            </Button>
+          </div>
         </nav>
+      </div>
+      {/* Search Bar for Mobile - shown below header items */}
+      <div className="container px-4 pb-2 sm:hidden">
+        <form onSubmit={handleSearchSubmit} className="flex w-full items-center gap-2">
+            <Input
+              type="search"
+              placeholder="Search products..."
+              className="h-9 flex-grow"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search products"
+            />
+            <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
+              <Search className="h-4 w-4" />
+              <span className="sr-only">Search</span>
+            </Button>
+          </form>
       </div>
     </header>
   );

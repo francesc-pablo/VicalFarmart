@@ -4,20 +4,21 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React from 'react'; // Removed useState
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// import { Input } from '@/components/ui/input'; // Removed Input
 import { Card, CardContent } from '@/components/ui/card';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
 import {
-  Leaf, // Reverted from ShoppingBasket
-  Search,
+  Leaf,
+  // Search, // Removed Search
   Apple,
   Carrot,
   Wheat,
   Milk,
   MoveRight,
+  ShoppingBasket, // Added for hero
 } from 'lucide-react';
 
 // Mock data for featured products
@@ -38,23 +39,14 @@ const categoryDisplayData = [
 
 export default function HomePage() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      router.push(`/market?search=${encodeURIComponent(searchTerm.trim())}`);
-    } else {
-      router.push('/market');
-    }
-  };
+  // Search term and handler removed, now in Header.tsx
 
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="w-full bg-gradient-to-br from-primary/10 via-background to-accent/10 py-16 md:py-20 text-center">
         <div className="container mx-auto px-4">
-          <Leaf className="w-20 h-20 text-primary mx-auto mb-4" /> {/* Reverted from ShoppingBasket */}
+          <ShoppingBasket className="w-20 h-20 text-primary mx-auto mb-4" />
           <h1 className="font-headline text-4xl md:text-6xl font-bold tracking-tight mb-4">
             Discover Freshness at <span className="text-primary">Vical Farmart</span>
           </h1>
@@ -63,32 +55,19 @@ export default function HomePage() {
           </p>
           <Button size="lg" asChild className="shadow-lg px-10 py-3 text-lg h-auto">
             <Link href="/market">
-              <Leaf className="mr-2 h-6 w-6" /> {/* Reverted from ShoppingBasket */}
+              <ShoppingBasket className="mr-2 h-6 w-6" />
                Start Shopping
             </Link>
           </Button>
         </div>
       </section>
 
-      {/* Search Bar Section */}
+      {/* Search Bar Section Removed - Now in Header */}
+      {/* 
       <section className="py-6 md:py-8 w-full bg-background sticky top-16 z-20 shadow-sm border-b">
-        <div className="container mx-auto px-4 max-w-2xl">
-          <form onSubmit={handleSearchSubmit} className="flex gap-2">
-            <Input
-              type="search"
-              placeholder="Search for apples, bread, tomatoes..."
-              className="flex-grow text-base py-3 px-4 h-12"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              aria-label="Search products"
-            />
-            <Button type="submit" size="lg" className="h-12 px-6">
-              <Search className="mr-0 h-5 w-5 md:mr-2" />
-              <span className="hidden md:inline">Search</span>
-            </Button>
-          </form>
-        </div>
-      </section>
+        // Content removed
+      </section> 
+      */}
 
       {/* Categories Section */}
       <section className="py-12 md:py-16 w-full bg-secondary/10">
