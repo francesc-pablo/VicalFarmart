@@ -1,5 +1,6 @@
+
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, ShoppingBasket, ClipboardList, Users, Settings, Package, DollarSign, Tractor, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, ShoppingBasket, ClipboardList, Users, Settings, Package, DollarSign, ShieldCheck } from 'lucide-react'; // Removed Tractor
 
 export interface NavItem {
   title: string;
@@ -11,18 +12,14 @@ export interface NavItem {
   items?: NavItem[];
 }
 
-export const SELLER_DASHBOARD_NAV_ITEMS: NavItem[] = [
-  { title: 'Overview', href: '/seller/dashboard', icon: LayoutDashboard },
-  { title: 'Products', href: '/seller/dashboard/products', icon: ShoppingBasket },
-  { title: 'Orders', href: '/seller/dashboard/orders', icon: ClipboardList },
-  { title: 'Payments', href: '/seller/dashboard/payments', icon: DollarSign },
-  { title: 'Settings', href: '/seller/dashboard/settings', icon: Settings, disabled: true },
-];
+// SELLER_DASHBOARD_NAV_ITEMS removed as sellers no longer have a dedicated dashboard
 
 export const ADMIN_DASHBOARD_NAV_ITEMS: NavItem[] = [
   { title: 'Overview', href: '/admin/dashboard', icon: LayoutDashboard },
-  { title: 'Manage Users', href: '/admin/dashboard/users', icon: Users },
+  { title: 'Manage Users', href: '/admin/dashboard/users', icon: Users }, // Admins manage sellers here
   { title: 'All Orders', href: '/admin/dashboard/orders', icon: Package },
+  // Future: Add "Manage Products" for admin to post on behalf of sellers
+  // { title: 'Manage Products', href: '/admin/dashboard/products', icon: ShoppingBasket }, 
   { title: 'Platform Settings', href: '/admin/dashboard/settings', icon: Settings, disabled: true },
 ];
 

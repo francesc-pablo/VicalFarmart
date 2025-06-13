@@ -23,7 +23,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface AuthFormProps {
   type: "login" | "register";
-  defaultRole?: "customer" | "seller";
+  defaultRole?: "customer" | "seller"; // seller role here is for admin creation context, not self-reg
 }
 
 const loginSchema = z.object({
@@ -31,21 +31,25 @@ const loginSchema = z.object({
   password: z.string().min(1, { message: "Password is required." }),
 });
 
+// Registration schema now only allows self-registration as 'customer'
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string(),
-  role: z.enum(["customer", "seller"], { required_error: "Please select a role." }),
+  // Role is fixed to customer for self-registration
+  // role: z.literal("customer", { required_error: "Role is required." })
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match.",
   path: ["confirmPassword"],
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
-type RegisterFormValues = z.infer<typeof registerSchema>;
+// Updated RegisterFormValues to reflect that role is implicitly 'customer' for self-registration
+type RegisterFormValues = Omit<z.infer<typeof registerSchema>, 'role'> & { role?: "customer" };
 
-export function AuthForm({ type, defaultRole }: AuthFormProps) {
+
+export function AuthForm({ type }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -56,7 +60,7 @@ export function AuthForm({ type, defaultRole }: AuthFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: isLogin
       ? { email: "", password: "" }
-      : { name: "", email: "", password: "", confirmPassword: "", role: defaultRole || "customer" },
+      : { name: "", email: "", password: "", confirmPassword: "" },
   });
 
   function onSubmit(values: LoginFormValues | RegisterFormValues) {
@@ -64,17 +68,19 @@ export function AuthForm({ type, defaultRole }: AuthFormProps) {
     
     if (isLogin) {
       const { email } = values as LoginFormValues;
-      let userRole: UserRole = "customer";
-      let userName = email.split('@')[0]; // Mock user name
+      let userRole: UserRole = "customer"; // Default to customer
+      let userName = email.split('@')[0];
 
+      // Mocking admin login
       if (email.toLowerCase().includes("admin@")) {
         userRole = "admin";
         userName = "Admin User";
-      } else if (email.toLowerCase().includes("seller@")) {
+      } else if (email.toLowerCase().startsWith("seller")) { 
+        // This case is for sellers created by admin. They might still login if admin sets a password.
+        // But they won't have a dedicated dashboard from here.
         userRole = "seller";
-        userName = "Seller User"; // Default name for sellers
+        userName = "Seller User"; // This would typically come from DB
       } else {
-        // For other emails, assume customer. userName can be improved.
         userName = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1);
       }
       
@@ -88,18 +94,22 @@ export function AuthForm({ type, defaultRole }: AuthFormProps) {
         description: "Welcome back!",
       });
 
-      window.dispatchEvent(new Event("authChange")); // Notify header to update
+      window.dispatchEvent(new Event("authChange"));
 
       if (userRole === "admin") {
         router.push("/admin/dashboard");
       } else if (userRole === "seller") {
-        router.push("/seller/dashboard");
-      } else {
+        // Sellers created by admin will login like customers and go to market.
+        // They don't have their own dashboard anymore.
+        router.push("/market"); 
+      } else { // Customer
         router.push("/market");
       }
 
-    } else { // Registration
-      const { name, email, role } = values as RegisterFormValues;
+    } else { // Registration - always as 'customer'
+      const { name, email } = values as RegisterFormValues;
+      const role: UserRole = "customer"; // Hardcoded for self-registration
+
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("userEmail", email);
       localStorage.setItem("userName", name);
@@ -107,16 +117,11 @@ export function AuthForm({ type, defaultRole }: AuthFormProps) {
 
       toast({
         title: "Registration Successful",
-        description: "Your account has been created.",
+        description: "Your account has been created as a customer.",
       });
       
-      window.dispatchEvent(new Event("authChange")); // Notify header to update
-
-      if (role === "seller") {
-        router.push("/seller/dashboard");
-      } else { // customer
-        router.push("/market"); // Redirect customers to market after registration
-      }
+      window.dispatchEvent(new Event("authChange"));
+      router.push("/market"); // Redirect customers to market after registration
     }
   }
 
@@ -125,10 +130,10 @@ export function AuthForm({ type, defaultRole }: AuthFormProps) {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-headline">
-            {isLogin ? "Welcome Back!" : "Create an Account"}
+            {isLogin ? "Welcome Back!" : "Create Customer Account"}
           </CardTitle>
           <CardDescription>
-            {isLogin ? "Login to access your AgriShop dashboard." : "Join AgriShop as a customer or seller."}
+            {isLogin ? "Login to access your AgriShop account." : "Join AgriShop to start shopping."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -190,44 +195,11 @@ export function AuthForm({ type, defaultRole }: AuthFormProps) {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Register as a...</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-1"
-                          >
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="customer" />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                Customer
-                              </FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="seller" />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                Seller
-                              </FormLabel>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Role selection removed for self-registration */}
                 </>
               )}
               <Button type="submit" className="w-full text-lg py-6 shadow-md">
-                {isLogin ? "Login" : "Register"}
+                {isLogin ? "Login" : "Register as Customer"}
               </Button>
             </form>
           </Form>

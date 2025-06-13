@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, UserCircle, LogOut, Briefcase, LayoutDashboardIcon, ListOrdered } from 'lucide-react'; // Added ListOrdered
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import type { UserRole } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -64,7 +64,7 @@ export function Header() {
     if (parts.length > 1) {
       return parts[0][0] + parts[parts.length - 1][0];
     }
-    return name.substring(0, 2);
+    return name.substring(0, 2).toUpperCase();
   };
 
   return (
@@ -82,8 +82,7 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                       {/* Placeholder for user avatar image if available */}
-                      <AvatarImage src={`https://placehold.co/40x40.png?text=${getUserInitials(authStatus.userName)}`} alt={authStatus.userName || "User"} data-ai-hint="person face" />
+                      <AvatarImage src={`https://placehold.co/40x40.png?text=${getUserInitials(authStatus.userName)}`} alt={authStatus.userName || "User"} data-ai-hint="person face"/>
                       <AvatarFallback>{getUserInitials(authStatus.userName)}</AvatarFallback>
                     </Avatar>
                   </Button>
@@ -98,7 +97,8 @@ export function Header() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {authStatus.userRole === 'customer' && (
+                  {/* Common links for all authenticated users (customers & sellers created by admin) */}
+                  {(authStatus.userRole === 'customer' || authStatus.userRole === 'seller') && (
                     <>
                       <DropdownMenuItem asChild>
                         <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
@@ -107,11 +107,6 @@ export function Header() {
                         <Link href="/my-orders"><ListOrdered className="mr-2 h-4 w-4" /> My Orders</Link>
                       </DropdownMenuItem>
                     </>
-                  )}
-                  {authStatus.userRole === 'seller' && (
-                     <DropdownMenuItem asChild>
-                       <Link href="/seller/dashboard"><Briefcase className="mr-2 h-4 w-4" /> Seller Dashboard</Link>
-                     </DropdownMenuItem>
                   )}
                   {authStatus.userRole === 'admin' && (
                      <DropdownMenuItem asChild>
