@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import type { UserRole } from '@/types';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from '@/lib/utils';
+// import { cn } from '@/lib/utils'; // No longer needed for market link styling
 
 interface AuthStatus {
   isAuthenticated: boolean;
@@ -29,7 +29,7 @@ interface AuthStatus {
 
 export function Header() {
   const router = useRouter();
-  const pathname = usePathname();
+  // const pathname = usePathname(); // No longer needed for market link styling
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -80,13 +80,15 @@ export function Header() {
     }
   };
 
-  const isMarketActive = pathname === '/' || pathname === '/market' || pathname.startsWith('/market/');
+  // const isMarketActive = pathname === '/' || pathname === '/market' || pathname.startsWith('/market/'); // No longer needed
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between gap-4">
         <Logo />
         <nav className="flex items-center gap-2 md:gap-4 flex-grow">
+          {/* Market Link Removed */}
+          {/* 
           <Link
             href="/market"
             className={cn(
@@ -97,7 +99,8 @@ export function Header() {
             )}
           >
             Market
-          </Link>
+          </Link> 
+          */}
 
           {/* Search Bar in Header */}
           <form onSubmit={handleSearchSubmit} className="hidden sm:flex flex-grow max-w-md items-center gap-2">
