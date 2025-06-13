@@ -4,20 +4,48 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React from 'react'; // Removed useState
+import React from 'react'; 
 import { Button } from '@/components/ui/button';
-// import { Input } from '@/components/ui/input'; // Removed Input
-// import { Card, CardContent } from '@/components/ui/card'; // Card removed for category display
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
 import {
-  Apple,
-  Carrot,
-  Wheat,
-  Milk,
   MoveRight,
   ShoppingBasket, 
 } from 'lucide-react';
+
+// Colorful SVG Icon Components
+const FruitIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-3 shrink-0">
+    <path d="M16.5966 6.55163C17.5604 7.64448 18.1095 9.20892 18.0069 10.963C17.8435 13.7335 15.8642 16.0371 13.3853 16.436C10.9063 16.8349 8.57501 15.2289 7.61122 12.9254C6.64743 10.6218 7.33703 7.98976 9.17042 6.40243C10.6629 5.12061 12.875 4.88856 14.536 5.56845C15.2894 5.88972 15.9085 6.01256 16.5966 6.55163Z" fill="#F56565"/>
+    <path d="M14.2492 6.1368C14.2492 6.1368 15.2863 4.29369 16.6669 4.96035C18.0475 5.62702 16.7909 7.47013 16.7909 7.47013L14.2492 6.1368Z" fill="#68D391"/>
+    <path d="M12.5 2C12.5 2 12 2.5 12 3V5C12 5.5 12.5 6 13 6C13.5 6 14 5.5 14 5V3C14 2.5 13.5 2 13 2L12.5 2Z" fill="#A0522D"/>
+  </svg>
+);
+
+const VegetableIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-3 shrink-0">
+    <path d="M17.25 14.75C17.25 18.0637 14.8137 20.5 11.5 20.5C8.18629 20.5 5.75 18.0637 5.75 14.75C5.75 11.4363 8.18629 9 11.5 9C14.8137 9 17.25 11.4363 17.25 14.75Z" fill="#F6AD55"/> {/* Main carrot body */}
+    <path d="M11.5 9L12.5 3H10.5L11.5 9Z" fill="#48BB78"/> {/* Carrot top stem */}
+    <path d="M10 5L8 3.5H9.5L10 5Z" fill="#38A169"/> {/* Left leaf */}
+    <path d="M13 5L15 3.5H13.5L13 5Z" fill="#38A169"/> {/* Right leaf */}
+  </svg>
+);
+
+const GrainIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-3 shrink-0">
+    <path d="M13 2V8C13 8 16 6 16 9C16 12 13 10 13 13V22M13 8L10 10M13 13L10 15" stroke="#F6E05E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10 2V8C10 8 7 6 7 9C7 12 10 10 10 13V22M14 4L11 6M14 11L11 13" stroke="#F6D32D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const DairyIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-3 shrink-0">
+    <rect x="6" y="6" width="12" height="15" rx="1" fill="#EBF8FF"/>
+    <path d="M6 7L6 6L18 6L18 7L15 4H9L6 7Z" fill="#BEE3F8"/>
+    <rect x="9" y="11" width="6" height="4" rx="0.5" fill="#63B3ED"/>
+  </svg>
+);
+
 
 // Mock data for featured products
 const mockFeaturedProducts: Product[] = [
@@ -28,10 +56,10 @@ const mockFeaturedProducts: Product[] = [
 ];
 
 const categoryDisplayData = [
-  { name: "Fruits", icon: Apple, imageHint: "fruits assortment" },
-  { name: "Vegetables", icon: Carrot, imageHint: "vegetables basket" },
-  { name: "Grains", icon: Wheat, imageHint: "grains bread" },
-  { name: "Dairy", icon: Milk, imageHint: "dairy products" },
+  { name: "Fruits", icon: FruitIcon, imageHint: "fruits assortment" },
+  { name: "Vegetables", icon: VegetableIcon, imageHint: "vegetables basket" },
+  { name: "Grains", icon: GrainIcon, imageHint: "grains bread" },
+  { name: "Dairy", icon: DairyIcon, imageHint: "dairy products" },
 ];
 
 
@@ -49,8 +77,8 @@ export default function HomePage() {
             {categoryDisplayData.map((category) => (
               <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
                 <Button variant="outline" className="w-full justify-start h-auto py-3 px-4 shadow-sm hover:bg-primary/10 hover:border-primary group">
-                  <category.icon className="w-5 h-5 mr-3 text-primary transition-colors" />
-                  <span className="text-sm font-medium text-foreground transition-colors">{category.name}</span>
+                  <category.icon />
+                  <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{category.name}</span>
                 </Button>
               </Link>
             ))}
