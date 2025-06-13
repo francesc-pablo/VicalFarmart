@@ -8,6 +8,14 @@ import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
 import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
+import {
   MoveRight,
   ShoppingBasket,
   Citrus,
@@ -31,16 +39,22 @@ const categoryDisplayData = [
   { name: "Dairy", icon: Milk, imageHint: "dairy products", color: "text-sky-400" },
 ];
 
+const carouselImages = [
+  { src: "https://placehold.co/1200x600.png", alt: "Fresh farm produce at a market stall", dataAiHint: "farm produce market" },
+  { src: "https://placehold.co/1200x600.png", alt: "Close up of various fresh vegetables", dataAiHint: "vegetables closeup" },
+  { src: "https://placehold.co/1200x600.png", alt: "Artisanal breads and baked goods", dataAiHint: "bakery goods" },
+];
+
 export default function HomePage() {
   const router = useRouter();
 
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative w-full py-16 md:py-20 overflow-hidden bg-gradient-to-br from-primary/10 via-background to-accent/10">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row gap-8 lg:gap-12 items-start relative z-[1]">
+      <section className="relative w-full overflow-hidden bg-background">
+        <div className="container mx-auto px-0 md:px-4 flex flex-col md:flex-row gap-0 md:gap-8 items-stretch">
           {/* Left Vertical Category List */}
-          <div className="w-full md:w-auto md:max-w-[240px] md:shrink-0 space-y-3 pt-4 md:pt-0 md:border-r md:border-border/70 md:pr-8">
+          <div className="w-full md:w-auto md:max-w-[240px] md:shrink-0 space-y-3 py-8 md:py-16 px-4 md:px-0 md:border-r md:border-border/70 md:pr-8 bg-background md:bg-transparent z-10">
             <h2 className="text-xl font-semibold mb-3 text-left text-foreground">Categories</h2>
             {categoryDisplayData.map((category) => (
               <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
@@ -57,25 +71,51 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Right Main Hero Content */}
-          <div className="flex-1 text-center md:text-left md:pt-8 lg:pt-12">
-            <ShoppingBasket className="w-20 h-20 text-primary mx-auto md:mx-0 mb-4" />
-            <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-foreground">
-              Discover Freshness at <span className="text-primary drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">Vical Farmart</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto md:mx-0 mb-8">
-              Shop the best local produce, artisanal goods, and more. Quality ingredients delivered to your door.
-            </p>
-            <Button
-              size="lg"
-              asChild
-              className="shadow-lg px-10 py-3 text-lg h-auto bg-primary hover:bg-primary/90 text-primary-foreground"
+          {/* Right Main Hero Content with Carousel Background */}
+          <div className="flex-1 relative min-h-[400px] md:min-h-0">
+            <Carousel
+              opts={{ loop: true }}
+              plugins={[Autoplay({ delay: 5000, stopOnInteraction: false })]}
+              className="absolute inset-0 w-full h-full"
             >
-              <Link href="/market">
-                <ShoppingBasket className="mr-2 h-6 w-6" />
-                 Start Shopping
-              </Link>
-            </Button>
+              <CarouselContent className="h-full">
+                {carouselImages.map((image, index) => (
+                  <CarouselItem key={index} className="h-full">
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      layout="fill"
+                      objectFit="cover"
+                      className="brightness-75"
+                      data-ai-hint={image.dataAiHint}
+                    />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {/* Optional: Add Previous/Next buttons if desired, styled for overlay */}
+              {/* <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-black/50 border-none" /> */}
+              {/* <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-black/50 border-none" /> */}
+            </Carousel>
+
+            <div className="relative z-[5] flex flex-col items-center justify-center text-center md:text-left h-full py-16 md:py-20 px-4 md:items-start md:pl-12 lg:pl-16">
+              <ShoppingBasket className="w-20 h-20 text-primary-foreground mx-auto md:mx-0 mb-4 drop-shadow-lg" />
+              <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-primary-foreground drop-shadow-md">
+                Discover Freshness at <span className="text-primary-foreground/80 drop-shadow-[0_1px_1px_rgba(255,255,255,0.2)]">Vical Farmart</span>
+              </h1>
+              <p className="text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto md:mx-0 mb-8 drop-shadow-sm">
+                Shop the best local produce, artisanal goods, and more. Quality ingredients delivered to your door.
+              </p>
+              <Button
+                size="lg"
+                asChild
+                className="shadow-lg px-10 py-3 text-lg h-auto bg-primary hover:bg-primary/90 text-primary-foreground ring-2 ring-primary-foreground/50 hover:ring-primary-foreground"
+              >
+                <Link href="/market">
+                  <ShoppingBasket className="mr-2 h-6 w-6" />
+                   Start Shopping
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
