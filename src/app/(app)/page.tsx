@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ export default function HomePage() {
             </Link>
           </Button>
           <Button size="lg" variant="outline" asChild className="shadow-lg">
-            <Link href="/auth/register">
+            <Link href="/register?role=seller">
               <Tractor className="mr-2 h-5 w-5" /> Become a Seller
             </Link>
           </Button>

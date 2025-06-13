@@ -23,6 +23,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface AuthFormProps {
   type: "login" | "register";
+  defaultRole?: "customer" | "seller";
 }
 
 const loginSchema = z.object({
@@ -44,7 +45,7 @@ const registerSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-export function AuthForm({ type }: AuthFormProps) {
+export function AuthForm({ type, defaultRole }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -55,7 +56,7 @@ export function AuthForm({ type }: AuthFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: isLogin
       ? { email: "", password: "" }
-      : { name: "", email: "", password: "", confirmPassword: "", role: "customer" },
+      : { name: "", email: "", password: "", confirmPassword: "", role: defaultRole || "customer" },
   });
 
   function onSubmit(values: LoginFormValues | RegisterFormValues) {
