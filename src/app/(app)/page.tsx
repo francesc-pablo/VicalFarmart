@@ -13,12 +13,12 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel"; // Make sure this path is correct
+} from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import {
   MoveRight,
   ShoppingBasket,
-  Citrus, Carrot, Wheat, Milk // Lucide icons for categories
+  Citrus, Carrot, Wheat, Milk
 } from 'lucide-react';
 
 // Mock data for featured products
@@ -70,7 +70,7 @@ export default function HomePage() {
           </div>
 
           {/* Right Main Hero Content */}
-          <div className="flex-1 flex flex-col items-center justify-center text-center md:text-left py-8 md:py-16 px-4 md:items-start md:pl-12 lg:pl-16">
+          <div className="flex-1 flex flex-col items-center justify-center text-center md:text-left py-8 md:py-16 px-4 md:pl-6 lg:pl-8">
             <Carousel
               opts={{
                 align: "start",
