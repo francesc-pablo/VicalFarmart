@@ -39,7 +39,7 @@ export default function MyOrdersPage() {
       setCustomerOrders(ordersForCustomer);
     } else if (role !== 'customer') {
       // Redirect if not a customer (or handle appropriately)
-      router.push('/auth/login');
+      router.push('/login');
     }
   }, [router]);
 

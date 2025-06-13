@@ -234,14 +234,14 @@ export function AuthForm({ type }: AuthFormProps) {
             {isLogin ? (
               <p>
                 Don&apos;t have an account?{" "}
-                <Link href="/auth/register" className="font-medium text-primary hover:underline">
+                <Link href="/register" className="font-medium text-primary hover:underline">
                   Register here
                 </Link>
               </p>
             ) : (
               <p>
                 Already have an account?{" "}
-                <Link href="/auth/login" className="font-medium text-primary hover:underline">
+                <Link href="/login" className="font-medium text-primary hover:underline">
                   Login here
                 </Link>
               </p>

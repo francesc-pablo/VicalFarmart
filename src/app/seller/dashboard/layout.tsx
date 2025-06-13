@@ -34,7 +34,7 @@ export default function SellerDashboardLayout({
     localStorage.removeItem("userRole");
     window.dispatchEvent(new Event("authChange")); // Notify other components like header
     toast({ title: "Logged Out", description: "You have been successfully logged out." });
-    router.push("/auth/login");
+    router.push("/login");
   };
 
   // Mock seller user details, in a real app this would come from auth state

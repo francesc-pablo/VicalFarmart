@@ -55,7 +55,7 @@ export function Header() {
     localStorage.removeItem("userRole");
     setAuthStatus({ isAuthenticated: false });
     window.dispatchEvent(new Event("authChange")); // Notify other components
-    router.push("/auth/login");
+    router.push("/login");
   };
 
   const getUserInitials = (name?: string | null) => {
@@ -129,10 +129,10 @@ export function Header() {
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link href="/auth/login">Login</Link>
+                <Link href="/login">Login</Link>
               </Button>
               <Button asChild>
-                <Link href="/auth/register">Register</Link>
+                <Link href="/register">Register</Link>
               </Button>
             </>
           )}
