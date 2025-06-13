@@ -11,18 +11,19 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
+  CarouselNext, // Keep if you want controls, otherwise remove
+  CarouselPrevious, // Keep if you want controls, otherwise remove
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import {
   MoveRight,
   ShoppingBasket,
-  Citrus,
-  Carrot,
-  Wheat,
-  Milk
+  Leaf, // For general Vical Farmart branding, if needed
 } from 'lucide-react';
+
+// Using Lucide icons for categories with added colors
+import { Citrus, Carrot, Wheat, Milk } from 'lucide-react';
+
 
 // Mock data for featured products
 const mockFeaturedProducts: Product[] = [
@@ -40,10 +41,11 @@ const categoryDisplayData = [
 ];
 
 const carouselImages = [
-  { src: "https://placehold.co/1200x600.png", alt: "Fresh farm produce at a market stall", dataAiHint: "farm produce market" },
-  { src: "https://placehold.co/1200x600.png", alt: "Close up of various fresh vegetables", dataAiHint: "vegetables closeup" },
-  { src: "https://placehold.co/1200x600.png", alt: "Artisanal breads and baked goods", dataAiHint: "bakery goods" },
+  { src: "https://placehold.co/1200x600.png", alt: "Fresh farm produce at a market stall", dataAiHint: "farm market" },
+  { src: "https://placehold.co/1200x600.png", alt: "Close up of various fresh vegetables", dataAiHint: "fresh vegetables" },
+  { src: "https://placehold.co/1200x600.png", alt: "Vibrant display of seasonal fruits at a local market", dataAiHint: "fruit display" },
 ];
+
 
 export default function HomePage() {
   const router = useRouter();
