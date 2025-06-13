@@ -7,18 +7,16 @@ import { useRouter } from 'next/navigation';
 import React from 'react'; // Removed useState
 import { Button } from '@/components/ui/button';
 // import { Input } from '@/components/ui/input'; // Removed Input
-import { Card, CardContent } from '@/components/ui/card';
+// import { Card, CardContent } from '@/components/ui/card'; // Card removed for category display
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
 import {
-  // Leaf, // Removed Leaf
-  // Search, // Removed Search
   Apple,
   Carrot,
   Wheat,
   Milk,
   MoveRight,
-  ShoppingBasket, // Added for hero
+  ShoppingBasket, 
 } from 'lucide-react';
 
 // Mock data for featured products
@@ -39,11 +37,10 @@ const categoryDisplayData = [
 
 export default function HomePage() {
   const router = useRouter();
-  // Search term and handler removed, now in Header.tsx
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
+      {/* Hero Section with Integrated Categories */}
       <section className="w-full bg-gradient-to-br from-primary/10 via-background to-accent/10 py-16 md:py-20 text-center">
         <div className="container mx-auto px-4">
           <ShoppingBasket className="w-20 h-20 text-primary mx-auto mb-4" />
@@ -59,24 +56,20 @@ export default function HomePage() {
                Start Shopping
             </Link>
           </Button>
-        </div>
-      </section>
 
-      {/* Categories Section */}
-      <section className="py-12 md:py-16 w-full bg-secondary/10">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold font-headline text-center mb-10">Shop by Category</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {categoryDisplayData.map((category) => (
-              <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} className="block group">
-                <Card className="overflow-hidden shadow-md hover:shadow-xl hover:bg-primary/90 hover:border-primary !border-border transition-all duration-300 transform hover:-translate-y-1 h-full">
-                  <CardContent className="p-6 flex flex-col items-center text-center justify-center h-full aspect-square">
-                    <category.icon className="w-12 h-12 md:w-16 md:h-16 mb-3 text-primary group-hover:text-primary-foreground transition-colors" />
-                    <h3 className="text-lg md:text-xl font-semibold text-card-foreground group-hover:text-primary-foreground transition-colors">{category.name}</h3>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+          {/* Categories as part of Hero */}
+          <div className="mt-12">
+            <h2 className="text-xl font-semibold mb-6">Or browse by category:</h2>
+            <div className="flex flex-wrap justify-center items-center gap-3 md:gap-4">
+              {categoryDisplayData.map((category) => (
+                <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
+                  <Button variant="outline" className="h-auto py-2 px-4 shadow-sm hover:bg-primary/10 hover:border-primary group">
+                    <category.icon className="w-5 h-5 mr-2 text-primary transition-colors" />
+                    <span className="text-sm font-medium text-foreground transition-colors">{category.name}</span>
+                  </Button>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>
