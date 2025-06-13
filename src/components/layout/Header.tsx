@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, UserCircle, LogOut, Briefcase, LayoutDashboardIcon } from 'lucide-react';
+import { ShoppingCart, UserCircle, LogOut, Briefcase, LayoutDashboardIcon, ListOrdered } from 'lucide-react'; // Added ListOrdered
 import React, { useState, useEffect } from 'react';
 import type { UserRole } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -99,9 +99,14 @@ export function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {authStatus.userRole === 'customer' && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/my-orders"><ListOrdered className="mr-2 h-4 w-4" /> My Orders</Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   {authStatus.userRole === 'seller' && (
                      <DropdownMenuItem asChild>

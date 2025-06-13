@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 export const metadata: Metadata = {
   title: 'AgriShop',
   description: 'Connecting farmers and buyers for fresh agricultural produce.',
+  icons: null, // Explicitly state no icons are provided via metadata
 };
 
 export default function RootLayout({
