@@ -102,9 +102,6 @@ export default function HomePage() {
             </Carousel>
             
             <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full justify-center md:justify-start">
-              <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground text-center sm:text-left">
-                Discover Freshness at <span className="text-accent">Vical Farmart</span>
-              </h1>
               <Button
                 size="lg"
                 asChild
@@ -115,6 +112,9 @@ export default function HomePage() {
                   Start Shopping
                 </Link>
               </Button>
+              <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground text-center sm:text-left">
+                Discover Freshness at <span className="text-accent">Vical Farmart</span>
+              </h1>
             </div>
           </div>
         </div>
