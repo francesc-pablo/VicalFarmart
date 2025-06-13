@@ -1,82 +1,135 @@
 
+"use client";
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Leaf, ShoppingBasket } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { ProductCard } from '@/components/products/ProductCard';
+import type { Product } from '@/types';
+import {
+  Leaf,
+  ShoppingBasket,
+  Search,
+  Apple,
+  Carrot,
+  Wheat,
+  Milk,
+  MoveRight,
+} from 'lucide-react';
+
+// Mock data for featured products
+const mockFeaturedProducts: Product[] = [
+  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards" },
+  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 6.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery" },
+  { id: "5", name: "Organic Spinach Bunch", description: "A healthy bunch of organic spinach, great for cooking.", price: 2.99, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 70, sellerId: "seller2", sellerName: "Sunshine Farms" },
+  { id: "4", name: "Free-Range Chicken Eggs", description: "Farm-fresh free-range chicken eggs, rich in color and taste.", price: 5.50, category: "Dairy", imageUrl: "https://placehold.co/400x300.png", stock: 50, sellerId: "seller1", sellerName: "Happy Hens Farm" },
+];
+
+const categoryDisplayData = [
+  { name: "Fruits", icon: Apple, imageHint: "fruits assortment" },
+  { name: "Vegetables", icon: Carrot, imageHint: "vegetables basket" },
+  { name: "Grains", icon: Wheat, imageHint: "grains bread" },
+  { name: "Dairy", icon: Milk, imageHint: "dairy products" },
+];
+
 
 export default function HomePage() {
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/market?search=${encodeURIComponent(searchTerm.trim())}`);
+    } else {
+      router.push('/market');
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center text-center">
-      <header className="py-12 md:py-20">
-        <Leaf className="w-24 h-24 text-primary mx-auto mb-6" />
-        <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tight mb-6">
-          Welcome to <span className="text-primary">AgriShop</span>
-        </h1>
-        <p className="text-lg md:text-xl text-foreground/80 max-w-2xl mx-auto mb-10">
-          Your one-stop platform for fresh agricultural produce directly from local sellers. Discover quality, support farmers, and eat healthy.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" asChild className="shadow-lg">
+    <div className="flex flex-col">
+      {/* Hero Section */}
+      <section className="w-full bg-gradient-to-br from-primary/10 via-background to-accent/10 py-16 md:py-20 text-center">
+        <div className="container mx-auto px-4">
+          <Leaf className="w-20 h-20 text-primary mx-auto mb-4" />
+          <h1 className="font-headline text-4xl md:text-6xl font-bold tracking-tight mb-4">
+            Discover Freshness at <span className="text-primary">AgriShop</span>
+          </h1>
+          <p className="text-lg md:text-xl text-foreground/80 max-w-2xl mx-auto mb-8">
+            Shop the best local produce, artisanal goods, and more. Quality ingredients delivered to your door.
+          </p>
+          <Button size="lg" asChild className="shadow-lg px-10 py-3 text-lg h-auto">
             <Link href="/market">
-              <ShoppingBasket className="mr-2 h-5 w-5" /> Explore Market
-            </Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild className="shadow-lg">
-            <Link href="/register">
-              Create Account
+              <ShoppingBasket className="mr-2 h-6 w-6" /> Start Shopping
             </Link>
           </Button>
         </div>
-      </header>
+      </section>
 
-      <section className="py-12 md:py-20 w-full bg-secondary/30 rounded-lg shadow-inner">
-        <h2 className="font-headline text-3xl md:text-4xl font-semibold mb-12">How It Works</h2>
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto px-4">
-          <div className="flex flex-col items-center p-6 bg-card rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-            <div className="p-4 bg-primary/20 rounded-full mb-4">
-              <ShoppingBasket className="w-10 h-10 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">1. Browse & Discover</h3>
-            <p className="text-foreground/70">Explore a wide variety of fresh produce listed by local farmers.</p>
-          </div>
-          <div className="flex flex-col items-center p-6 bg-card rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-            {/* Adjusted middle item as seller posting is now admin-driven */}
-            <div className="p-4 bg-primary/20 rounded-full mb-4">
-               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user-cog w-10 h-10 text-primary"><path d="M10.74 10.74C12.53 9.49 13.23 7.18 12.35 5.3c-.47-.99-1.35-1.74-2.35-2.07s-2.13-.13-2.91.56c-.98.86-1.53 2.2-1.31 3.58.22 1.38 1.15 2.6 2.41 3.22"/><path d="M12.26 12.26C10.51 13.51 9.8 15.82 10.68 17.7c.47.99 1.35 1.74 2.35 2.07s2.13.13 2.91-.56c.98-.86 1.53-2.2 1.31-3.58-.22-1.38-1.15-2.6-2.41-3.22"/><circle cx="12" cy="12" r="10"/><path d="M18.73 18.73a9 9 0 0 0-13.45 0"/><path d="m19.07 20.3-1.41-1.41M19.07 3.71l-1.41 1.41M4.93 20.3l1.41-1.41M4.93 3.71l1.41 1.41"/><path d="M12 21a9 9 0 0 0 6.73-3.27"/><path d="M3.27 15.73A9 9 0 0 0 12 21"/></svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">2. Admins Curate Sellers</h3>
-            <p className="text-foreground/70">Our admins onboard trusted local sellers and list their produce.</p>
-          </div>
-          <div className="flex flex-col items-center p-6 bg-card rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-            <div className="p-4 bg-primary/20 rounded-full mb-4">
-              <Leaf className="w-10 h-10 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">3. Secure & Fresh Delivery</h3>
-            <p className="text-foreground/70">Get your order delivered fresh, with options for mobile payment or pay on delivery.</p>
+      {/* Search Bar Section */}
+      <section className="py-6 md:py-8 w-full bg-background sticky top-16 z-20 shadow-sm border-b">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <form onSubmit={handleSearchSubmit} className="flex gap-2">
+            <Input
+              type="search"
+              placeholder="Search for apples, bread, tomatoes..."
+              className="flex-grow text-base py-3 px-4 h-12"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search products"
+            />
+            <Button type="submit" size="lg" className="h-12 px-6">
+              <Search className="mr-0 h-5 w-5 md:mr-2" />
+              <span className="hidden md:inline">Search</span>
+            </Button>
+          </form>
+        </div>
+      </section>
+
+      {/* Categories Section */}
+      <section className="py-12 md:py-16 w-full bg-secondary/10">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold font-headline text-center mb-10">Shop by Category</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {categoryDisplayData.map((category) => (
+              <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} className="block group">
+                <Card className="overflow-hidden shadow-md hover:shadow-xl hover:bg-primary/90 hover:border-primary !border-border transition-all duration-300 transform hover:-translate-y-1 h-full">
+                  <CardContent className="p-6 flex flex-col items-center text-center justify-center h-full aspect-square">
+                    <category.icon className="w-12 h-12 md:w-16 md:h-16 mb-3 text-primary group-hover:text-primary-foreground transition-colors" />
+                    <h3 className="text-lg md:text-xl font-semibold text-card-foreground group-hover:text-primary-foreground transition-colors">{category.name}</h3>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="py-12 md:py-20 w-full">
-         <h2 className="font-headline text-3xl md:text-4xl font-semibold mb-12">Featured Produce</h2>
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto px-4">
-            {[
-              { name: "Fresh Apples", image: "https://placehold.co/300x200.png", hint: "apples fruit" },
-              { name: "Organic Carrots", image: "https://placehold.co/300x200.png", hint: "carrots vegetable" },
-              { name: "Ripe Tomatoes", image: "https://placehold.co/300x200.png", hint: "tomatoes vegetable" },
-              { name: "Green Lettuce", image: "https://placehold.co/300x200.png", hint: "lettuce greens" },
-            ].map(item => (
-                <div key={item.name} className="bg-card rounded-lg shadow-md overflow-hidden group">
-                    <Image src={item.image} alt={item.name} width={300} height={200} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" data-ai-hint={item.hint}/>
-                    <div className="p-4">
-                        <h3 className="text-lg font-semibold mb-1">{item.name}</h3>
-                        <Button variant="link" asChild className="p-0 h-auto">
-                            <Link href="/market">View Details</Link>
-                        </Button>
-                    </div>
-                </div>
-            ))}
-         </div>
+      {/* Featured Products Section */}
+      <section className="py-12 md:py-16 w-full">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold font-headline text-center mb-10">Featured Products</h2>
+          {mockFeaturedProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {mockFeaturedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+             <p className="text-center text-muted-foreground">No featured products at the moment. Check back soon!</p>
+          )}
+           <div className="text-center mt-12">
+            <Button size="lg" variant="outline" asChild className="h-auto py-3 px-6 text-base">
+              <Link href="/market">
+                View All Products <MoveRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
       </section>
     </div>
   );
