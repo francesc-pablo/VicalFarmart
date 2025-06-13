@@ -1,3 +1,4 @@
+
 "use client";
 import React from 'react';
 import {
@@ -15,12 +16,32 @@ import { LogOut, UserCircle } from "lucide-react";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { SELLER_DASHBOARD_NAV_ITEMS } from "@/lib/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useRouter } from 'next/navigation'; // Added for logout redirection
+import { useToast } from '@/hooks/use-toast'; // Added for logout toast
 
 export default function SellerDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = () => {
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+    window.dispatchEvent(new Event("authChange")); // Notify other components like header
+    toast({ title: "Logged Out", description: "You have been successfully logged out." });
+    router.push("/auth/login");
+  };
+
+  // Mock seller user details, in a real app this would come from auth state
+  const sellerName = typeof window !== 'undefined' ? localStorage.getItem("userName") || "Seller Name" : "Seller Name";
+  const sellerEmail = typeof window !== 'undefined' ? localStorage.getItem("userEmail") || "seller@example.com" : "seller@example.com";
+  const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase();
+
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen">
@@ -38,14 +59,14 @@ export default function SellerDashboardLayout({
             <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="https://placehold.co/40x40.png" alt="Seller Avatar" data-ai-hint="person face" />
-                <AvatarFallback>SL</AvatarFallback>
+                <AvatarFallback>{getInitials(sellerName)}</AvatarFallback>
               </Avatar>
               <div className="group-data-[collapsible=icon]:hidden">
-                <p className="text-sm font-medium">Seller Name</p>
-                <p className="text-xs text-sidebar-foreground/70">seller@example.com</p>
+                <p className="text-sm font-medium">{sellerName}</p>
+                <p className="text-xs text-sidebar-foreground/70">{sellerEmail}</p>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start mt-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:aspect-square">
+            <Button variant="ghost" className="w-full justify-start mt-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:aspect-square" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4 group-data-[collapsible=icon]:mr-0" />
               <span className="group-data-[collapsible=icon]:hidden">Logout</span>
             </Button>
