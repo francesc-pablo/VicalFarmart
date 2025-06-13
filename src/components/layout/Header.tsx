@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import type { UserRole } from '@/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from '@/lib/utils';
 
 interface AuthStatus {
   isAuthenticated: boolean;
@@ -27,6 +28,7 @@ interface AuthStatus {
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
 
   useEffect(() => {
@@ -67,12 +69,21 @@ export function Header() {
     return name.substring(0, 2).toUpperCase();
   };
 
+  const isMarketActive = pathname === '/market' || pathname.startsWith('/market/') || pathname === '/';
+
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
         <Logo />
         <nav className="flex items-center gap-4">
-          <Link href="/market" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">
+          <Link 
+            href="/market" 
+            className={cn(
+              "text-sm font-medium transition-colors",
+              isMarketActive ? "text-primary font-semibold" : "text-foreground/70 hover:text-foreground"
+            )}
+          >
             Market
           </Link>
           
