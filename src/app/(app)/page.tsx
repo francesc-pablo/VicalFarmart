@@ -81,7 +81,7 @@ export default function HomePage() {
                   delay: 4000,
                 }),
               ]}
-              className="w-full max-w-2xl mx-auto md:mx-0 mb-6 rounded-lg overflow-hidden shadow-xl"
+              className="w-full mb-6 rounded-lg overflow-hidden shadow-xl"
             >
               <CarouselContent>
                 {carouselImages.map((image, index) => (
@@ -101,7 +101,7 @@ export default function HomePage() {
               <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 border-none" />
             </Carousel>
             
-            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full md:w-auto justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full justify-center md:justify-start">
               <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground text-center sm:text-left">
                 Discover Freshness at <span className="text-accent">Vical Farmart</span>
               </h1>
