@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -45,7 +46,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <PageHeader title="Platform Orders" description="Monitor and manage all orders placed on AgriShop." />
+      <PageHeader title="Platform Orders" description="Monitor and manage all orders placed on Vical Farmart." />
       
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <Input

@@ -133,7 +133,7 @@ export function AuthForm({ type }: AuthFormProps) {
             {isLogin ? "Welcome Back!" : "Create Customer Account"}
           </CardTitle>
           <CardDescription>
-            {isLogin ? "Login to access your AgriShop account." : "Join AgriShop to start shopping."}
+            {isLogin ? "Login to access your Vical Farmart account." : "Join Vical Farmart to start shopping."}
           </CardDescription>
         </CardHeader>
         <CardContent>

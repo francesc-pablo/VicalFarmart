@@ -57,7 +57,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <Leaf className="w-20 h-20 text-primary mx-auto mb-4" />
           <h1 className="font-headline text-4xl md:text-6xl font-bold tracking-tight mb-4">
-            Discover Freshness at <span className="text-primary">AgriShop</span>
+            Discover Freshness at <span className="text-primary">Vical Farmart</span>
           </h1>
           <p className="text-lg md:text-xl text-foreground/80 max-w-2xl mx-auto mb-8">
             Shop the best local produce, artisanal goods, and more. Quality ingredients delivered to your door.

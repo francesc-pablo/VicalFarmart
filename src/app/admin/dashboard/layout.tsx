@@ -39,7 +39,7 @@ export default function AdminDashboardLayout({
 
   // Mock admin user details, in a real app this would come from auth state
   const adminName = localStorage.getItem("userName") || "Admin User";
-  const adminEmail = localStorage.getItem("userEmail") || "admin@agrishop.com";
+  const adminEmail = localStorage.getItem("userEmail") || "admin@vicalfarmart.com"; // Updated domain
   const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase();
 
 

@@ -5,7 +5,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <Link href="/" className={`flex items-center gap-2 text-2xl font-bold text-primary ${className}`}>
       <Leaf className="h-8 w-8" />
-      <span className="font-headline">AgriShop</span>
+      <span className="font-headline">Vical Farmart</span>
     </Link>
   );
 }

@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 const mockUsers: User[] = [
   { id: "user001", name: "Alice Wonderland", email: "alice@example.com", role: "customer", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
   { id: "user002", name: "Bob The Farmer", email: "seller@farmfresh.com", role: "seller", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
-  { id: "user003", name: "Charlie Admin", email: "admin@agrishop.com", role: "admin", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
+  { id: "user003", name: "Charlie Admin", email: "admin@vicalfarmart.com", role: "admin", isActive: true, avatarUrl: "https://placehold.co/40x40.png" }, // Updated domain
   { id: "user004", name: "Diana Deactivated", email: "diana@inactive.com", role: "customer", isActive: false, avatarUrl: "https://placehold.co/40x40.png" },
 ];
 
