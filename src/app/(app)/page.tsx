@@ -39,7 +39,7 @@ const categoryDisplayData = [
 ];
 
 const carouselImages = [
-  { src: "https://placehold.co/1300x600.png", alt: "Fresh vegetables at a market stall", dataAiHint: "vegetables market" },
+  { src: "https://images.unsplash.com/photo-1725254721769-45adbff0cd66?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZmFybSUyMG1hcmtldCUyMG1lYXQlMjBhbmQlMjBmaXNofGVufDB8fHx8MTc0OTg2MDA4M3ww&ixlib=rb-4.1.0&q=80&w=1080", alt: "Fresh vegetables at a market stall" },
   { src: "https://images.unsplash.com/photo-1741517287225-7cd8d44b3cf3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxmYXJtJTIwbWFya2V0JTIwcHJvZHVjZXxlbnwwfHx8fDE3NDk4NTk4ODl8MA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Colorful fruits display" },
   { src: "https://placehold.co/1300x600.png", alt: "Artisan bread and grains", dataAiHint: "bread grains" },
 ];
@@ -91,7 +91,7 @@ export default function HomePage() {
                     <Image
                       src={image.src}
                       alt={image.alt}
-                      fill // Changed layout to fill
+                      fill 
                       objectFit="cover"
                       className="brightness-90"
                       data-ai-hint={image.dataAiHint}
