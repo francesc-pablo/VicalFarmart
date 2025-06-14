@@ -18,7 +18,7 @@ import Autoplay from "embla-carousel-autoplay";
 import {
   MoveRight,
   ShoppingBasket,
-  Citrus, Carrot, Wheat, Milk
+  Citrus, Carrot, Wheat, Milk, Archive, Fish
 } from 'lucide-react';
 
 // Mock data for featured products
@@ -34,6 +34,8 @@ const categoryDisplayData = [
   { name: "Vegetables", IconComponent: Carrot, imageHint: "vegetables basket", color: "text-emerald-500" },
   { name: "Grains", IconComponent: Wheat, imageHint: "grains bread", color: "text-amber-500" },
   { name: "Dairy", IconComponent: Milk, imageHint: "dairy products", color: "text-sky-500" },
+  { name: "Meat and Fish", IconComponent: Fish, imageHint: "meat fish", color: "text-red-500" },
+  { name: "Groceries and Provisions", IconComponent: Archive, imageHint: "groceries provisions", color: "text-purple-500" },
 ];
 
 const carouselImages = [

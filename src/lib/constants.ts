@@ -24,7 +24,7 @@ export const ADMIN_DASHBOARD_NAV_ITEMS: NavItem[] = [
 ];
 
 export const PRODUCT_CATEGORIES = [
-  "Fruits", "Vegetables", "Grains", "Dairy", "Meat", "Poultry", "Herbs & Spices", "Other"
+  "Fruits", "Vegetables", "Grains", "Dairy", "Meat", "Poultry", "Herbs & Spices", "Meat and Fish", "Groceries and Provisions", "Other"
 ];
 
 export const PRODUCT_REGIONS = [ // Added product regions
