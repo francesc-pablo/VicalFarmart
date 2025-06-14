@@ -52,7 +52,7 @@ export default function HomePage() {
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative w-full overflow-hidden bg-background">
-        <div className="container mx-auto px-0 md:px-4 flex flex-col md:flex-row gap-0 md:gap-8 items-stretch">
+        <div className="container mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-0 md:gap-8 items-stretch">
           {/* Left Vertical Category List */}
           <div className="w-full md:w-auto md:max-w-[240px] md:shrink-0 space-y-3 py-4 md:py-2 px-4 md:px-0 md:border-r md:border-border/70 md:pr-8 bg-background md:bg-transparent z-10">
             <h2 className="text-xl font-semibold mb-3 text-left text-foreground">Categories</h2>
@@ -124,7 +124,7 @@ export default function HomePage() {
 
       {/* Featured Products Section */}
       <section className="py-12 md:py-16 w-full bg-background">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-8">
           <h2 className="text-3xl font-bold font-headline text-center mb-10 text-foreground">Featured Products</h2>
           {mockFeaturedProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
