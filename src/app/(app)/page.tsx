@@ -80,7 +80,7 @@ export default function HomePage() {
               }}
               plugins={[
                 Autoplay({
-                  delay: 20000,
+                  delay: 40000,
                 }),
               ]}
               className="w-full mb-6 rounded-lg overflow-hidden shadow-xl"
