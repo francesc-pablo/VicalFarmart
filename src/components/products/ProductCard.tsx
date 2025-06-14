@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Product } from '@/types';
@@ -11,6 +12,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const imageHint = product.category.split(/[&\s]+/g).slice(0, 2).join(" ");
   return (
     <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
       <Link href={`/market/${product.id}`} className="block">
@@ -21,7 +23,7 @@ export function ProductCard({ product }: ProductCardProps) {
             width={400}
             height={300}
             className="w-full h-56 object-cover"
-            data-ai-hint={`${product.category} product`}
+            data-ai-hint={imageHint}
           />
         </CardHeader>
       </Link>
