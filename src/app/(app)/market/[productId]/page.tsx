@@ -35,7 +35,7 @@ export default function ProductDetailPage({ params }: { params: { productId: str
 
   // Mock related products (could be same category, different seller, etc.)
   const relatedProducts = mockProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
-
+  const mainImageHint = product.category.split(/[&\s]+/g)[0] + " closeup";
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -52,7 +52,7 @@ export default function ProductDetailPage({ params }: { params: { productId: str
             width={600}
             height={400}
             className="rounded-lg shadow-xl object-cover w-full aspect-[3/2]"
-            data-ai-hint={`${product.category} closeup`}
+            data-ai-hint={mainImageHint}
           />
           {/* Thumbnail images could go here */}
         </div>
@@ -103,23 +103,26 @@ export default function ProductDetailPage({ params }: { params: { productId: str
         <section className="mt-16 pt-8 border-t">
           <h2 className="text-2xl font-semibold mb-6 font-headline">Related Products</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {relatedProducts.map(relProduct => (
-              <Card key={relProduct.id} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                 <Link href={`/market/${relProduct.id}`} className="block">
-                    <Image src={relProduct.imageUrl || "https://placehold.co/300x200.png"} alt={relProduct.name} width={300} height={200} className="w-full h-48 object-cover" data-ai-hint={`${relProduct.category} product`} />
-                 </Link>
-                <CardContent className="p-4">
-                   <Link href={`/market/${relProduct.id}`} className="block">
-                     <CardTitle className="text-lg font-semibold hover:text-primary transition-colors line-clamp-1">{relProduct.name}</CardTitle>
-                   </Link>
-                  <p className="text-md font-semibold text-primary mt-1">${relProduct.price.toFixed(2)}</p>
-                   {relProduct.region && <Badge variant="outline" size="sm" className="mt-2">Region: {relProduct.region}</Badge>}
-                  <Button variant="outline" size="sm" className="w-full mt-3" asChild>
-                     <Link href={`/market/${relProduct.id}`}>View</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {relatedProducts.map(relProduct => {
+              const relatedImageHint = relProduct.category.split(/[&\s]+/g).slice(0, 2).join(" ");
+              return (
+                <Card key={relProduct.id} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <Link href={`/market/${relProduct.id}`} className="block">
+                      <Image src={relProduct.imageUrl || "https://placehold.co/300x200.png"} alt={relProduct.name} width={300} height={200} className="w-full h-48 object-cover" data-ai-hint={relatedImageHint} />
+                  </Link>
+                  <CardContent className="p-4">
+                    <Link href={`/market/${relProduct.id}`} className="block">
+                      <CardTitle className="text-lg font-semibold hover:text-primary transition-colors line-clamp-1">{relProduct.name}</CardTitle>
+                    </Link>
+                    <p className="text-md font-semibold text-primary mt-1">${relProduct.price.toFixed(2)}</p>
+                    {relProduct.region && <Badge variant="outline" size="sm" className="mt-2">Region: {relProduct.region}</Badge>}
+                    <Button variant="outline" size="sm" className="w-full mt-3" asChild>
+                      <Link href={`/market/${relProduct.id}`}>View</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </section>
       )}
