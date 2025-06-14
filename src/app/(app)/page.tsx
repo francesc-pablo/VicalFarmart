@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -79,7 +80,7 @@ export default function HomePage() {
               }}
               plugins={[
                 Autoplay({
-                  delay: 4000,
+                  delay: 20000,
                 }),
               ]}
               className="w-full mb-6 rounded-lg overflow-hidden shadow-xl"
