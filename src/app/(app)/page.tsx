@@ -40,7 +40,7 @@ const categoryDisplayData = [
 
 const carouselImages = [
   { src: "https://placehold.co/1300x600.png", alt: "Fresh vegetables at a market stall", dataAiHint: "vegetables market" },
-  { src: "https://placehold.co/1300x600.png", alt: "Colorful fruits display", dataAiHint: "fruits display" },
+  { src: "https://images.unsplash.com/photo-1592924802543-809bfeee53fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcmVzaCUyMHZlZ2V0YWJsZXN8ZW58MHx8fHwxNzQ5ODYwNjg4fDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Colorful fruits display" },
   { src: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmcmVzaCUyMGZydWl0c3xlbnwwfHx8fDE3NDk4NjAzOTN8MA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Artisan bread and grains" },
 ];
 
@@ -107,7 +107,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 asChild
-                className="shadow-md px-8 py-3 text-base h-auto shrink-0" 
+                className="shadow-md px-8 py-3 text-base h-auto shrink-0 order-first sm:order-none" 
               >
                 <Link href="/market">
                   <ShoppingBasket className="mr-2 h-5 w-5" />
