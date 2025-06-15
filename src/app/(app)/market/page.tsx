@@ -88,13 +88,15 @@ export default function MarketPage() {
 
       {/* Page-level filters: these can refine or override what was set by header search */}
       <div className="flex flex-col sm:flex-row gap-4 mb-8 sticky top-16 bg-background py-4 z-10 shadow-sm rounded-lg p-4 border">
-        <Input
-          placeholder="Refine search on this page..."
-          value={searchTerm} // Reflects URL param or page input
-          onChange={(e) => handlePageSearchTermChange(e.target.value)}
-          className="flex-grow"
-          icon={<Search className="h-4 w-4 text-muted-foreground" />}
-        />
+        <div className="flex-grow relative flex items-center">
+          <Input
+            placeholder="Refine search on this page..."
+            value={searchTerm} 
+            onChange={(e) => handlePageSearchTermChange(e.target.value)}
+            className="w-full pr-10" 
+          />
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        </div>
         <Select value={categoryFilter} onValueChange={handlePageCategoryChange}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Filter by category" />
