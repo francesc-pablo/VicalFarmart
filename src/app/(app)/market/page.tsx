@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ProductCard } from "@/components/products/ProductCard";
@@ -33,24 +33,39 @@ export default function MarketPage() {
   const searchParams = useSearchParams();
   const router = useRouter(); 
   
-  // Derive initial values from URL. These act as the "source of truth" from the URL.
-  // They will only change if the URL parameters themselves change.
-  const initialSearchFromUrl = searchParams.get('search') || "";
-  const initialCategoryFromUrl = searchParams.get('category') || "All";
-  const initialRegionFromUrl = searchParams.get('region') || "All";
+  // Extract search parameters directly. These values change only when the URL's query string changes.
+  const querySearch = searchParams.get('search') || "";
+  const queryCategory = searchParams.get('category') || "All";
+  const queryRegion = searchParams.get('region') || "All";
 
-  // Local state for filters, initialized from the URL-derived values.
-  const [searchTerm, setSearchTerm] = useState(initialSearchFromUrl);
-  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFromUrl);
-  const [regionFilter, setRegionFilter] = useState<string>(initialRegionFromUrl);
+  // Local state for filters, initialized from the current URL parameters.
+  const [searchTerm, setSearchTerm] = useState(querySearch);
+  const [categoryFilter, setCategoryFilter] = useState<string>(queryCategory);
+  const [regionFilter, setRegionFilter] = useState<string>(queryRegion);
 
-  // Effect to synchronize local state when the URL-derived initial values change.
-  // This happens if the user navigates with new URL params (e.g., from header search, back/forward).
+  // Effect to update local searchTerm state if the 'search' URL query parameter changes.
   useEffect(() => {
-    setSearchTerm(initialSearchFromUrl);
-    setCategoryFilter(initialCategoryFromUrl);
-    setRegionFilter(initialRegionFromUrl);
-  }, [initialSearchFromUrl, initialCategoryFromUrl, initialRegionFromUrl]);
+    // Only update if the URL parameter is different from the current state,
+    // to avoid resetting user input unnecessarily.
+    if (querySearch !== searchTerm) {
+      setSearchTerm(querySearch);
+    }
+  }, [querySearch, searchTerm]); // Include searchTerm in deps for correct comparison
+
+  // Effect to update local categoryFilter state if the 'category' URL query parameter changes.
+  useEffect(() => {
+    if (queryCategory !== categoryFilter) {
+      setCategoryFilter(queryCategory);
+    }
+  }, [queryCategory, categoryFilter]);
+
+  // Effect to update local regionFilter state if the 'region' URL query parameter changes.
+  useEffect(() => {
+    if (queryRegion !== regionFilter) {
+      setRegionFilter(queryRegion);
+    }
+  }, [queryRegion, regionFilter]);
+
 
   const filteredProducts = mockProducts
     .filter(product => categoryFilter === "All" || product.category === categoryFilter)
@@ -62,17 +77,17 @@ export default function MarketPage() {
       (product.region && product.region.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-  const handlePageSearchTermChange = useCallback((value: string) => {
-    setSearchTerm(value); // Directly update local state. Does not change URL.
-  }, []); // setSearchTerm is stable
+  const handlePageSearchTermChange = (value: string) => {
+    setSearchTerm(value); // Directly update local state. Does not change URL here.
+  };
 
-  const handlePageCategoryChange = useCallback((value: string) => {
-    setCategoryFilter(value); // Directly update local state. Does not change URL for now.
+  const handlePageCategoryChange = (value: string) => {
+    setCategoryFilter(value); // Directly update local state.
     // If you want category changes to update URL & re-trigger effect:
     // const newParams = new URLSearchParams(searchParams.toString());
     // if (value && value !== "All") newParams.set('category', value); else newParams.delete('category');
     // router.push(`/market?${newParams.toString()}`);
-  }, []); // setCategoryFilter is stable
+  };
   
   return (
     <div>
