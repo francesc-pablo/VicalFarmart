@@ -61,7 +61,7 @@ export default function HomePage() {
                 <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start text-sm font-normal text-muted-foreground hover:text-primary hover:bg-primary/5 focus-visible:text-primary"
+                    className="w-full justify-start text-sm font-normal text-muted-foreground hover:text-primary hover:bg-primary/10 focus-visible:text-primary"
                   >
                     <category.IconComponent className={`w-5 h-5 mr-2.5 shrink-0 ${category.color} transition-colors`} />
                     {category.name}
@@ -72,7 +72,7 @@ export default function HomePage() {
           </div>
 
           {/* Right Main Hero Content */}
-          <div className="w-full flex-1 flex flex-col items-center justify-center text-center md:text-left px-4 md:px-0">
+          <div className="w-full flex-1 flex flex-col items-center justify-center text-center md:text-left md:px-0">
             <Carousel
               opts={{
                 align: "start",
