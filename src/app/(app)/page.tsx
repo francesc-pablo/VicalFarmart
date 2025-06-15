@@ -38,7 +38,7 @@ const categoryDisplayData = [
   { name: "Groceries & Provisions", IconComponent: Archive, imageHint: "groceries provisions", color: "text-purple-500" },
 ];
 
-const carouselImages = [
+const carouselImages = [ 
   { src: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmcmVzaCUyMGZydWl0c3xlbnwwfHx8fDE3NDk4NjAzOTN8MA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Artisan bread and grains" },
   { src: "https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxncm9jZXJpZXN8ZW58MHx8fHwxNzQ5ODYxNzAxfDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Fresh vegetables at a market stall" },
   { src: "https://images.unsplash.com/photo-1592924802543-809bfeee53fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcmVzaCUyMHZlZ2V0YWJsZXN8ZW58MHx8fHwxNzQ5ODYwNjg4fDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Colorful fruits display" },
@@ -51,26 +51,28 @@ export default function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative w-full overflow-hidden bg-background">
-        <div className="container mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-6 md:gap-8 items-stretch">
+      <section className="relative w-full py-8 md:py-12 overflow-hidden bg-background">
+        <div className="container mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-8 items-start">
           {/* Left Vertical Category List */}
-          <div className="w-full md:w-72 lg:w-80 md:shrink-0 bg-card p-6 rounded-xl shadow-lg flex flex-col space-y-3">
-            <h2 className="text-xl font-bold font-headline mb-4 text-left text-card-foreground">Shop by Category</h2>
-            {categoryDisplayData.map((category) => (
-              <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start h-auto py-3.5 px-4 text-base font-medium rounded-lg text-card-foreground hover:bg-primary/10 hover:text-primary focus-visible:bg-primary/10 focus-visible:text-primary focus-visible:ring-1 focus-visible:ring-primary transition-all duration-150 group"
-                >
-                  <category.IconComponent className={`w-6 h-6 mr-3 shrink-0 ${category.color} transition-colors`} />
-                  <span className="text-sm font-medium">{category.name}</span>
-                </Button>
-              </Link>
-            ))}
+          <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-6">
+            <h2 className="text-lg font-semibold mb-3 text-left">Categories</h2>
+            <div className="space-y-1.5">
+              {categoryDisplayData.map((category) => (
+                <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-sm font-normal text-muted-foreground hover:text-primary hover:bg-primary/5 focus-visible:text-primary"
+                  >
+                    <category.IconComponent className={`w-5 h-5 mr-2.5 shrink-0 ${category.color} transition-colors`} />
+                    {category.name}
+                  </Button>
+                </Link>
+              ))}
+            </div>
           </div>
 
           {/* Right Main Hero Content */}
-          <div className="w-full flex-1 flex flex-col items-center justify-center text-center md:text-left py-4 md:py-0">
+          <div className="w-full flex-1 flex flex-col items-center justify-center text-center md:text-left px-4 md:px-0">
             <Carousel
               opts={{
                 align: "start",
@@ -78,10 +80,10 @@ export default function HomePage() {
               }}
               plugins={[
                 Autoplay({
-                  delay: 40000,
+                  delay: 40000, 
                 }),
               ]}
-              className="w-full mb-6 rounded-lg overflow-hidden shadow-xl"
+              className="w-full mb-8 rounded-lg overflow-hidden shadow-xl"
             >
               <CarouselContent>
                 {carouselImages.map((image, index) => (
