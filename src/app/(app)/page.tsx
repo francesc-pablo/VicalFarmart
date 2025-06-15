@@ -52,17 +52,15 @@ export default function HomePage() {
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative w-full overflow-hidden bg-background">
-        <div className="container mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-0 md:gap-8 items-stretch">
+        <div className="container mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-6 md:gap-8 items-stretch">
           {/* Left Vertical Category List */}
-          <div className="w-full md:w-auto md:max-w-[240px] md:shrink-0 space-y-3 py-4 md:py-2 px-4 md:px-0 md:border-r md:border-border/70 md:pr-8 bg-background md:bg-transparent z-10">
-            <h2 className="text-xl font-semibold mb-3 text-left text-foreground">Categories</h2>
+          <div className="w-full md:w-72 lg:w-80 md:shrink-0 bg-card p-6 rounded-xl shadow-lg flex flex-col space-y-3">
+            <h2 className="text-xl font-bold font-headline mb-4 text-left text-card-foreground">Shop by Category</h2>
             {categoryDisplayData.map((category) => (
               <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
                 <Button
-                  variant="outline"
-                  className="w-full justify-start h-auto py-3 px-4 shadow-sm
-                             bg-background/80 hover:bg-accent/10 border-border
-                             text-foreground group"
+                  variant="ghost"
+                  className="w-full justify-start h-auto py-3.5 px-4 text-base font-medium rounded-lg text-card-foreground hover:bg-primary/10 hover:text-primary focus-visible:bg-primary/10 focus-visible:text-primary focus-visible:ring-1 focus-visible:ring-primary transition-all duration-150 group"
                 >
                   <category.IconComponent className={`w-6 h-6 mr-3 shrink-0 ${category.color} transition-colors`} />
                   <span className="text-sm font-medium">{category.name}</span>
@@ -72,7 +70,7 @@ export default function HomePage() {
           </div>
 
           {/* Right Main Hero Content */}
-          <div className="w-full flex-1 flex flex-col items-center justify-center text-center md:text-left py-4 md:py-2 px-4 md:pl-6 lg:pl-8">
+          <div className="w-full flex-1 flex flex-col items-center justify-center text-center md:text-left py-4 md:py-0">
             <Carousel
               opts={{
                 align: "start",
