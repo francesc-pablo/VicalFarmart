@@ -51,8 +51,8 @@ export default function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative w-full pt-4 pb-8 md:pt-6 md:pb-12 overflow-hidden bg-background">
-        <div className="container mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-8 items-start">
+      <section className="relative w-full pt-2 pb-8 md:pt-4 md:pb-12 overflow-hidden bg-background">
+        <div className="container mx-auto px-8 flex flex-col md:flex-row gap-8 items-start">
           {/* Left Vertical Category List */}
           <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-6">
             <h2 className="text-lg font-semibold mb-3 text-left">Categories</h2>
