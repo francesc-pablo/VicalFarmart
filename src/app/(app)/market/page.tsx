@@ -1,7 +1,7 @@
 
 "use client";
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import { useSearchParams, useRouter } from 'next/navigation'; // Added useRouter
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ProductCard } from "@/components/products/ProductCard";
 import type { Product } from "@/types";
@@ -31,6 +31,7 @@ const mockProducts: Product[] = [
 
 export default function MarketPage() {
   const searchParams = useSearchParams();
+  const router = useRouter(); // Added for potential future use with URL updates
   
   const initialSearchTerm = searchParams.get('search') || "";
   const initialCategoryFilter = searchParams.get('category') || "All";
@@ -38,18 +39,20 @@ export default function MarketPage() {
 
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFilter);
-  const [regionFilter, setRegionFilter] = useState<string>(initialRegionFilter); // Page-level region filter, initialized by URL
+  const [regionFilter, setRegionFilter] = useState<string>(initialRegionFilter);
+
+  const searchParamsString = searchParams.toString();
 
   useEffect(() => {
     // Update filters if URL parameters change (e.g., from header search)
     setSearchTerm(searchParams.get('search') || "");
     setCategoryFilter(searchParams.get('category') || "All");
     setRegionFilter(searchParams.get('region') || "All");
-  }, [searchParams]);
+  }, [searchParamsString]); // Depend on the string representation of searchParams
 
   const filteredProducts = mockProducts
     .filter(product => categoryFilter === "All" || product.category === categoryFilter)
-    .filter(product => regionFilter === "All" || !product.region || product.region === regionFilter) // Handle products without a region
+    .filter(product => regionFilter === "All" || !product.region || product.region === regionFilter)
     .filter(product =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,28 +60,22 @@ export default function MarketPage() {
       (product.region && product.region.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-  // Function to update URL and internal state for page-level filters
-  // This is for the filters *on this page*, not the header search
-  const handlePageSearchTermChange = (value: string) => {
+  const handlePageSearchTermChange = useCallback((value: string) => {
     setSearchTerm(value);
     // Optionally, update URL if you want page-level search to reflect in URL immediately
     // const newParams = new URLSearchParams(searchParams.toString());
     // if (value) newParams.set('search', value); else newParams.delete('search');
-    // router.push(`/market?${newParams.toString()}`); // Requires useRouter
-  };
+    // router.push(`/market?${newParams.toString()}`);
+  }, []); // setSearchTerm is stable
 
-  const handlePageCategoryChange = (value: string) => {
+  const handlePageCategoryChange = useCallback((value: string) => {
     setCategoryFilter(value);
     // Optionally, update URL
     // const newParams = new URLSearchParams(searchParams.toString());
     // if (value && value !== "All") newParams.set('category', value); else newParams.delete('category');
-    // router.push(`/market?${newParams.toString()}`); // Requires useRouter
-  };
+    // router.push(`/market?${newParams.toString()}`);
+  }, []); // setCategoryFilter is stable
   
-  // Note: Region filtering is primarily controlled by the header search.
-  // This page just consumes the region from the URL.
-  // If you wanted a page-level region filter distinct from the header, you'd add another Select here.
-
   return (
     <div>
       <PageHeader
@@ -86,7 +83,6 @@ export default function MarketPage() {
         description="Discover fresh produce and artisanal goods from local sellers."
       />
 
-      {/* Page-level filters: these can refine or override what was set by header search */}
       <div className="flex flex-col sm:flex-row gap-4 mb-8 sticky top-16 bg-background py-4 z-10 shadow-sm rounded-lg p-4 border">
         <div className="flex-grow relative flex items-center">
           <Input
@@ -108,7 +104,6 @@ export default function MarketPage() {
             ))}
           </SelectContent>
         </Select>
-        {/* Display the active region filter from URL (set by header) */}
         <div className="p-2 border rounded-md text-sm bg-muted min-w-[180px] text-center">
           Region: <span className="font-semibold">{regionFilter === "All" ? "All Regions" : regionFilter}</span>
         </div>
