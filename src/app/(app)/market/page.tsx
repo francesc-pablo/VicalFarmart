@@ -1,7 +1,7 @@
 
 "use client";
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
-import { useSearchParams, useRouter } from 'next/navigation'; // Added useRouter
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ProductCard } from "@/components/products/ProductCard";
 import type { Product } from "@/types";
@@ -31,24 +31,26 @@ const mockProducts: Product[] = [
 
 export default function MarketPage() {
   const searchParams = useSearchParams();
-  const router = useRouter(); // Added for potential future use with URL updates
+  const router = useRouter(); 
   
-  const initialSearchTerm = searchParams.get('search') || "";
-  const initialCategoryFilter = searchParams.get('category') || "All";
-  const initialRegionFilter = searchParams.get('region') || "All";
+  // Derive initial values from URL. These act as the "source of truth" from the URL.
+  // They will only change if the URL parameters themselves change.
+  const initialSearchFromUrl = searchParams.get('search') || "";
+  const initialCategoryFromUrl = searchParams.get('category') || "All";
+  const initialRegionFromUrl = searchParams.get('region') || "All";
 
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
-  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFilter);
-  const [regionFilter, setRegionFilter] = useState<string>(initialRegionFilter);
+  // Local state for filters, initialized from the URL-derived values.
+  const [searchTerm, setSearchTerm] = useState(initialSearchFromUrl);
+  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFromUrl);
+  const [regionFilter, setRegionFilter] = useState<string>(initialRegionFromUrl);
 
-  const searchParamsString = searchParams.toString();
-
+  // Effect to synchronize local state when the URL-derived initial values change.
+  // This happens if the user navigates with new URL params (e.g., from header search, back/forward).
   useEffect(() => {
-    // Update filters if URL parameters change (e.g., from header search)
-    setSearchTerm(searchParams.get('search') || "");
-    setCategoryFilter(searchParams.get('category') || "All");
-    setRegionFilter(searchParams.get('region') || "All");
-  }, [searchParamsString]); // Depend on the string representation of searchParams
+    setSearchTerm(initialSearchFromUrl);
+    setCategoryFilter(initialCategoryFromUrl);
+    setRegionFilter(initialRegionFromUrl);
+  }, [initialSearchFromUrl, initialCategoryFromUrl, initialRegionFromUrl]);
 
   const filteredProducts = mockProducts
     .filter(product => categoryFilter === "All" || product.category === categoryFilter)
@@ -61,16 +63,12 @@ export default function MarketPage() {
     );
 
   const handlePageSearchTermChange = useCallback((value: string) => {
-    setSearchTerm(value);
-    // Optionally, update URL if you want page-level search to reflect in URL immediately
-    // const newParams = new URLSearchParams(searchParams.toString());
-    // if (value) newParams.set('search', value); else newParams.delete('search');
-    // router.push(`/market?${newParams.toString()}`);
+    setSearchTerm(value); // Directly update local state. Does not change URL.
   }, []); // setSearchTerm is stable
 
   const handlePageCategoryChange = useCallback((value: string) => {
-    setCategoryFilter(value);
-    // Optionally, update URL
+    setCategoryFilter(value); // Directly update local state. Does not change URL for now.
+    // If you want category changes to update URL & re-trigger effect:
     // const newParams = new URLSearchParams(searchParams.toString());
     // if (value && value !== "All") newParams.set('category', value); else newParams.delete('category');
     // router.push(`/market?${newParams.toString()}`);
