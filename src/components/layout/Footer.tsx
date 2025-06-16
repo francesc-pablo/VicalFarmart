@@ -1,6 +1,7 @@
 
 import Link from 'next/link';
-import { Logo } from './Logo'; // Assuming you might want the logo here too
+import { Logo } from './Logo'; 
+import { Separator } from "@/components/ui/separator";
 
 export function Footer() {
   const accountLinks = [
@@ -17,10 +18,10 @@ export function Footer() {
   ];
 
   const companyLinks = [
-    { href: "#", text: "About Vical Farmart" }, // Placeholder
-    { href: "#", text: "Contact Us" }, // Placeholder
-    { href: "#", text: "Terms of Service" }, // Placeholder
-    { href: "#", text: "Privacy Policy" }, // Placeholder
+    { href: "#", text: "About Vical Farmart" }, // Placeholder for now
+    { href: "/contact-us", text: "Contact Us" },
+    { href: "#", text: "Terms of Service" }, // Placeholder for now
+    { href: "/privacy-policy", text: "Privacy Policy" },
   ];
 
 
@@ -90,10 +91,3 @@ export function Footer() {
   );
 }
 
-// Ensure Separator is imported if not already globally available or used elsewhere
-// If not, you might need to add: import { Separator } from "@/components/ui/separator";
-// However, since Footer.tsx is a component, it's better to ensure Separator is available.
-// For this example, I'll assume Separator is handled if needed. If it causes an error, we can import it.
-// To be safe, let's ensure the Separator component is available by adding an import.
-
-import { Separator } from "@/components/ui/separator";
