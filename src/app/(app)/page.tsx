@@ -4,6 +4,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
@@ -18,8 +19,18 @@ import Autoplay from "embla-carousel-autoplay";
 import {
   MoveRight,
   ShoppingBasket,
-  Citrus, Carrot, Wheat, Milk, Archive, Fish
+  Citrus, Carrot, Wheat, Milk, Archive, Fish, Search as SearchIcon
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
+
 
 // Mock data for featured products
 const mockFeaturedProducts: Product[] = [
@@ -44,15 +55,48 @@ const carouselImages = [
   { src: "https://images.unsplash.com/photo-1592924802543-809bfeee53fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcmVzaCUyMHZlZ2V0YWJsZXN8ZW58MHx8fHwxNzQ5ODYwNjg4fDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Colorful fruits display", dataAiHint: "fresh vegetables" },
 ];
 
+const NO_REGION_SELECTED = "All";
+const NO_TOWN_SELECTED = "All";
 
 export default function HomePage() {
   const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<string>(NO_REGION_SELECTED);
+  const [selectedTown, setSelectedTown] = useState<string>(NO_TOWN_SELECTED);
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
+      setAvailableTowns(GHANA_REGIONS_AND_TOWNS[selectedRegion] || []);
+      setSelectedTown(NO_TOWN_SELECTED); // Reset town when region changes
+    } else {
+      setAvailableTowns([]);
+      setSelectedTown(NO_TOWN_SELECTED); // Reset town if "All Regions" is selected
+    }
+  }, [selectedRegion]);
+
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const queryParams = new URLSearchParams();
+    if (searchTerm.trim()) {
+      queryParams.set('search', searchTerm.trim());
+    }
+    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
+      queryParams.set('region', selectedRegion);
+    }
+    // Only add town if a specific region is selected and a specific town (not "All Towns") is chosen
+    if (selectedTown && selectedTown !== NO_TOWN_SELECTED && selectedRegion !== NO_REGION_SELECTED && availableTowns.includes(selectedTown)) {
+      queryParams.set('town', selectedTown);
+    }
+    router.push(`/market?${queryParams.toString()}`);
+  };
+
 
   return (
     <div className="flex flex-col">
       <section className="relative w-full pb-8 md:pb-12 overflow-hidden bg-background">
         <div className="container mx-auto px-12 flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-6">
+          <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-6 pt-2">
             <h2 className="text-lg font-semibold mb-3 text-left">Browse Categories</h2>
             <div className="space-y-1.5">
               {categoryDisplayData.map((category) => (
@@ -100,20 +144,62 @@ export default function HomePage() {
               <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 border-none" />
             </Carousel>
 
-            <div className="w-full flex flex-col sm:flex-row items-center gap-4 md:gap-6 justify-center md:justify-start">
-              <Button
-                size="lg"
-                asChild
-                className="shadow-md px-8 py-3 text-base h-auto shrink-0 order-first sm:order-none"
-              >
-                <Link href="/market">
-                  <ShoppingBasket className="mr-2 h-5 w-5" />
-                  Start Shopping
-                </Link>
-              </Button>
-              <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground text-center sm:text-left">
+            <div className="w-full text-center md:text-left">
+              <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3">
                 Discover Freshness at <span className="text-accent">Vical Farmart</span>
               </h1>
+              <p className="text-lg text-muted-foreground mb-6">
+                Search for fresh produce, artisanal goods, and more from local sellers.
+              </p>
+
+              <form onSubmit={handleSearchSubmit} className="w-full max-w-3xl mx-auto md:mx-0 space-y-4 bg-card p-6 rounded-lg shadow-lg border">
+                  <Input
+                    type="search"
+                    placeholder="Search e.g., organic apples, fresh tomatoes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="h-12 text-base"
+                    aria-label="Search products"
+                  />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                    <SelectTrigger className="h-11 text-base">
+                      <SelectValue placeholder="Select Region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_REGION_SELECTED}>All Regions</SelectItem>
+                      {PRODUCT_REGIONS.map((region) => (
+                        <SelectItem key={region} value={region}>
+                          {region}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={selectedTown}
+                    onValueChange={setSelectedTown}
+                    disabled={selectedRegion === NO_REGION_SELECTED || availableTowns.length === 0}
+                  >
+                    <SelectTrigger className="h-11 text-base">
+                      <SelectValue placeholder="Select Town" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_TOWN_SELECTED}>All Towns</SelectItem>
+                      {availableTowns.map((town) => (
+                        <SelectItem key={town} value={town}>
+                          {town}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button type="submit" size="lg" className="w-full h-12 text-lg shadow-md">
+                  <SearchIcon className="mr-2 h-5 w-5" /> Search Market
+                </Button>
+              </form>
             </div>
           </div>
         </div>
