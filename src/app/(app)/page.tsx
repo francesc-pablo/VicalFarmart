@@ -61,9 +61,9 @@ export default function HomePage() {
                 <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start text-sm font-normal text-muted-foreground hover:text-primary hover:bg-primary/10 focus-visible:text-primary border border-primary"
+                    className="w-full justify-start text-base font-normal text-muted-foreground hover:text-primary hover:bg-primary/10 focus-visible:text-primary border border-primary py-3"
                   >
-                    <category.IconComponent className={`w-5 h-5 mr-2.5 shrink-0 ${category.color} transition-colors`} />
+                    <category.IconComponent className={`w-6 h-6 mr-2.5 shrink-0 ${category.color} transition-colors`} />
                     {category.name}
                   </Button>
                 </Link>
