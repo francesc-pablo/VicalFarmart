@@ -108,15 +108,17 @@ export default function HomePage() {
             </Carousel>
 
             <div className="w-full text-center md:text-left">
-              <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3">
-                Discover Freshness at <span className="text-accent">Vical Farmart</span>
-              </h1>
+              <div className="flex flex-col md:flex-row items-center justify-between mb-3 md:mb-6">
+                <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3 md:mb-0">
+                  Discover Freshness at <span className="text-accent">Vical Farmart</span>
+                </h1>
+                <Button size="lg" className="h-12 text-lg shadow-md mt-2 md:mt-0" asChild>
+                  <Link href="/market">Explore Market <MoveRight className="ml-2 h-5 w-5" /></Link>
+                </Button>
+              </div>
               <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto md:mx-0">
                 Find the best local produce, artisanal goods, and more. Your direct link to quality farm products.
               </p>
-              <Button size="lg" className="h-12 text-lg shadow-md" asChild>
-                <Link href="/market">Explore Market <MoveRight className="ml-2 h-5 w-5" /></Link>
-              </Button>
             </div>
           </div>
         </div>
