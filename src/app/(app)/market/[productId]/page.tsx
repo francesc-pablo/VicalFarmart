@@ -14,9 +14,9 @@ import { Input } from '@/components/ui/input';
 
 // Mock data for products
 const mockProducts: Product[] = [
-  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally using sustainable farming practices. Each apple is hand-picked to ensure the highest quality. Enjoy the natural goodness!", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/600x400.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "North", currency: "USD" },
-  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads, sauces, and sandwiches. These tomatoes are grown in rich soil and picked at peak ripeness for maximum taste.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/600x400.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "South", currency: "USD" },
-  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 6.00, category: "Grains", imageUrl: "https://placehold.co/600x400.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "West", currency: "GHS" },
+  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally using sustainable farming practices. Each apple is hand-picked to ensure the highest quality. Enjoy the natural goodness!", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/600x400.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", currency: "USD" },
+  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads, sauces, and sandwiches. These tomatoes are grown in rich soil and picked at peak ripeness for maximum taste.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/600x400.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", currency: "USD" },
+  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 6.00, category: "Grains", imageUrl: "https://placehold.co/600x400.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", currency: "GHS" },
 ];
 
 const getCurrencySymbol = (currencyCode?: string) => {

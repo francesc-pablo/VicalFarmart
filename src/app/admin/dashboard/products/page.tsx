@@ -28,9 +28,9 @@ const mockSellers: User[] = [
 ];
 
 const mockInitialProducts: Product[] = [
-  { id: "prod_admin_1", name: "Organic Fuji Apples (Admin)", description: "Crisp and sweet organic Fuji apples.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "North", currency: "USD" },
-  { id: "prod_admin_2", name: "Vine-Ripened Tomatoes (Admin)", description: "Juicy vine-ripened tomatoes.", price: 25.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "South", currency: "GHS" },
-  { id: "prod_admin_3", name: "Sourdough Bread (Admin)", description: "Artisanal sourdough bread.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "West", currency: "GHS" },
+  { id: "prod_admin_1", name: "Organic Fuji Apples (Admin)", description: "Crisp and sweet organic Fuji apples.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", currency: "USD" },
+  { id: "prod_admin_2", name: "Vine-Ripened Tomatoes (Admin)", description: "Juicy vine-ripened tomatoes.", price: 25.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", currency: "GHS" },
+  { id: "prod_admin_3", name: "Sourdough Bread (Admin)", description: "Artisanal sourdough bread.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", currency: "GHS" },
 ];
 
 

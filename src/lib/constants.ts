@@ -25,5 +25,21 @@ export const PRODUCT_CATEGORIES = [
 ];
 
 export const PRODUCT_REGIONS = [
-  "North", "South", "East", "West", "Central"
+  "Ahafo",
+  "Ashanti",
+  "Bono",
+  "Bono East",
+  "Central",
+  "Eastern",
+  "Greater Accra",
+  "North East",
+  "Northern",
+  "Oti",
+  "Savannah",
+  "Upper East",
+  "Upper West",
+  "Volta",
+  "Western",
+  "Western North"
 ];
+
