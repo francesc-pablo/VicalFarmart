@@ -55,7 +55,7 @@ export default function HomePage() {
         <div className="container mx-auto px-12 flex flex-col md:flex-row gap-8 items-start">
           {/* Left Vertical Category List */}
           <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-6">
-            <h2 className="text-lg font-semibold mb-3 text-left">Categories</h2>
+            <h2 className="text-lg font-semibold mb-3 text-left">Browse Categories</h2>
             <div className="space-y-1.5">
               {categoryDisplayData.map((category) => (
                 <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
