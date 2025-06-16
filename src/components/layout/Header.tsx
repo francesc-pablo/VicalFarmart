@@ -42,51 +42,35 @@ export function Header() {
   const searchParams = useSearchParams();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
 
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "");
-  const [selectedRegion, setSelectedRegion] = useState<string>(searchParams.get('region') || NO_REGION_SELECTED);
-  const [selectedTown, setSelectedTown] = useState<string>(searchParams.get('town') || NO_TOWN_SELECTED);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<string>(NO_REGION_SELECTED);
+  const [selectedTown, setSelectedTown] = useState<string>(NO_TOWN_SELECTED);
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
 
+  // Effect to initialize state from URL or update state if URL changes externally
   useEffect(() => {
-    const currentSearch = searchParams.get('search') || "";
-    const currentRegion = searchParams.get('region') || NO_REGION_SELECTED;
-    const currentTown = searchParams.get('town') || NO_TOWN_SELECTED;
+    setSearchTerm(searchParams.get('search') || "");
+    setSelectedRegion(searchParams.get('region') || NO_REGION_SELECTED);
+    setSelectedTown(searchParams.get('town') || NO_TOWN_SELECTED);
+  }, [searchParams]);
 
-    if (currentSearch !== searchTerm) setSearchTerm(currentSearch);
-    if (currentRegion !== selectedRegion) setSelectedRegion(currentRegion);
-    if (currentTown !== selectedTown) setSelectedTown(currentTown);
-
-  }, [searchParams, searchTerm, selectedRegion, selectedTown]);
-
-
+  // Effect to update availableTowns based on selectedRegion, and validate/reset selectedTown
   useEffect(() => {
     if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
-      setAvailableTowns(GHANA_REGIONS_AND_TOWNS[selectedRegion] || []);
-      // If the URL-provided town is not in the new list of available towns for the selected region, reset it.
-      // Or if the region itself changed via UI, ensure town is reset if not already handled by a direct setSelectedTown call.
-      const currentUrlTown = searchParams.get('town');
-      if (currentUrlTown && !(GHANA_REGIONS_AND_TOWNS[selectedRegion] || []).includes(currentUrlTown)) {
-         // This condition might be too aggressive if user directly navigates with mismatched region/town
-         // For UI-driven changes, the town reset happens in onRegionChange
+      const townsForCurrentRegion = GHANA_REGIONS_AND_TOWNS[selectedRegion] || [];
+      setAvailableTowns(townsForCurrentRegion);
+      // If the current selectedTown is not "All Towns" and not in the list for the current region, reset it.
+      if (selectedTown !== NO_TOWN_SELECTED && !townsForCurrentRegion.includes(selectedTown)) {
+        setSelectedTown(NO_TOWN_SELECTED);
       }
     } else {
+      // If "All Regions" or no valid region is selected, clear available towns and set town to "All Towns".
       setAvailableTowns([]);
-      if (selectedTown !== NO_TOWN_SELECTED) { // If "All Regions" is chosen, reset town to "All Towns"
-        // setSelectedTown(NO_TOWN_SELECTED); // This can cause infinite loops with searchParams effect
+      if (selectedTown !== NO_TOWN_SELECTED) { 
+          setSelectedTown(NO_TOWN_SELECTED);
       }
     }
-  }, [selectedRegion, searchParams, selectedTown]);
-
-
-  const handleRegionChange = (newRegion: string) => {
-    setSelectedRegion(newRegion);
-    setSelectedTown(NO_TOWN_SELECTED); // Reset town when region changes
-    if (newRegion && newRegion !== NO_REGION_SELECTED) {
-      setAvailableTowns(GHANA_REGIONS_AND_TOWNS[newRegion] || []);
-    } else {
-      setAvailableTowns([]);
-    }
-  };
+  }, [selectedRegion, selectedTown]); // selectedTown is in deps to re-validate if it was set by URL incorrectly
 
   useEffect(() => {
     const checkAuth = () => {
@@ -135,12 +119,19 @@ export function Header() {
     if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
       queryParams.set('region', selectedRegion);
     }
-    if (selectedTown && selectedTown !== NO_TOWN_SELECTED && selectedRegion !== NO_REGION_SELECTED && availableTowns.includes(selectedTown)) {
+    // Only add town if a specific region is selected and a specific town is selected
+    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED && selectedTown && selectedTown !== NO_TOWN_SELECTED && availableTowns.includes(selectedTown)) {
       queryParams.set('town', selectedTown);
     }
     router.push(`/market?${queryParams.toString()}`);
   };
 
+  const handleRegionChange = (newRegion: string) => {
+    setSelectedRegion(newRegion);
+    setSelectedTown(NO_TOWN_SELECTED); // Reset town when region changes via UI
+    // The useEffect dependent on selectedRegion will handle updating availableTowns.
+  };
+  
   const SearchBarForm = ({ isMobile }: { isMobile?: boolean }) => (
     <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobile ? 'flex-col sm:flex-row' : 'flex-grow max-w-2xl'}`}>
       <Input
@@ -193,7 +184,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md">
       <div className="container px-4 sm:px-12 flex h-16 max-w-screen-2xl items-center justify-between gap-2 sm:gap-4">
         <div className="hidden sm:block"> <Logo /> </div>
-        <div className="sm:hidden"> <Logo className="text-xl" /></div> {/* Smaller logo for mobile */}
+        <div className="sm:hidden"> <Logo className="text-xl" /></div>
 
         <nav className="flex items-center gap-2 md:gap-4 flex-grow">
           <div className="hidden sm:flex flex-grow justify-center">
@@ -270,4 +261,3 @@ export function Header() {
     </header>
   );
 }
-
