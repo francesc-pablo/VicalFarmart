@@ -87,8 +87,8 @@ export default function ContactUsPage() {
               </div>
               <div>
                 <h3 className="font-semibold">Phone</h3>
-                <p className="text-muted-foreground">(+254) 700 000 000</p>
-                <p className="text-muted-foreground">(+254) 711 111 111</p>
+                <p className="text-muted-foreground">+233549331616</p>
+                {/* <p className="text-muted-foreground">(+254) 711 111 111</p> */}
               </div>
             </div>
             <div className="flex items-start space-x-3">
@@ -97,8 +97,8 @@ export default function ContactUsPage() {
               </div>
               <div>
                 <h3 className="font-semibold">Office Address</h3>
-                <p className="text-muted-foreground">123 Farmart Lane, Agri Plaza</p>
-                <p className="text-muted-foreground">Nairobi, Kenya</p>
+                <p className="text-muted-foreground">Lakeside Estate</p>
+                {/* <p className="text-muted-foreground">Nairobi, Kenya</p> */}
               </div>
             </div>
             {/* You can add a map embed here if needed */}
