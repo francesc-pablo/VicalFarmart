@@ -1,3 +1,4 @@
+
 "use client";
 
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -63,6 +64,10 @@ export default function CheckoutPage() {
                 <Input id="fullName" placeholder="John Doe" />
               </div>
               <div>
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="you@example.com" />
+              </div>
+              <div>
                 <Label htmlFor="address">Address</Label>
                 <Input id="address" placeholder="123 Main St" />
               </div>
@@ -79,6 +84,10 @@ export default function CheckoutPage() {
               <div>
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input id="phone" type="tel" placeholder="(555) 123-4567" />
+              </div>
+              <div>
+                <Label htmlFor="idCardNumber">ID Card Number (GH Card/Passport)</Label>
+                <Input id="idCardNumber" placeholder="GHA-123456789-0 / P01234567" />
               </div>
             </CardContent>
           </Card>
