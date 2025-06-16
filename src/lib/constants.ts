@@ -44,20 +44,21 @@ export const PRODUCT_REGIONS = [
 ];
 
 export const GHANA_REGIONS_AND_TOWNS: Record<string, string[]> = {
-  "Ahafo": ["Goaso", "Bechem", "Duayaw Nkwanta", "Hwidiem", "Kenyasi"],
-  "Ashanti": ["Kumasi", "Obuasi", "Ejisu", "Mampong", "Konongo"],
-  "Bono": ["Sunyani", "Berekum", "Dormaa Ahenkro", "Wenchi", "Jaman South"],
-  "Bono East": ["Techiman", "Kintampo", "Nkoranza", "Atebubu", "Yeji"],
-  "Central": ["Cape Coast", "Kasoa", "Winneba", "Mankessim", "Elmina"],
-  "Eastern": ["Koforidua", "Nkawkaw", "Akropong", "Suhum", "Oda"],
-  "Greater Accra": ["Accra", "Tema", "Madina", "Ashaiman", "Dome"],
-  "North East": ["Nalerigu", "Walewale", "Gambaga", "Bunkpurugu", "Chereponi"],
-  "Northern": ["Tamale", "Yendi", "Savelugu", "Damongo", "Bimbilla"], // Damongo is now Savannah capital
-  "Oti": ["Dambai", "Kadjebi", "Jasikan", "Nkwanta", "Worawora"],
-  "Savannah": ["Damongo", "Bole", "Salaga", "Sawla", "Daboya"], // Corrected capital for Savannah
-  "Upper East": ["Bolgatanga", "Bawku", "Navrongo", "Paga", "Zebilla"],
-  "Upper West": ["Wa", "Tumu", "Lawra", "Jirapa", "Nandom"],
-  "Volta": ["Ho", "Keta", "Hohoe", "Anloga", "Aflao"],
-  "Western": ["Sekondi-Takoradi", "Tarkwa", "Axim", "Elubo", "Prestea"],
-  "Western North": ["Sefwi Wiawso", "Bibiani", "Juaboso", "Enchi", "Asankragua"],
+  "Ahafo": ["Goaso", "Bechem", "Duayaw Nkwanta", "Hwidiem", "Kenyasi", "Mim", "Sankore", "Kukuom", "Acherensua", "Techimantia"],
+  "Ashanti": ["Kumasi", "Obuasi", "Ejisu", "Mampong", "Konongo", "Bekwai", "Offinso", "Agogo", "Tafo", "Asokore Mampong", "Effiduase", "Tepa", "New Edubiase", "Juaso"],
+  "Bono": ["Sunyani", "Berekum", "Dormaa Ahenkro", "Wenchi", "Jaman South (Drobo)", "Sampa", "Seikwa", "Nsoatre", "Odumase", "Fiapre"],
+  "Bono East": ["Techiman", "Kintampo", "Nkoranza", "Atebubu", "Yeji", "Prang", "Busunya", "Amantin", "Ejura", "Kwame Danso"],
+  "Central": ["Cape Coast", "Kasoa", "Winneba", "Mankessim", "Elmina", "Swedru", "Assin Fosu", "Saltpond", "Apam", "Twifo Praso", "Dunkwa-on-Offin"],
+  "Eastern": ["Koforidua", "Nkawkaw", "Akropong", "Suhum", "Oda", "Nsawam", "Aburi", "Somanya", "Begoro", "New Abirem", "Asamankese", "Akosombo"],
+  "Greater Accra": ["Accra", "Tema", "Madina", "Ashaiman", "Dome", "Lashibi", "Teshie", "Nungua", "Adenta", "Dansoman", "Kaneshie", "Ga East", "Weija Gbawe"],
+  "North East": ["Nalerigu", "Walewale", "Gambaga", "Bunkpurugu", "Chereponi", "Yagaba", "Wulugu", "Kpasenkpe", "Sakogu", "Langbinsi"],
+  "Northern": ["Tamale", "Yendi", "Savelugu", "Bimbilla", "Tolon", "Kumbungu", "Karaga", "Wulensi", "Nanton", "Gushegu", "Sang"],
+  "Oti": ["Dambai", "Kadjebi", "Jasikan", "Nkwanta", "Worawora", "Kete Krachi", "Chinderi", "Krachi Nchumuru", "Likpe-Mate", "Kpassa"],
+  "Savannah": ["Damongo", "Bole", "Salaga", "Sawla", "Daboya", "Buipe", "Yapei", "Kpalbe", "Mpaha", "Tinga"],
+  "Upper East": ["Bolgatanga", "Bawku", "Navrongo", "Paga", "Zebilla", "Sandema", "Binduri", "Garu", "Tempane", "Bongo"],
+  "Upper West": ["Wa", "Tumu", "Lawra", "Jirapa", "Nandom", "Gwollu", "Funsi", "Wechiau", "Issa", "Kaleo"],
+  "Volta": ["Ho", "Keta", "Hohoe", "Anloga", "Aflao", "Kpandu", "Sogakope", "Peki", "Dzodze", "Adidome", "Akatsi", "Kpando"],
+  "Western": ["Sekondi-Takoradi", "Tarkwa", "Axim", "Elubo", "Prestea", "Shama", "Mpohor", "Agona Nkwanta", "Dixcove", "Bogoso"],
+  "Western North": ["Sefwi Wiawso", "Bibiani", "Juaboso", "Enchi", "Asankragua", "Sefwi Bekwai", "Dadieso", "Akotombra", "Bodi", "Debiso"],
 };
+
