@@ -36,6 +36,15 @@ interface AdminProductFormProps {
 const CURRENCY_OPTIONS = [
   { value: "GHS", label: "GHS (₵)" },
   { value: "USD", label: "USD ($)" },
+  { value: "NGN", label: "NGN (₦)" }, // Nigerian Naira
+  { value: "XOF", label: "XOF (CFA)" }, // CFA Franc BCEAO
+  { value: "SLL", label: "SLL (Le)" }, // Sierra Leonean Leone
+  { value: "LRD", label: "LRD (L$)" }, // Liberian Dollar
+  { value: "GMD", label: "GMD (D)" },   // Gambian Dalasi
+  { value: "GNF", label: "GNF (FG)" },  // Guinean Franc
+  { value: "CVE", label: "CVE (Esc)" }, // Cape Verdean Escudo
+  { value: "EUR", label: "EUR (€)" },   // Euro
+  { value: "GBP", label: "GBP (£)" },   // British Pound
 ];
 
 const productFormSchema = z.object({
@@ -74,7 +83,13 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
 
   const getCurrencySymbol = (currencyCode?: string) => {
     const option = CURRENCY_OPTIONS.find(opt => opt.value === currencyCode);
-    return option ? option.label.split(' ')[1].replace(/[()]/g, '') : '$';
+    if (option && option.label) {
+        const symbolMatch = option.label.match(/\(([^)]+)\)/);
+        if (symbolMatch && symbolMatch[1]) {
+            return symbolMatch[1];
+        }
+    }
+    return "$"; // Default symbol if not found or no match
   };
 
   const handleSubmit = (values: ProductFormValues) => {
