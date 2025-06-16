@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from '@/hooks/use-toast';
 
 // Mock data for all platform orders - replace with actual data fetching
 const mockPlatformOrders: Order[] = [
@@ -28,10 +29,11 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>(mockPlatformOrders);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "All">("All");
+  const { toast } = useToast();
 
   const handleUpdateStatus = (orderId: string, newStatus: OrderStatus) => {
     setOrders(prevOrders => prevOrders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
-    // toast({ title: "Order Status Updated by Admin", description: `Order ${orderId} marked as ${newStatus}.` });
+    toast({ title: "Order Status Updated", description: `Order ${orderId.substring(0,6)}... marked as ${newStatus} by admin.` });
   };
 
   const filteredOrders = orders
@@ -49,14 +51,16 @@ export default function AdminOrdersPage() {
       <PageHeader title="Platform Orders" description="Monitor and manage all orders placed on Vical Farmart." />
       
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <Input
-          placeholder="Search Order ID, Customer, or Seller..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-          icon={<Search className="h-4 w-4 text-muted-foreground" />}
-        />
-         <Select value={statusFilter} onValueChange={(value: OrderStatus | "All") => setStatusFilter(value)}>
+        <div className="relative flex-grow max-w-md">
+            <Input
+            placeholder="Search Order ID, Customer, or Seller..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pr-10" 
+            />
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        </div>
+         <Select value={statusFilter} onValueChange={(value: string) => setStatusFilter(value as OrderStatus | "All")}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -73,7 +77,7 @@ export default function AdminOrdersPage() {
           <OrderTable 
             orders={filteredOrders} 
             onUpdateStatus={handleUpdateStatus}
-            onViewDetails={(id) => alert(`Admin view details for ${id}`)}
+            onViewDetails={(id) => alert(`Admin view details for order: ${id}`)} // Replace with actual detail view logic
             showSellerColumn={true}
           />
         </CardContent>
