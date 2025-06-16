@@ -108,19 +108,19 @@ export default function HomePage() {
             </Carousel>
 
             <div className="w-full text-center md:text-left">
-              <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3">
-                Discover Freshness at <span className="text-accent">Vical Farmart</span>
-              </h1>
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-3">
+                <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                  Discover Freshness at <span className="text-accent">Vical Farmart</span>
+                </h1>
+                <div className="flex-shrink-0">
+                    <Button size="lg" className="h-12 text-lg shadow-md" asChild>
+                       <Link href="/market">Explore Market <MoveRight className="ml-2 h-5 w-5" /></Link>
+                    </Button>
+                </div>
+              </div>
               <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto md:mx-0">
                 Find the best local produce, artisanal goods, and more. Your direct link to quality farm products.
               </p>
-              <div className="flex justify-center md:justify-start">
-                  <Button size="lg" className="h-12 text-lg shadow-md" asChild>
-                     <Link href="/market">Explore Market <MoveRight className="ml-2 h-5 w-5" /></Link>
-                  </Button>
-              </div>
-              
-              {/* Search form removed from here */}
             </div>
           </div>
         </div>
@@ -150,4 +150,3 @@ export default function HomePage() {
     </div>
   );
 }
-
