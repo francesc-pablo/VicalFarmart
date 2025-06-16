@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ProductCard } from "@/components/products/ProductCard";
@@ -33,38 +33,25 @@ export default function MarketPage() {
   const searchParams = useSearchParams();
   const router = useRouter(); 
   
-  // Extract search parameters directly. These values change only when the URL's query string changes.
   const querySearch = searchParams.get('search') || "";
   const queryCategory = searchParams.get('category') || "All";
   const queryRegion = searchParams.get('region') || "All";
 
-  // Local state for filters, initialized from the current URL parameters.
   const [searchTerm, setSearchTerm] = useState(querySearch);
   const [categoryFilter, setCategoryFilter] = useState<string>(queryCategory);
   const [regionFilter, setRegionFilter] = useState<string>(queryRegion);
 
-  // Effect to update local searchTerm state if the 'search' URL query parameter changes.
   useEffect(() => {
-    // Only update if the URL parameter is different from the current state,
-    // to avoid resetting user input unnecessarily.
-    if (querySearch !== searchTerm) {
-      setSearchTerm(querySearch);
-    }
-  }, [querySearch, searchTerm]); // Include searchTerm in deps for correct comparison
+    setSearchTerm(querySearch);
+  }, [querySearch]);
 
-  // Effect to update local categoryFilter state if the 'category' URL query parameter changes.
   useEffect(() => {
-    if (queryCategory !== categoryFilter) {
-      setCategoryFilter(queryCategory);
-    }
-  }, [queryCategory, categoryFilter]);
+    setCategoryFilter(queryCategory);
+  }, [queryCategory]);
 
-  // Effect to update local regionFilter state if the 'region' URL query parameter changes.
   useEffect(() => {
-    if (queryRegion !== regionFilter) {
-      setRegionFilter(queryRegion);
-    }
-  }, [queryRegion, regionFilter]);
+    setRegionFilter(queryRegion);
+  }, [queryRegion]);
 
 
   const filteredProducts = mockProducts
@@ -77,17 +64,19 @@ export default function MarketPage() {
       (product.region && product.region.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-  const handlePageSearchTermChange = (value: string) => {
-    setSearchTerm(value); // Directly update local state. Does not change URL here.
-  };
+  // Using useCallback for event handlers is good practice, though not the direct fix for this issue
+  // The primary fix is the useEffect dependency arrays above.
+  const handlePageSearchTermChange = useCallback((value: string) => {
+    setSearchTerm(value);
+  }, []);
 
-  const handlePageCategoryChange = (value: string) => {
-    setCategoryFilter(value); // Directly update local state.
+  const handlePageCategoryChange = useCallback((value: string) => {
+    setCategoryFilter(value);
     // If you want category changes to update URL & re-trigger effect:
     // const newParams = new URLSearchParams(searchParams.toString());
     // if (value && value !== "All") newParams.set('category', value); else newParams.delete('category');
     // router.push(`/market?${newParams.toString()}`);
-  };
+  }, []);
   
   return (
     <div>
