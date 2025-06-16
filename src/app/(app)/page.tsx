@@ -108,7 +108,7 @@ export default function HomePage() {
             </Carousel>
 
             <div className="w-full text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center justify-between mb-3 md:mb-6">
+              <div className="flex flex-col md:flex-row items-center justify-between mb-2 md:mb-4">
                 <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3 md:mb-0">
                   Discover Freshness at <span className="text-accent">Vical Farmart</span>
                 </h1>
