@@ -39,9 +39,9 @@ const categoryDisplayData = [
 ];
 
 const carouselImages = [
-  { src: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmcmVzaCUyMGZydWl0c3xlbnwwfHx8fDE3NDk4NjAzOTN8MA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Artisan bread and grains" },
-  { src: "https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxncm9jZXJpZXN8ZW58MHx8fHwxNzQ5ODYxNzAxfDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Fresh vegetables at a market stall" },
-  { src: "https://images.unsplash.com/photo-1592924802543-809bfeee53fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcmVzaCUyMHZlZ2V0YWJsZXN8ZW58MHx8fHwxNzQ5ODYwNjg4fDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Colorful fruits display" },
+  { src: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmcmVzaCUyMGZydWl0c3xlbnwwfHx8fDE3NDk4NjAzOTN8MA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Artisan bread and grains", dataAiHint: "fresh fruits" },
+  { src: "https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxncm9jZXJpZXN8ZW58MHx8fHwxNzQ5ODYxNzAxfDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Fresh vegetables at a market stall", dataAiHint: "groceries market" },
+  { src: "https://images.unsplash.com/photo-1592924802543-809bfeee53fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcmVzaCUyMHZlZ2V0YWJsZXN8ZW58MHx8fHwxNzQ5ODYwNjg4fDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Colorful fruits display", dataAiHint: "fresh vegetables" },
 ];
 
 
@@ -52,7 +52,7 @@ export default function HomePage() {
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative w-full pt-2 pb-8 md:pt-4 md:pb-12 overflow-hidden bg-background">
-        <div className="container mx-auto px-8 flex flex-col md:flex-row gap-8 items-start">
+        <div className="container mx-auto px-12 flex flex-col md:flex-row gap-8 items-start">
           {/* Left Vertical Category List */}
           <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-6">
             <h2 className="text-lg font-semibold mb-3 text-left">Categories</h2>
@@ -61,7 +61,7 @@ export default function HomePage() {
                 <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start text-sm font-normal text-muted-foreground hover:text-primary hover:bg-primary/10 focus-visible:text-primary"
+                    className="w-full justify-start text-sm font-normal text-muted-foreground hover:text-primary hover:bg-primary/10 focus-visible:text-primary border border-primary"
                   >
                     <category.IconComponent className={`w-5 h-5 mr-2.5 shrink-0 ${category.color} transition-colors`} />
                     {category.name}
@@ -80,7 +80,7 @@ export default function HomePage() {
               }}
               plugins={[
                 Autoplay({
-                  delay: 40000, 
+                  delay: 5000, 
                 }),
               ]}
               className="w-full mb-8 rounded-lg overflow-hidden shadow-xl"
@@ -124,7 +124,7 @@ export default function HomePage() {
 
       {/* Featured Products Section */}
       <section className="py-12 md:py-16 w-full bg-background">
-        <div className="container mx-auto px-8">
+        <div className="container mx-auto px-12">
           <h2 className="text-3xl font-bold font-headline text-center mb-10 text-foreground">Featured Products</h2>
           {mockFeaturedProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
