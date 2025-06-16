@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AuthStatus {
   isAuthenticated: boolean;
@@ -36,6 +37,7 @@ interface AuthStatus {
 
 const NO_REGION_SELECTED = "All";
 const NO_TOWN_SELECTED = "All";
+const HEADER_SCROLL_THRESHOLD = 50; // Pixels after which header hiding can occur
 
 export function Header() {
   const router = useRouter();
@@ -47,30 +49,69 @@ export function Header() {
   const [selectedTown, setSelectedTown] = useState<string>(NO_TOWN_SELECTED);
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
 
-  // Effect to initialize state from URL or update state if URL changes externally
+  const _isMobileHookValue = useIsMobile();
+  const [isMobileClient, setIsMobileClient] = useState(false);
+  const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    setIsMobileClient(_isMobileHookValue);
+  }, [_isMobileHookValue]);
+
+  useEffect(() => {
+    if (!isMobileClient) {
+      setShowHeaderOnMobile(true); // Always show header on non-mobile
+      return;
+    }
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY < HEADER_SCROLL_THRESHOLD) { // Near the top, always show
+        setShowHeaderOnMobile(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > HEADER_SCROLL_THRESHOLD) { // Scrolling down
+        setShowHeaderOnMobile(false);
+      } else if (currentScrollY < lastScrollY) { // Scrolling up
+        setShowHeaderOnMobile(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      setLastScrollY(0); // Reset scroll position on cleanup
+    };
+  }, [isMobileClient, lastScrollY]);
+
+
   useEffect(() => {
     setSearchTerm(searchParams.get('search') || "");
-    setSelectedRegion(searchParams.get('region') || NO_REGION_SELECTED);
-    setSelectedTown(searchParams.get('town') || NO_TOWN_SELECTED);
-  }, [searchParams]);
+    const urlRegion = searchParams.get('region') || NO_REGION_SELECTED;
+    const urlTown = searchParams.get('town') || NO_TOWN_SELECTED;
 
-  // Effect to update availableTowns based on selectedRegion, and validate/reset selectedTown
+    if (urlRegion !== selectedRegion) {
+        setSelectedRegion(urlRegion);
+    }
+    if (urlTown !== selectedTown) {
+        setSelectedTown(urlTown);
+    }
+  }, [searchParams]); // removed selectedRegion, selectedTown to avoid loops
+
   useEffect(() => {
     if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
       const townsForCurrentRegion = GHANA_REGIONS_AND_TOWNS[selectedRegion] || [];
       setAvailableTowns(townsForCurrentRegion);
-      // If the current selectedTown is not "All Towns" and not in the list for the current region, reset it.
       if (selectedTown !== NO_TOWN_SELECTED && !townsForCurrentRegion.includes(selectedTown)) {
         setSelectedTown(NO_TOWN_SELECTED);
       }
     } else {
-      // If "All Regions" or no valid region is selected, clear available towns and set town to "All Towns".
       setAvailableTowns([]);
-      if (selectedTown !== NO_TOWN_SELECTED) { 
-          setSelectedTown(NO_TOWN_SELECTED);
+      if (selectedTown !== NO_TOWN_SELECTED) {
+        setSelectedTown(NO_TOWN_SELECTED);
       }
     }
-  }, [selectedRegion, selectedTown]); // selectedTown is in deps to re-validate if it was set by URL incorrectly
+  }, [selectedRegion, selectedTown]);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -119,7 +160,6 @@ export function Header() {
     if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
       queryParams.set('region', selectedRegion);
     }
-    // Only add town if a specific region is selected and a specific town is selected
     if (selectedRegion && selectedRegion !== NO_REGION_SELECTED && selectedTown && selectedTown !== NO_TOWN_SELECTED && availableTowns.includes(selectedTown)) {
       queryParams.set('town', selectedTown);
     }
@@ -128,23 +168,22 @@ export function Header() {
 
   const handleRegionChange = (newRegion: string) => {
     setSelectedRegion(newRegion);
-    setSelectedTown(NO_TOWN_SELECTED); // Reset town when region changes via UI
-    // The useEffect dependent on selectedRegion will handle updating availableTowns.
+    setSelectedTown(NO_TOWN_SELECTED);
   };
   
-  const SearchBarForm = ({ isMobile }: { isMobile?: boolean }) => (
-    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobile ? 'flex-col sm:flex-row' : 'flex-grow max-w-2xl'}`}>
+  const SearchBarForm = ({ isMobileLayout }: { isMobileLayout?: boolean }) => (
+    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobileLayout ? 'flex-col sm:flex-row' : 'flex-grow max-w-2xl'}`}>
       <Input
         type="search"
         placeholder="Search products..."
-        className={`h-9 ${isMobile ? 'w-full' : 'flex-grow'}`}
+        className={`h-9 ${isMobileLayout ? 'w-full' : 'flex-grow'}`}
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         aria-label="Search products"
       />
-      <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
+      <div className={`flex gap-2 ${isMobileLayout ? 'w-full' : ''}`}>
         <Select value={selectedRegion} onValueChange={handleRegionChange}>
-          <SelectTrigger className={`h-9 ${isMobile ? 'flex-1' : 'w-[150px] sm:w-[130px] md:w-[150px]'}`}>
+          <SelectTrigger className={`h-9 ${isMobileLayout ? 'flex-1' : 'w-[150px] sm:w-[130px] md:w-[150px]'}`}>
             <SelectValue placeholder="Region" />
           </SelectTrigger>
           <SelectContent>
@@ -159,7 +198,7 @@ export function Header() {
             onValueChange={setSelectedTown}
             disabled={selectedRegion === NO_REGION_SELECTED || availableTowns.length === 0}
         >
-          <SelectTrigger className={`h-9 ${isMobile ? 'flex-1' : 'w-[150px] sm:w-[130px] md:w-[150px]'}`}>
+          <SelectTrigger className={`h-9 ${isMobileLayout ? 'flex-1' : 'w-[150px] sm:w-[130px] md:w-[150px]'}`}>
             <SelectValue placeholder="Town" />
           </SelectTrigger>
           <SelectContent>
@@ -172,16 +211,16 @@ export function Header() {
           </SelectContent>
         </Select>
       </div>
-      <Button type="submit" size="sm" variant="outline" className={`h-9 px-3 ${isMobile ? 'w-full sm:w-auto' : ''}`}>
+      <Button type="submit" size="sm" variant="outline" className={`h-9 px-3 ${isMobileLayout ? 'w-full sm:w-auto' : ''}`}>
         <SearchIcon className="h-4 w-4" />
-        <span className={`${isMobile ? '' : 'sr-only md:not-sr-only md:ml-1'}`}>{isMobile ? 'Search' : ''}</span>
+        <span className={`${isMobileLayout ? '' : 'sr-only md:not-sr-only md:ml-1'}`}>{isMobileLayout ? 'Search' : ''}</span>
          <span className="sr-only">Search</span>
       </Button>
     </form>
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md">
+    <header className={`sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md transition-transform duration-300 ease-in-out ${isMobileClient && !showHeaderOnMobile ? '-translate-y-full' : 'translate-y-0'}`}>
       <div className="container px-4 sm:px-12 flex h-16 max-w-screen-2xl items-center justify-between gap-2 sm:gap-4">
         <div className="hidden sm:block"> <Logo /> </div>
         <div className="sm:hidden"> <Logo className="text-xl" /></div>
@@ -255,8 +294,9 @@ export function Header() {
           </div>
         </nav>
       </div>
+      {/* Changed prop name from isMobile to isMobileLayout to avoid conflict */}
       <div className="container px-4 sm:px-12 pb-3 sm:hidden border-t border-border/40 pt-3">
-        <SearchBarForm isMobile />
+        <SearchBarForm isMobileLayout />
       </div>
     </header>
   );
