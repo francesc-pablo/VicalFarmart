@@ -4,7 +4,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import React from 'react'; // Removed useState, useEffect
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
@@ -18,18 +18,9 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import {
   MoveRight,
-  ShoppingBasket,
-  Citrus, Carrot, Wheat, Milk, Archive, Fish, Search as SearchIcon
+  Citrus, Carrot, Wheat, Milk, Archive, Fish
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
+// Removed Input, Select components, SearchIcon, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS
 
 
 // Mock data for featured products
@@ -55,48 +46,18 @@ const carouselImages = [
   { src: "https://images.unsplash.com/photo-1592924802543-809bfeee53fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcmVzaCUyMHZlZ2V0YWJsZXN8ZW58MHx8fHwxNzQ5ODYwNjg4fDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Colorful fruits display", dataAiHint: "fresh vegetables" },
 ];
 
-const NO_REGION_SELECTED = "All";
-const NO_TOWN_SELECTED = "All";
 
 export default function HomePage() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState<string>(NO_REGION_SELECTED);
-  const [selectedTown, setSelectedTown] = useState<string>(NO_TOWN_SELECTED);
-  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
-      setAvailableTowns(GHANA_REGIONS_AND_TOWNS[selectedRegion] || []);
-      setSelectedTown(NO_TOWN_SELECTED); // Reset town when region changes
-    } else {
-      setAvailableTowns([]);
-      setSelectedTown(NO_TOWN_SELECTED); // Reset town if "All Regions" is selected
-    }
-  }, [selectedRegion]);
-
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const queryParams = new URLSearchParams();
-    if (searchTerm.trim()) {
-      queryParams.set('search', searchTerm.trim());
-    }
-    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
-      queryParams.set('region', selectedRegion);
-    }
-    // Only add town if a specific region is selected and a specific town (not "All Towns") is chosen
-    if (selectedTown && selectedTown !== NO_TOWN_SELECTED && selectedRegion !== NO_REGION_SELECTED && availableTowns.includes(selectedTown)) {
-      queryParams.set('town', selectedTown);
-    }
-    router.push(`/market?${queryParams.toString()}`);
-  };
-
+  // Removed state variables for search (searchTerm, selectedRegion, selectedTown, availableTowns)
+  // Removed useEffect for populating towns
+  // Removed handleSearchSubmit function
 
   return (
     <div className="flex flex-col">
       <section className="relative w-full pb-8 md:pb-12 overflow-hidden bg-background">
-        <div className="container mx-auto px-12 flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-6 pt-2">
+        <div className="container mx-auto px-4 sm:px-12 flex flex-col md:flex-row gap-8 items-start">
+          <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-0 md:pr-6 pt-2">
             <h2 className="text-lg font-semibold mb-3 text-left">Browse Categories</h2>
             <div className="space-y-1.5">
               {categoryDisplayData.map((category) => (
@@ -128,13 +89,15 @@ export default function HomePage() {
             >
               <CarouselContent>
                 {carouselImages.map((image, index) => (
-                  <CarouselItem key={index} className="relative aspect-[13/6]">
+                  <CarouselItem key={index} className="relative aspect-[13/6] sm:aspect-[16/7] md:aspect-[13/6]">
                     <Image
                       src={image.src}
                       alt={image.alt}
                       fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 1080px"
                       objectFit="cover"
                       className="brightness-90"
+                      priority={index === 0} // Prioritize loading the first image
                       {...(image.dataAiHint && { 'data-ai-hint': image.dataAiHint })}
                     />
                   </CarouselItem>
@@ -148,65 +111,23 @@ export default function HomePage() {
               <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3">
                 Discover Freshness at <span className="text-accent">Vical Farmart</span>
               </h1>
-              <p className="text-lg text-muted-foreground mb-6">
-                Search for fresh produce, artisanal goods, and more from local sellers.
+              <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto md:mx-0">
+                Find the best local produce, artisanal goods, and more. Your direct link to quality farm products.
               </p>
-
-              <form onSubmit={handleSearchSubmit} className="w-full max-w-3xl mx-auto md:mx-0 space-y-4 bg-card p-6 rounded-lg shadow-lg border">
-                  <Input
-                    type="search"
-                    placeholder="Search e.g., organic apples, fresh tomatoes..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-12 text-base"
-                    aria-label="Search products"
-                  />
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                    <SelectTrigger className="h-11 text-base">
-                      <SelectValue placeholder="Select Region" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NO_REGION_SELECTED}>All Regions</SelectItem>
-                      {PRODUCT_REGIONS.map((region) => (
-                        <SelectItem key={region} value={region}>
-                          {region}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={selectedTown}
-                    onValueChange={setSelectedTown}
-                    disabled={selectedRegion === NO_REGION_SELECTED || availableTowns.length === 0}
-                  >
-                    <SelectTrigger className="h-11 text-base">
-                      <SelectValue placeholder="Select Town" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NO_TOWN_SELECTED}>All Towns</SelectItem>
-                      {availableTowns.map((town) => (
-                        <SelectItem key={town} value={town}>
-                          {town}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button type="submit" size="lg" className="w-full h-12 text-lg shadow-md">
-                  <SearchIcon className="mr-2 h-5 w-5" /> Search Market
-                </Button>
-              </form>
+              <div className="flex justify-center md:justify-start">
+                  <Button size="lg" className="h-12 text-lg shadow-md" asChild>
+                     <Link href="/market">Explore Market <MoveRight className="ml-2 h-5 w-5" /></Link>
+                  </Button>
+              </div>
+              
+              {/* Search form removed from here */}
             </div>
           </div>
         </div>
       </section>
 
       <section className="py-12 md:py-16 w-full bg-background">
-        <div className="container mx-auto px-12">
+        <div className="container mx-auto px-4 sm:px-12">
           <h2 className="text-3xl font-bold font-headline text-center mb-10 text-foreground">Featured Products</h2>
           {mockFeaturedProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -229,3 +150,4 @@ export default function HomePage() {
     </div>
   );
 }
+

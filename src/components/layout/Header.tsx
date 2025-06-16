@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { UserRole } from '@/types';
-import { useRouter, useSearchParams } from 'next/navigation'; // Added useSearchParams
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -24,8 +24,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Added Select
-import { PRODUCT_REGIONS } from '@/lib/constants'; // Added PRODUCT_REGIONS
+} from "@/components/ui/select";
+import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 
 interface AuthStatus {
   isAuthenticated: boolean;
@@ -34,23 +34,59 @@ interface AuthStatus {
   userRole?: UserRole | null;
 }
 
+const NO_REGION_SELECTED = "All";
+const NO_TOWN_SELECTED = "All";
+
 export function Header() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
-  
-  // Initialize searchTerm and selectedRegion from URL query parameters
-  const initialSearchTerm = searchParams.get('search') || "";
-  const initialRegion = searchParams.get('region') || "All";
 
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
-  const [selectedRegion, setSelectedRegion] = useState<string>(initialRegion);
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "");
+  const [selectedRegion, setSelectedRegion] = useState<string>(searchParams.get('region') || NO_REGION_SELECTED);
+  const [selectedTown, setSelectedTown] = useState<string>(searchParams.get('town') || NO_TOWN_SELECTED);
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
 
   useEffect(() => {
-    // Update local state if URL params change (e.g., browser back/forward)
-    setSearchTerm(searchParams.get('search') || "");
-    setSelectedRegion(searchParams.get('region') || "All");
-  }, [searchParams]);
+    const currentSearch = searchParams.get('search') || "";
+    const currentRegion = searchParams.get('region') || NO_REGION_SELECTED;
+    const currentTown = searchParams.get('town') || NO_TOWN_SELECTED;
+
+    if (currentSearch !== searchTerm) setSearchTerm(currentSearch);
+    if (currentRegion !== selectedRegion) setSelectedRegion(currentRegion);
+    if (currentTown !== selectedTown) setSelectedTown(currentTown);
+
+  }, [searchParams, searchTerm, selectedRegion, selectedTown]);
+
+
+  useEffect(() => {
+    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
+      setAvailableTowns(GHANA_REGIONS_AND_TOWNS[selectedRegion] || []);
+      // If the URL-provided town is not in the new list of available towns for the selected region, reset it.
+      // Or if the region itself changed via UI, ensure town is reset if not already handled by a direct setSelectedTown call.
+      const currentUrlTown = searchParams.get('town');
+      if (currentUrlTown && !(GHANA_REGIONS_AND_TOWNS[selectedRegion] || []).includes(currentUrlTown)) {
+         // This condition might be too aggressive if user directly navigates with mismatched region/town
+         // For UI-driven changes, the town reset happens in onRegionChange
+      }
+    } else {
+      setAvailableTowns([]);
+      if (selectedTown !== NO_TOWN_SELECTED) { // If "All Regions" is chosen, reset town to "All Towns"
+        // setSelectedTown(NO_TOWN_SELECTED); // This can cause infinite loops with searchParams effect
+      }
+    }
+  }, [selectedRegion, searchParams, selectedTown]);
+
+
+  const handleRegionChange = (newRegion: string) => {
+    setSelectedRegion(newRegion);
+    setSelectedTown(NO_TOWN_SELECTED); // Reset town when region changes
+    if (newRegion && newRegion !== NO_REGION_SELECTED) {
+      setAvailableTowns(GHANA_REGIONS_AND_TOWNS[newRegion] || []);
+    } else {
+      setAvailableTowns([]);
+    }
+  };
 
   useEffect(() => {
     const checkAuth = () => {
@@ -96,44 +132,69 @@ export function Header() {
     if (searchTerm.trim()) {
       queryParams.set('search', searchTerm.trim());
     }
-    if (selectedRegion && selectedRegion !== "All") {
+    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
       queryParams.set('region', selectedRegion);
+    }
+    if (selectedTown && selectedTown !== NO_TOWN_SELECTED && selectedRegion !== NO_REGION_SELECTED && availableTowns.includes(selectedTown)) {
+      queryParams.set('town', selectedTown);
     }
     router.push(`/market?${queryParams.toString()}`);
   };
 
   const SearchBarForm = ({ isMobile }: { isMobile?: boolean }) => (
-    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobile ? '' : 'flex-grow max-w-xl'}`}>
+    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobile ? 'flex-col sm:flex-row' : 'flex-grow max-w-2xl'}`}>
       <Input
         type="search"
         placeholder="Search products..."
-        className="h-9 flex-grow"
+        className={`h-9 ${isMobile ? 'w-full' : 'flex-grow'}`}
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         aria-label="Search products"
       />
-      <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-        <SelectTrigger className={`h-9 ${isMobile ? 'w-[130px]' : 'w-[150px]'}`}>
-          <SelectValue placeholder="Region" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="All">All Regions</SelectItem>
-          {PRODUCT_REGIONS.map(region => (
-            <SelectItem key={region} value={region}>{region}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
-        <Search className="h-4 w-4" />
-        <span className="sr-only">Search</span>
+      <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
+        <Select value={selectedRegion} onValueChange={handleRegionChange}>
+          <SelectTrigger className={`h-9 ${isMobile ? 'flex-1' : 'w-[150px] sm:w-[130px] md:w-[150px]'}`}>
+            <SelectValue placeholder="Region" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_REGION_SELECTED}>All Regions</SelectItem>
+            {PRODUCT_REGIONS.map(region => (
+              <SelectItem key={region} value={region}>{region}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+            value={selectedTown}
+            onValueChange={setSelectedTown}
+            disabled={selectedRegion === NO_REGION_SELECTED || availableTowns.length === 0}
+        >
+          <SelectTrigger className={`h-9 ${isMobile ? 'flex-1' : 'w-[150px] sm:w-[130px] md:w-[150px]'}`}>
+            <SelectValue placeholder="Town" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_TOWN_SELECTED}>All Towns</SelectItem>
+            {availableTowns.map((town) => (
+              <SelectItem key={town} value={town}>
+                {town}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Button type="submit" size="sm" variant="outline" className={`h-9 px-3 ${isMobile ? 'w-full sm:w-auto' : ''}`}>
+        <SearchIcon className="h-4 w-4" />
+        <span className={`${isMobile ? '' : 'sr-only md:not-sr-only md:ml-1'}`}>{isMobile ? 'Search' : ''}</span>
+         <span className="sr-only">Search</span>
       </Button>
     </form>
   );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md">
-      <div className="container px-12 flex h-16 max-w-screen-2xl items-center justify-between gap-4">
-        <Logo />
+      <div className="container px-4 sm:px-12 flex h-16 max-w-screen-2xl items-center justify-between gap-2 sm:gap-4">
+        <div className="hidden sm:block"> <Logo /> </div>
+        <div className="sm:hidden"> <Logo className="text-xl" /></div> {/* Smaller logo for mobile */}
+
         <nav className="flex items-center gap-2 md:gap-4 flex-grow">
           <div className="hidden sm:flex flex-grow justify-center">
              <SearchBarForm />
@@ -203,9 +264,10 @@ export function Header() {
           </div>
         </nav>
       </div>
-      <div className="container px-12 pb-3 sm:hidden">
+      <div className="container px-4 sm:px-12 pb-3 sm:hidden border-t border-border/40 pt-3">
         <SearchBarForm isMobile />
       </div>
     </header>
   );
 }
+
