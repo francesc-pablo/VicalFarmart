@@ -33,25 +33,35 @@ export default function MarketPage() {
   const searchParams = useSearchParams();
   const router = useRouter(); 
   
-  const querySearch = searchParams.get('search') || "";
-  const queryCategory = searchParams.get('category') || "All";
-  const queryRegion = searchParams.get('region') || "All";
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "");
+  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('category') || "All");
+  const [regionFilter, setRegionFilter] = useState<string>(searchParams.get('region') || "All");
 
-  const [searchTerm, setSearchTerm] = useState(querySearch);
-  const [categoryFilter, setCategoryFilter] = useState<string>(queryCategory);
-  const [regionFilter, setRegionFilter] = useState<string>(queryRegion);
-
-  useEffect(() => {
-    setSearchTerm(querySearch);
-  }, [querySearch]);
+  // Stable string representation of query params for useEffect dependency
+  const queryParamsString = searchParams.toString();
 
   useEffect(() => {
-    setCategoryFilter(queryCategory);
-  }, [queryCategory]);
+    const currentUrlSearch = searchParams.get('search') || "";
+    // Update local state if it differs from the current URL parameter
+    // This handles external URL changes (e.g., header search, back/forward)
+    if (currentUrlSearch !== searchTerm) {
+      setSearchTerm(currentUrlSearch);
+    }
+  }, [queryParamsString]); // queryParamsString changes only if URL params actually change
 
   useEffect(() => {
-    setRegionFilter(queryRegion);
-  }, [queryRegion]);
+    const currentUrlCategory = searchParams.get('category') || "All";
+    if (currentUrlCategory !== categoryFilter) {
+      setCategoryFilter(currentUrlCategory);
+    }
+  }, [queryParamsString]);
+  
+  useEffect(() => {
+    const currentUrlRegion = searchParams.get('region') || "All";
+    if (currentUrlRegion !== regionFilter) {
+      setRegionFilter(currentUrlRegion);
+    }
+  }, [queryParamsString]);
 
 
   const filteredProducts = mockProducts
@@ -64,19 +74,17 @@ export default function MarketPage() {
       (product.region && product.region.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-  // Using useCallback for event handlers is good practice, though not the direct fix for this issue
-  // The primary fix is the useEffect dependency arrays above.
   const handlePageSearchTermChange = useCallback((value: string) => {
-    setSearchTerm(value);
+    setSearchTerm(value); // Only update local state for page-level input
   }, []);
 
   const handlePageCategoryChange = useCallback((value: string) => {
-    setCategoryFilter(value);
-    // If you want category changes to update URL & re-trigger effect:
+    setCategoryFilter(value); // Only update local state for page-level select
+    // To update URL too (and trigger useEffects naturally):
     // const newParams = new URLSearchParams(searchParams.toString());
     // if (value && value !== "All") newParams.set('category', value); else newParams.delete('category');
     // router.push(`/market?${newParams.toString()}`);
-  }, []);
+  }, []); // router, searchParams would be dependencies if URL update is enabled
   
   return (
     <div>
