@@ -1,5 +1,6 @@
 
 "use client";
+import React from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -19,7 +20,8 @@ const mockProducts: Product[] = [
 ];
 
 export default function ProductDetailPage({ params }: { params: { productId: string } }) {
-  const product = mockProducts.find(p => p.id === params.productId);
+  const resolvedParams = React.use(params);
+  const product = mockProducts.find(p => p.id === resolvedParams.productId);
 
   if (!product) {
     return (
