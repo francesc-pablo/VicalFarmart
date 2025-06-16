@@ -33,58 +33,54 @@ export default function MarketPage() {
   const searchParams = useSearchParams();
   const router = useRouter(); 
   
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "");
-  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('category') || "All");
-  const [regionFilter, setRegionFilter] = useState<string>(searchParams.get('region') || "All");
+  // Local state for filters, initialized from URL
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchParams.get('search') || "");
+  const [localCategoryFilter, setLocalCategoryFilter] = useState<string>(searchParams.get('category') || "All");
+  const [localRegionFilter, setLocalRegionFilter] = useState<string>(searchParams.get('region') || "All");
 
-  // Stable string representation of query params for useEffect dependency
-  const queryParamsString = searchParams.toString();
-
+  // Effect to synchronize local state with URL parameters when they change externally
   useEffect(() => {
-    const currentUrlSearch = searchParams.get('search') || "";
-    // Update local state if it differs from the current URL parameter
-    // This handles external URL changes (e.g., header search, back/forward)
-    if (currentUrlSearch !== searchTerm) {
-      setSearchTerm(currentUrlSearch);
+    const urlSearch = searchParams.get('search') || "";
+    const urlCategory = searchParams.get('category') || "All";
+    const urlRegion = searchParams.get('region') || "All";
+
+    if (urlSearch !== localSearchTerm) {
+      setLocalSearchTerm(urlSearch);
     }
-  }, [queryParamsString]); // queryParamsString changes only if URL params actually change
-
-  useEffect(() => {
-    const currentUrlCategory = searchParams.get('category') || "All";
-    if (currentUrlCategory !== categoryFilter) {
-      setCategoryFilter(currentUrlCategory);
+    if (urlCategory !== localCategoryFilter) {
+      setLocalCategoryFilter(urlCategory);
     }
-  }, [queryParamsString]);
-  
-  useEffect(() => {
-    const currentUrlRegion = searchParams.get('region') || "All";
-    if (currentUrlRegion !== regionFilter) {
-      setRegionFilter(currentUrlRegion);
+    if (urlRegion !== localRegionFilter) {
+      setLocalRegionFilter(urlRegion);
     }
-  }, [queryParamsString]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.toString()]); // Depend on the string representation of searchParams
 
-
-  const filteredProducts = mockProducts
-    .filter(product => categoryFilter === "All" || product.category === categoryFilter)
-    .filter(product => regionFilter === "All" || !product.region || product.region === regionFilter)
-    .filter(product =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.region && product.region.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-
-  const handlePageSearchTermChange = useCallback((value: string) => {
-    setSearchTerm(value); // Only update local state for page-level input
+  const handleLocalSearchTermChange = useCallback((value: string) => {
+    setLocalSearchTerm(value); // Only update local state
+    // If you want this input to also update the URL in real-time:
+    // const newParams = new URLSearchParams(searchParams.toString());
+    // if (value.trim()) newParams.set('search', value.trim()); else newParams.delete('search');
+    // router.push(`/market?${newParams.toString()}`, { scroll: false }); 
   }, []);
 
-  const handlePageCategoryChange = useCallback((value: string) => {
-    setCategoryFilter(value); // Only update local state for page-level select
-    // To update URL too (and trigger useEffects naturally):
+  const handleLocalCategoryChange = useCallback((value: string) => {
+    setLocalCategoryFilter(value); // Only update local state
+    // If you want this select to also update the URL in real-time:
     // const newParams = new URLSearchParams(searchParams.toString());
     // if (value && value !== "All") newParams.set('category', value); else newParams.delete('category');
-    // router.push(`/market?${newParams.toString()}`);
-  }, []); // router, searchParams would be dependencies if URL update is enabled
+    // router.push(`/market?${newParams.toString()}`, { scroll: false });
+  }, []);
+  
+  const filteredProducts = mockProducts
+    .filter(product => localCategoryFilter === "All" || product.category === localCategoryFilter)
+    .filter(product => localRegionFilter === "All" || !product.region || product.region === localRegionFilter)
+    .filter(product =>
+      product.name.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
+      (product.region && product.region.toLowerCase().includes(localSearchTerm.toLowerCase()))
+    );
   
   return (
     <div>
@@ -97,13 +93,13 @@ export default function MarketPage() {
         <div className="flex-grow relative flex items-center">
           <Input
             placeholder="Refine search on this page..."
-            value={searchTerm} 
-            onChange={(e) => handlePageSearchTermChange(e.target.value)}
+            value={localSearchTerm} 
+            onChange={(e) => handleLocalSearchTermChange(e.target.value)}
             className="w-full pr-10" 
           />
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         </div>
-        <Select value={categoryFilter} onValueChange={handlePageCategoryChange}>
+        <Select value={localCategoryFilter} onValueChange={handleLocalCategoryChange}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Filter by category" />
           </SelectTrigger>
@@ -115,7 +111,7 @@ export default function MarketPage() {
           </SelectContent>
         </Select>
         <div className="p-2 border rounded-md text-sm bg-muted min-w-[180px] text-center">
-          Region: <span className="font-semibold">{regionFilter === "All" ? "All Regions" : regionFilter}</span>
+          Region: <span className="font-semibold">{localRegionFilter === "All" ? "All Regions" : localRegionFilter}</span>
         </div>
       </div>
 
