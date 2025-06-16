@@ -43,3 +43,21 @@ export const PRODUCT_REGIONS = [
   "Western North"
 ];
 
+export const GHANA_REGIONS_AND_TOWNS: Record<string, string[]> = {
+  "Ahafo": ["Goaso", "Bechem", "Duayaw Nkwanta", "Hwidiem", "Kenyasi"],
+  "Ashanti": ["Kumasi", "Obuasi", "Ejisu", "Mampong", "Konongo"],
+  "Bono": ["Sunyani", "Berekum", "Dormaa Ahenkro", "Wenchi", "Jaman South"],
+  "Bono East": ["Techiman", "Kintampo", "Nkoranza", "Atebubu", "Yeji"],
+  "Central": ["Cape Coast", "Kasoa", "Winneba", "Mankessim", "Elmina"],
+  "Eastern": ["Koforidua", "Nkawkaw", "Akropong", "Suhum", "Oda"],
+  "Greater Accra": ["Accra", "Tema", "Madina", "Ashaiman", "Dome"],
+  "North East": ["Nalerigu", "Walewale", "Gambaga", "Bunkpurugu", "Chereponi"],
+  "Northern": ["Tamale", "Yendi", "Savelugu", "Damongo", "Bimbilla"], // Damongo is now Savannah capital
+  "Oti": ["Dambai", "Kadjebi", "Jasikan", "Nkwanta", "Worawora"],
+  "Savannah": ["Damongo", "Bole", "Salaga", "Sawla", "Daboya"], // Corrected capital for Savannah
+  "Upper East": ["Bolgatanga", "Bawku", "Navrongo", "Paga", "Zebilla"],
+  "Upper West": ["Wa", "Tumu", "Lawra", "Jirapa", "Nandom"],
+  "Volta": ["Ho", "Keta", "Hohoe", "Anloga", "Aflao"],
+  "Western": ["Sekondi-Takoradi", "Tarkwa", "Axim", "Elubo", "Prestea"],
+  "Western North": ["Sefwi Wiawso", "Bibiani", "Juaboso", "Enchi", "Asankragua"],
+};

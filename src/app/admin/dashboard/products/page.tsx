@@ -28,15 +28,15 @@ const mockSellers: User[] = [
 ];
 
 const mockInitialProducts: Product[] = [
-  { id: "prod_admin_1", name: "Organic Fuji Apples (Admin)", description: "Crisp and sweet organic Fuji apples.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", currency: "USD" },
-  { id: "prod_admin_2", name: "Vine-Ripened Tomatoes (Admin)", description: "Juicy vine-ripened tomatoes.", price: 25.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", currency: "GHS" },
-  { id: "prod_admin_3", name: "Sourdough Bread (Admin)", description: "Artisanal sourdough bread.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", currency: "GHS" },
+  { id: "prod_admin_1", name: "Organic Fuji Apples (Admin)", description: "Crisp and sweet organic Fuji apples.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", town: "Kumasi", currency: "USD" },
+  { id: "prod_admin_2", name: "Vine-Ripened Tomatoes (Admin)", description: "Juicy vine-ripened tomatoes.", price: 25.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", town: "Ho", currency: "GHS" },
+  { id: "prod_admin_3", name: "Sourdough Bread (Admin)", description: "Artisanal sourdough bread.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", town: "Accra", currency: "GHS" },
 ];
 
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>(mockInitialProducts);
-  const [sellers, setSellers] = useState<User[]>(mockSellers); 
+  const [sellers, setSellers] = useState<User[]>(mockSellers);
   const [searchTerm, setSearchTerm] = useState("");
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -57,7 +57,7 @@ export default function AdminProductsPage() {
     setProducts(products.filter(p => p.id !== productId));
     toast({ title: "Product Deleted", description: "The product has been removed by admin.", variant: "destructive" });
   };
-  
+
   const handleProductFormSubmit = (productData: Product) => {
     if (editingProduct) {
       setProducts(products.map(p => p.id === productData.id ? productData : p));
@@ -74,7 +74,9 @@ export default function AdminProductsPage() {
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.sellerName && product.sellerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.region && product.region.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (product.town && product.town.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -99,10 +101,10 @@ export default function AdminProductsPage() {
                   {editingProduct ? "Update the product details." : "Fill in the details to list a new product for a seller."}
                 </DialogDescription>
               </DialogHeader>
-              <AdminProductForm 
-                product={editingProduct} 
+              <AdminProductForm
+                product={editingProduct}
                 sellers={sellers}
-                onSubmit={handleProductFormSubmit} 
+                onSubmit={handleProductFormSubmit}
                 onCancel={() => { setShowProductForm(false); setEditingProduct(null);}}
               />
             </DialogContent>
@@ -112,7 +114,7 @@ export default function AdminProductsPage() {
 
       <div className="mb-6">
         <Input
-          placeholder="Search by product name, seller, or category..."
+          placeholder="Search by product, seller, category, region, town..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-md"
@@ -122,8 +124,8 @@ export default function AdminProductsPage() {
 
       <Card className="shadow-lg">
         <CardContent className="p-0">
-          <AdminProductTable 
-            products={filteredProducts} 
+          <AdminProductTable
+            products={filteredProducts}
             onEditProduct={handleEditProduct}
             onDeleteProduct={handleDeleteProduct}
           />

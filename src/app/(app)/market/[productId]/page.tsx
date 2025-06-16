@@ -5,18 +5,18 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/PageHeader';
 import type { Product } from '@/types';
-import { ShoppingCart, Star, MessageSquare, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Star, MessageSquare, ArrowLeft, MapPin } from 'lucide-react'; // Added MapPin
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input'; 
+import { Input } from '@/components/ui/input';
 
 // Mock data for products
 const mockProducts: Product[] = [
-  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally using sustainable farming practices. Each apple is hand-picked to ensure the highest quality. Enjoy the natural goodness!", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/600x400.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", currency: "USD" },
-  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads, sauces, and sandwiches. These tomatoes are grown in rich soil and picked at peak ripeness for maximum taste.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/600x400.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", currency: "USD" },
-  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 6.00, category: "Grains", imageUrl: "https://placehold.co/600x400.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", currency: "GHS" },
+  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally using sustainable farming practices. Each apple is hand-picked to ensure the highest quality. Enjoy the natural goodness!", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/600x400.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", town: "Kumasi", currency: "USD" },
+  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads, sauces, and sandwiches. These tomatoes are grown in rich soil and picked at peak ripeness for maximum taste.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/600x400.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", town: "Ho", currency: "USD" },
+  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/600x400.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", town: "Accra", currency: "GHS" },
 ];
 
 const getCurrencySymbol = (currencyCode?: string) => {
@@ -66,10 +66,16 @@ export default function ProductDetailPage({ params }: { params: { productId: str
         <div className="flex flex-col">
           <div className="flex justify-between items-start">
             <Badge variant="secondary" className="w-fit mb-2">{product.category}</Badge>
-            {product.region && <Badge variant="outline" className="w-fit mb-2">Region: {product.region}</Badge>}
+            {(product.region || product.town) && (
+              <Badge variant="outline" className="w-fit mb-2 flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {product.region}
+                {product.town && product.region ? ` - ${product.town}` : product.town}
+              </Badge>
+            )}
           </div>
           <h1 className="text-4xl font-bold font-headline mb-3">{product.name}</h1>
-          
+
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
@@ -82,7 +88,7 @@ export default function ProductDetailPage({ params }: { params: { productId: str
           </div>
 
           <p className="text-3xl font-semibold text-primary mb-6">{currencySymbol}{product.price.toFixed(2)} <span className="text-lg font-normal text-muted-foreground">{product.currency}</span></p>
-          
+
           <p className="text-foreground/80 mb-6 leading-relaxed">{product.description}</p>
 
           {product.sellerName && (
@@ -100,7 +106,7 @@ export default function ProductDetailPage({ params }: { params: { productId: str
           </div>
         </div>
       </div>
-      
+
       {relatedProducts.length > 0 && (
         <section className="mt-16 pt-8 border-t">
           <h2 className="text-2xl font-semibold mb-6 font-headline">Related Products</h2>
@@ -118,7 +124,13 @@ export default function ProductDetailPage({ params }: { params: { productId: str
                       <CardTitle className="text-lg font-semibold hover:text-primary transition-colors line-clamp-1">{relProduct.name}</CardTitle>
                     </Link>
                     <p className="text-md font-semibold text-primary mt-1">{relCurrencySymbol}{relProduct.price.toFixed(2)} <span className="text-xs text-muted-foreground">{relProduct.currency}</span></p>
-                    {relProduct.region && <Badge variant="outline" size="sm" className="mt-2">Region: {relProduct.region}</Badge>}
+                     {(relProduct.region || relProduct.town) && (
+                        <Badge variant="outline" size="sm" className="mt-2 flex items-center gap-1 w-fit">
+                            <MapPin className="h-3 w-3" />
+                            {relProduct.region}
+                            {relProduct.town && relProduct.region ? ` - ${relProduct.town}` : relProduct.town}
+                        </Badge>
+                     )}
                     <Button variant="outline" size="sm" className="w-full mt-3" asChild>
                       <Link href={`/market/${relProduct.id}`}>View</Link>
                     </Button>

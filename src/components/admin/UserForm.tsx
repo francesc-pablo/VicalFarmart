@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -23,12 +24,12 @@ import {
 } from "@/components/ui/select";
 import type { User, UserRole } from "@/types";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { PRODUCT_REGIONS } from "@/lib/constants"; // Import regions
+import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
 
 interface UserFormProps {
   user?: User | null;
-  onSubmit: (data: Partial<User>) => void; // Allow partial for updates
+  onSubmit: (data: Partial<User>) => void;
   onCancel: () => void;
 }
 
@@ -36,14 +37,13 @@ const userFormSchemaBase = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   role: z.enum(["customer", "seller", "admin"], { required_error: "Please select a role." }),
-  // Seller specific fields (optional at schema level, conditionally shown in UI)
   businessName: z.string().optional(),
   businessOwnerName: z.string().optional(),
   businessAddress: z.string().optional(),
-  contactNumber: z.string().optional(), // Consider adding phone validation if needed
+  contactNumber: z.string().optional(),
   businessLocationRegion: z.string().optional(),
   businessLocationTown: z.string().optional(),
-  geoCoordinatesLat: z.string().optional(), // Consider regex for lat/lng format
+  geoCoordinatesLat: z.string().optional(),
   geoCoordinatesLng: z.string().optional(),
   businessType: z.string().optional(),
 });
@@ -53,7 +53,7 @@ const userFormSchemaCreate = userFormSchemaBase.extend({
 });
 
 const userFormSchemaUpdate = userFormSchemaBase.extend({
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional().or(z.literal('')), // Optional for updates
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional().or(z.literal('')),
 });
 
 
@@ -61,9 +61,13 @@ type UserFormValuesCreate = z.infer<typeof userFormSchemaCreate>;
 type UserFormValuesUpdate = z.infer<typeof userFormSchemaUpdate>;
 type UserFormValues = UserFormValuesCreate | UserFormValuesUpdate;
 
+const NO_REGION_VALUE = "--NONE--";
+const NO_TOWN_VALUE = "--NONE--";
+
 export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
   const isEditing = !!user;
   const formSchema = isEditing ? userFormSchemaUpdate : userFormSchemaCreate;
+  const [availableBusinessTowns, setAvailableBusinessTowns] = useState<string[]>([]);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(formSchema),
@@ -71,13 +75,13 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
       name: user?.name || "",
       email: user?.email || "",
       role: user?.role || "customer",
-      password: "", // Always empty for password field initially
+      password: "",
       businessName: user?.businessName || "",
       businessOwnerName: user?.businessOwnerName || "",
       businessAddress: user?.businessAddress || "",
       contactNumber: user?.contactNumber || "",
-      businessLocationRegion: user?.businessLocationRegion || "",
-      businessLocationTown: user?.businessLocationTown || "",
+      businessLocationRegion: user?.businessLocationRegion || undefined,
+      businessLocationTown: user?.businessLocationTown || undefined,
       geoCoordinatesLat: user?.geoCoordinatesLat || "",
       geoCoordinatesLng: user?.geoCoordinatesLng || "",
       businessType: user?.businessType || "",
@@ -85,16 +89,33 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
   });
 
   const watchedRole = form.watch("role");
+  const watchedBusinessRegion = form.watch("businessLocationRegion");
+
+  useEffect(() => {
+    if (watchedRole === 'seller' && watchedBusinessRegion && watchedBusinessRegion !== NO_REGION_VALUE) {
+      setAvailableBusinessTowns(GHANA_REGIONS_AND_TOWNS[watchedBusinessRegion] || []);
+      if(user?.businessLocationRegion !== watchedBusinessRegion) {
+        form.setValue("businessLocationTown", undefined);
+      }
+    } else {
+      setAvailableBusinessTowns([]);
+      form.setValue("businessLocationTown", undefined);
+    }
+  }, [watchedBusinessRegion, watchedRole, form, user?.businessLocationRegion]);
 
   const handleSubmit = (values: UserFormValues) => {
-    const dataToSubmit: Partial<User> = { ...values };
+    const dataToSubmit: Partial<User> = {
+        ...values,
+        businessLocationRegion: values.businessLocationRegion === NO_REGION_VALUE ? undefined : values.businessLocationRegion,
+        businessLocationTown: values.businessLocationTown === NO_TOWN_VALUE || !values.businessLocationTown ? undefined : values.businessLocationTown,
+    };
     if (isEditing) {
       dataToSubmit.id = user.id;
-      if (!values.password) { 
+      if (!values.password) {
         delete dataToSubmit.password;
       }
     } else {
-      dataToSubmit.isActive = true; 
+      dataToSubmit.isActive = true;
     }
     onSubmit(dataToSubmit);
   };
@@ -235,23 +256,29 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                 </FormItem>
               )}
             />
-            
+
             <Separator className="my-6" />
             <h3 className="text-lg font-medium mb-3">Business Location</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
+            <FormField
                 control={form.control}
                 name="businessLocationRegion"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Region</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value === NO_REGION_VALUE ? undefined : value);
+                      }}
+                      value={field.value ?? NO_REGION_VALUE}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a region" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value={NO_REGION_VALUE}>Select a region</SelectItem>
                         {PRODUCT_REGIONS.map((region) => (
                           <SelectItem key={region} value={region}>
                             {region}
@@ -268,10 +295,28 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                 name="businessLocationTown"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Town</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Kumasi, Accra" {...field} />
-                    </FormControl>
+                    <FormLabel>Town (Optional)</FormLabel>
+                     <Select
+                        onValueChange={(value) => {
+                          field.onChange(value === NO_TOWN_VALUE ? undefined : value);
+                        }}
+                        value={field.value ?? NO_TOWN_VALUE}
+                        disabled={!watchedBusinessRegion || watchedBusinessRegion === NO_REGION_VALUE || availableBusinessTowns.length === 0}
+                      >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a town" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_TOWN_VALUE}>Select a town (Optional)</SelectItem>
+                        {availableBusinessTowns.map((town) => (
+                          <SelectItem key={town} value={town}>
+                            {town}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -320,4 +365,3 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     </Form>
   );
 }
-

@@ -17,16 +17,25 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog";
-import { UserForm } from '@/components/admin/UserForm'; // Import UserForm
+import { UserForm } from '@/components/admin/UserForm';
 import { useToast } from '@/hooks/use-toast';
 
 
 // Mock data - replace with actual data fetching
 const mockUsers: User[] = [
   { id: "user001", name: "Alice Wonderland", email: "alice@example.com", role: "customer", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
-  { id: "user002", name: "Bob The Farmer", email: "seller@farmfresh.com", role: "seller", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
-  { id: "user003", name: "Charlie Admin", email: "admin@vicalfarmart.com", role: "admin", isActive: true, avatarUrl: "https://placehold.co/40x40.png" }, // Updated domain
+  {
+    id: "user002", name: "Bob The Farmer", email: "seller@farmfresh.com", role: "seller", isActive: true, avatarUrl: "https://placehold.co/40x40.png",
+    businessName: "FarmFresh Co.", businessOwnerName: "Bob The Farmer", businessAddress: "123 Farm Lane", contactNumber: "+233244123456",
+    businessLocationRegion: "Ashanti", businessLocationTown: "Kumasi", geoCoordinatesLat: "6.6885", geoCoordinatesLng: "-1.6244", businessType: "Sole Proprietorship"
+  },
+  { id: "user003", name: "Charlie Admin", email: "admin@vicalfarmart.com", role: "admin", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
   { id: "user004", name: "Diana Deactivated", email: "diana@inactive.com", role: "customer", isActive: false, avatarUrl: "https://placehold.co/40x40.png" },
+  {
+    id: "user005", name: "Eve GreenThumb", email: "eve@greenthumb.com", role: "seller", isActive: true, avatarUrl: "https://placehold.co/40x40.png",
+    businessName: "GreenThumb Organics", businessOwnerName: "Eve GreenThumb", businessAddress: "456 Organic Way", contactNumber: "+233555987654",
+    businessLocationRegion: "Greater Accra", businessLocationTown: "Tema", geoCoordinatesLat: "5.6696", geoCoordinatesLng: "0.0039", businessType: "Cooperative"
+  }
 ];
 
 export default function AdminUsersPage() {
@@ -40,7 +49,7 @@ export default function AdminUsersPage() {
     setUsers(prevUsers => prevUsers.map(user => user.id === userId ? { ...user, isActive: !currentStatus } : user));
     toast({ title: "User Status Updated", description: `User ${userId} status changed to ${!currentStatus ? 'Active' : 'Inactive'}.` });
   };
-  
+
   const handleDeleteUser = (userId: string) => {
     setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
     toast({ title: "User Deleted", description: `User ${userId} has been removed.`, variant: "destructive" });
@@ -58,7 +67,7 @@ export default function AdminUsersPage() {
       setShowUserForm(true);
     }
   };
-  
+
   const handleUserFormSubmit = (userData: Partial<User>) => {
     if (editingUser && userData.id) { // Editing existing user
       setUsers(users.map(u => u.id === userData.id ? { ...u, ...userData } as User : u));
@@ -69,9 +78,9 @@ export default function AdminUsersPage() {
         name: userData.name!,
         email: userData.email!,
         role: userData.role!,
-        isActive: userData.isActive !== undefined ? userData.isActive : true, // Default to active
-        avatarUrl: "https://placehold.co/40x40.png", // Default avatar
-        // Password is not stored in state, assumed handled by backend/auth service
+        isActive: userData.isActive !== undefined ? userData.isActive : true,
+        avatarUrl: "https://placehold.co/40x40.png",
+        ...userData // include seller specific fields
       };
       setUsers([...users, newUser]);
       toast({ title: "User Added", description: `New user ${newUser.name} created as ${newUser.role}.` });
@@ -83,7 +92,8 @@ export default function AdminUsersPage() {
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.businessName && user.businessName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -94,7 +104,7 @@ export default function AdminUsersPage() {
         actions={
            <Dialog open={showUserForm} onOpenChange={(isOpen) => {
             setShowUserForm(isOpen);
-            if (!isOpen) setEditingUser(null); // Reset editing user when dialog closes
+            if (!isOpen) setEditingUser(null);
           }}>
             <DialogTrigger asChild>
               <Button onClick={handleAddNewUser}>
@@ -108,9 +118,9 @@ export default function AdminUsersPage() {
                   {editingUser ? "Update the user's details." : "Fill in the details to create a new user account."}
                 </DialogDescription>
               </DialogHeader>
-              <UserForm 
-                user={editingUser} 
-                onSubmit={handleUserFormSubmit} 
+              <UserForm
+                user={editingUser}
+                onSubmit={handleUserFormSubmit}
                 onCancel={() => { setShowUserForm(false); setEditingUser(null);}}
               />
             </DialogContent>
@@ -120,7 +130,7 @@ export default function AdminUsersPage() {
 
       <div className="mb-6">
         <Input
-          placeholder="Search by name or email..."
+          placeholder="Search by name, email, or business name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
@@ -130,11 +140,11 @@ export default function AdminUsersPage() {
 
       <Card className="shadow-lg">
         <CardContent className="p-0">
-          <UserTable 
-            users={filteredUsers} 
+          <UserTable
+            users={filteredUsers}
             onToggleUserStatus={handleToggleUserStatus}
             onDeleteUser={handleDeleteUser}
-            onEditUser={handleEditUser} // Pass the handler to UserTable
+            onEditUser={handleEditUser}
           />
         </CardContent>
       </Card>

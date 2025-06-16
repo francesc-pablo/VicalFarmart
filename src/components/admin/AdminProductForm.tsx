@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -23,12 +24,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Product, User } from "@/types";
-import { PRODUCT_CATEGORIES, PRODUCT_REGIONS } from "@/lib/constants";
+import { PRODUCT_CATEGORIES, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/lib/constants";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 interface AdminProductFormProps {
   product?: Product | null;
-  sellers: User[]; 
+  sellers: User[];
   onSubmit: (data: Product) => void;
   onCancel: () => void;
 }
@@ -36,15 +37,15 @@ interface AdminProductFormProps {
 const CURRENCY_OPTIONS = [
   { value: "GHS", label: "GHS (₵)" },
   { value: "USD", label: "USD ($)" },
-  { value: "NGN", label: "NGN (₦)" }, // Nigerian Naira
-  { value: "XOF", label: "XOF (CFA)" }, // CFA Franc BCEAO
-  { value: "SLL", label: "SLL (Le)" }, // Sierra Leonean Leone
-  { value: "LRD", label: "LRD (L$)" }, // Liberian Dollar
-  { value: "GMD", label: "GMD (D)" },   // Gambian Dalasi
-  { value: "GNF", label: "GNF (FG)" },  // Guinean Franc
-  { value: "CVE", label: "CVE (Esc)" }, // Cape Verdean Escudo
-  { value: "EUR", label: "EUR (€)" },   // Euro
-  { value: "GBP", label: "GBP (£)" },   // British Pound
+  { value: "NGN", label: "NGN (₦)" },
+  { value: "XOF", label: "XOF (CFA)" },
+  { value: "SLL", label: "SLL (Le)" },
+  { value: "LRD", label: "LRD (L$)" },
+  { value: "GMD", label: "GMD (D)" },
+  { value: "GNF", label: "GNF (FG)" },
+  { value: "CVE", label: "CVE (Esc)" },
+  { value: "EUR", label: "EUR (€)" },
+  { value: "GBP", label: "GBP (£)" },
 ];
 
 const productFormSchema = z.object({
@@ -57,13 +58,18 @@ const productFormSchema = z.object({
   imageUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
   sellerId: z.string().min(1, { message: "Please select a seller." }),
   region: z.string().optional(),
+  town: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
 const NO_REGION_VALUE = "--NONE--";
+const NO_TOWN_VALUE = "--NONE--";
+
 
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
+
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -76,10 +82,25 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       imageUrl: product?.imageUrl || "",
       sellerId: product?.sellerId || "",
       region: product?.region || undefined,
+      town: product?.town || undefined,
     },
   });
 
   const watchedCurrency = form.watch("currency");
+  const watchedRegion = form.watch("region");
+
+  useEffect(() => {
+    if (watchedRegion && watchedRegion !== NO_REGION_VALUE) {
+      setAvailableTowns(GHANA_REGIONS_AND_TOWNS[watchedRegion] || []);
+      if(product?.region !== watchedRegion) { // if region changed, reset town only if it's a new region selection
+         form.setValue("town", undefined);
+      }
+    } else {
+      setAvailableTowns([]);
+      form.setValue("town", undefined);
+    }
+  }, [watchedRegion, form, product?.region]);
+
 
   const getCurrencySymbol = (currencyCode?: string) => {
     const option = CURRENCY_OPTIONS.find(opt => opt.value === currencyCode);
@@ -89,17 +110,18 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
             return symbolMatch[1];
         }
     }
-    return "$"; // Default symbol if not found or no match
+    return "$";
   };
 
   const handleSubmit = (values: ProductFormValues) => {
     const selectedSeller = sellers.find(s => s.id === values.sellerId);
     const completeProductData: Product = {
-      id: product?.id || String(Date.now()), 
+      id: product?.id || String(Date.now()),
       ...values,
       sellerName: selectedSeller?.name || "Unknown Seller",
       imageUrl: values.imageUrl || "https://placehold.co/400x300.png",
       region: values.region === NO_REGION_VALUE ? undefined : values.region,
+      town: values.town === NO_TOWN_VALUE || !values.town ? undefined : values.town,
       currency: values.currency,
     };
     onSubmit(completeProductData);
@@ -236,13 +258,19 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
             )}
           />
         </div>
+
         <FormField
             control={form.control}
             name="region"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Region (Optional)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value === undefined ? NO_REGION_VALUE : field.value} value={field.value ?? undefined}>
+                <FormLabel>Region</FormLabel>
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value === NO_REGION_VALUE ? undefined : value);
+                  }}
+                  value={field.value ?? NO_REGION_VALUE}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a region" />
@@ -261,6 +289,41 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
               </FormItem>
             )}
           />
+
+        {watchedRegion && watchedRegion !== NO_REGION_VALUE && availableTowns.length > 0 && (
+          <FormField
+            control={form.control}
+            name="town"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Town (Optional)</FormLabel>
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value === NO_TOWN_VALUE ? undefined : value);
+                  }}
+                  value={field.value ?? NO_TOWN_VALUE}
+                  disabled={!watchedRegion || watchedRegion === NO_REGION_VALUE || availableTowns.length === 0}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a town" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_TOWN_VALUE}>Select a town (Optional)</SelectItem>
+                    {availableTowns.map((town) => (
+                      <SelectItem key={town} value={town}>
+                        {town}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <FormField
           control={form.control}
           name="imageUrl"

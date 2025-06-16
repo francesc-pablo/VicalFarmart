@@ -18,21 +18,21 @@ import { PRODUCT_CATEGORIES, PRODUCT_REGIONS } from '@/lib/constants';
 
 // Mock data for products
 const mockProducts: Product[] = [
-  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", currency: "USD" },
-  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads and sauces.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", currency: "USD" },
-  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust and tangy flavor.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", currency: "GHS" },
-  { id: "4", name: "Free-Range Chicken Eggs", description: "Farm-fresh free-range chicken eggs, rich in color and taste.", price: 55.00, category: "Dairy", imageUrl: "https://placehold.co/400x300.png", stock: 50, sellerId: "seller1", sellerName: "Happy Hens Farm", region: "Bono", currency: "GHS" },
-  { id: "5", name: "Organic Spinach Bunch", description: "A healthy bunch of organic spinach, great for smoothies or cooking.", price: 2.99, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 70, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Central", currency: "USD" },
-  { id: "6", name: "Raw Honey Jar", description: "Pure, unfiltered raw honey from local beekeepers. Nature's sweetener.", price: 87.50, category: "Other", imageUrl: "https://placehold.co/400x300.png", stock: 40, sellerId: "seller3", sellerName: "Buzzworthy Bees", region: "Eastern", currency: "GHS" },
-  { id: "7", name: "Grass-Fed Beef Steak", description: "Premium quality grass-fed beef steak, tender and flavorful.", price: 12.99, category: "Meat", imageUrl: "https://placehold.co/400x300.png", stock: 30, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "Western", currency: "USD" },
-  { id: "8", name: "Pastured Chicken Breast", description: "Juicy and healthy pastured chicken breast.", price: 95.00, category: "Poultry", imageUrl: "https://placehold.co/400x300.png", stock: 45, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "Northern", currency: "GHS" },
+  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", town: "Kumasi", currency: "USD" },
+  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads and sauces.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", town: "Ho", currency: "USD" },
+  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust and tangy flavor.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", town: "Accra", currency: "GHS" },
+  { id: "4", name: "Free-Range Chicken Eggs", description: "Farm-fresh free-range chicken eggs, rich in color and taste.", price: 55.00, category: "Dairy", imageUrl: "https://placehold.co/400x300.png", stock: 50, sellerId: "seller1", sellerName: "Happy Hens Farm", region: "Bono", town: "Sunyani", currency: "GHS" },
+  { id: "5", name: "Organic Spinach Bunch", description: "A healthy bunch of organic spinach, great for smoothies or cooking.", price: 2.99, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 70, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Central", town: "Cape Coast", currency: "USD" },
+  { id: "6", name: "Raw Honey Jar", description: "Pure, unfiltered raw honey from local beekeepers. Nature's sweetener.", price: 87.50, category: "Other", imageUrl: "https://placehold.co/400x300.png", stock: 40, sellerId: "seller3", sellerName: "Buzzworthy Bees", region: "Eastern", town: "Koforidua", currency: "GHS" },
+  { id: "7", name: "Grass-Fed Beef Steak", description: "Premium quality grass-fed beef steak, tender and flavorful.", price: 12.99, category: "Meat", imageUrl: "https://placehold.co/400x300.png", stock: 30, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "Western", town: "Takoradi", currency: "USD" },
+  { id: "8", name: "Pastured Chicken Breast", description: "Juicy and healthy pastured chicken breast.", price: 95.00, category: "Poultry", imageUrl: "https://placehold.co/400x300.png", stock: 45, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "Northern", town: "Tamale", currency: "GHS" },
 ];
 
 
 export default function MarketPage() {
   const searchParams = useSearchParams();
-  const router = useRouter(); 
-  
+  const router = useRouter();
+
   const [localSearchTerm, setLocalSearchTerm] = useState(searchParams.get('search') || "");
   const [localCategoryFilter, setLocalCategoryFilter] = useState<string>(searchParams.get('category') || "All");
   const [localRegionFilter, setLocalRegionFilter] = useState<string>(searchParams.get('region') || "All");
@@ -51,16 +51,16 @@ export default function MarketPage() {
     if (urlRegion !== localRegionFilter) {
       setLocalRegionFilter(urlRegion);
     }
-  }, [searchParams, localSearchTerm, localCategoryFilter, localRegionFilter]); 
+  }, [searchParams, localSearchTerm, localCategoryFilter, localRegionFilter]);
 
   const handleLocalSearchTermChange = useCallback((value: string) => {
-    setLocalSearchTerm(value); 
+    setLocalSearchTerm(value);
   }, []);
 
   const handleLocalCategoryChange = useCallback((value: string) => {
-    setLocalCategoryFilter(value); 
+    setLocalCategoryFilter(value);
   }, []);
-  
+
   const filteredProducts = mockProducts
     .filter(product => localCategoryFilter === "All" || product.category === localCategoryFilter)
     .filter(product => localRegionFilter === "All" || !product.region || product.region === localRegionFilter)
@@ -68,9 +68,10 @@ export default function MarketPage() {
       product.name.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
       product.category.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
-      (product.region && product.region.toLowerCase().includes(localSearchTerm.toLowerCase()))
+      (product.region && product.region.toLowerCase().includes(localSearchTerm.toLowerCase())) ||
+      (product.town && product.town.toLowerCase().includes(localSearchTerm.toLowerCase()))
     );
-  
+
   return (
     <div>
       <PageHeader
@@ -82,9 +83,9 @@ export default function MarketPage() {
         <div className="flex-grow relative flex items-center">
           <Input
             placeholder="Refine search on this page..."
-            value={localSearchTerm} 
+            value={localSearchTerm}
             onChange={(e) => handleLocalSearchTermChange(e.target.value)}
-            className="w-full pr-10" 
+            className="w-full pr-10"
           />
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         </div>

@@ -9,8 +9,9 @@ export interface Product {
   stock: number;
   sellerId: string;
   sellerName?: string;
-  region?: string; 
-  currency?: string; // Added currency
+  region?: string;
+  town?: string; // Added town
+  currency?: string;
 }
 
 export interface OrderItem {
@@ -25,36 +26,35 @@ export type PaymentMethod = 'Mobile Payment' | 'Pay on Delivery';
 
 export interface Order {
   id: string;
-  customerId: string; 
-  customerName: string; 
+  customerId: string;
+  customerName: string;
   items: OrderItem[];
   totalAmount: number;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
   shippingAddress: string;
-  orderDate: string; 
-  sellerId?: string; 
+  orderDate: string;
+  sellerId?: string;
 }
 
-export type UserRole = 'seller' | 'admin' | 'customer'; 
+export type UserRole = 'seller' | 'admin' | 'customer';
 
 export interface User {
   id: string;
-  name: string; 
+  name: string;
   email: string;
   role: UserRole;
   avatarUrl?: string;
-  isActive: boolean; 
+  isActive: boolean;
 
   // Seller-specific fields
   businessName?: string;
-  businessOwnerName?: string; 
-  businessAddress?: string; 
-  contactNumber?: string; 
+  businessOwnerName?: string;
+  businessAddress?: string;
+  contactNumber?: string;
   businessLocationRegion?: string;
   businessLocationTown?: string;
   geoCoordinatesLat?: string;
   geoCoordinatesLng?: string;
-  businessType?: string; 
+  businessType?: string;
 }
-
