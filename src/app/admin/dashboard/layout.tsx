@@ -1,6 +1,6 @@
 
 "use client";
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -26,6 +26,21 @@ export default function AdminDashboardLayout({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const [adminName, setAdminName] = useState("Admin User");
+  const [adminEmail, setAdminEmail] = useState("admin@vicalfarmart.com");
+
+  useEffect(() => {
+    // Access localStorage only on the client side
+    const storedName = localStorage.getItem("userName");
+    const storedEmail = localStorage.getItem("userEmail");
+    if (storedName) {
+      setAdminName(storedName);
+    }
+    if (storedEmail) {
+      setAdminEmail(storedEmail);
+    }
+  }, []);
+
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
@@ -37,9 +52,6 @@ export default function AdminDashboardLayout({
     router.push("/login");
   };
 
-  // Mock admin user details, in a real app this would come from auth state
-  const adminName = localStorage.getItem("userName") || "Admin User";
-  const adminEmail = localStorage.getItem("userEmail") || "admin@vicalfarmart.com"; // Updated domain
   const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase();
 
 
