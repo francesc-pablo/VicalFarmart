@@ -46,6 +46,8 @@ const productFormSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
+const NO_REGION_VALUE = "--NONE--";
+
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -57,7 +59,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       stock: product?.stock || 0,
       imageUrl: product?.imageUrl || "",
       sellerId: product?.sellerId || "",
-      region: product?.region || "",
+      region: product?.region || undefined, // Initialize with undefined if no region
     },
   });
 
@@ -68,7 +70,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       ...values,
       sellerName: selectedSeller?.name || "Unknown Seller",
       imageUrl: values.imageUrl || "https://placehold.co/400x300.png",
-      region: values.region || undefined, // Ensure region is set or undefined
+      region: values.region === NO_REGION_VALUE ? undefined : values.region,
     };
     onSubmit(completeProductData);
   };
@@ -185,14 +187,14 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Region (Optional)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value ?? undefined}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a region" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">All Regions</SelectItem>
+                    <SelectItem value={NO_REGION_VALUE}>No Specific Region</SelectItem>
                     {PRODUCT_REGIONS.map((region) => (
                       <SelectItem key={region} value={region}>
                         {region}
