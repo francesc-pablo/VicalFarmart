@@ -28,15 +28,21 @@ import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 interface AdminProductFormProps {
   product?: Product | null;
-  sellers: User[]; // List of sellers to choose from
+  sellers: User[]; 
   onSubmit: (data: Product) => void;
   onCancel: () => void;
 }
+
+const CURRENCY_OPTIONS = [
+  { value: "GHS", label: "GHS (₵)" },
+  { value: "USD", label: "USD ($)" },
+];
 
 const productFormSchema = z.object({
   name: z.string().min(3, { message: "Product name must be at least 3 characters." }),
   description: z.string().min(10, { message: "Description must be at least 10 characters." }),
   price: z.coerce.number().positive({ message: "Price must be a positive number." }),
+  currency: z.string().default("GHS"),
   category: z.string().min(1, { message: "Please select a category." }),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
   imageUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
@@ -55,13 +61,21 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       name: product?.name || "",
       description: product?.description || "",
       price: product?.price || 0,
+      currency: product?.currency || "GHS",
       category: product?.category || "",
       stock: product?.stock || 0,
       imageUrl: product?.imageUrl || "",
       sellerId: product?.sellerId || "",
-      region: product?.region || undefined, // Initialize with undefined if no region
+      region: product?.region || undefined,
     },
   });
+
+  const watchedCurrency = form.watch("currency");
+
+  const getCurrencySymbol = (currencyCode?: string) => {
+    const option = CURRENCY_OPTIONS.find(opt => opt.value === currencyCode);
+    return option ? option.label.split(' ')[1].replace(/[()]/g, '') : '$';
+  };
 
   const handleSubmit = (values: ProductFormValues) => {
     const selectedSeller = sellers.find(s => s.id === values.sellerId);
@@ -71,6 +85,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       sellerName: selectedSeller?.name || "Unknown Seller",
       imageUrl: values.imageUrl || "https://placehold.co/400x300.png",
       region: values.region === NO_REGION_VALUE ? undefined : values.region,
+      currency: values.currency,
     };
     onSubmit(completeProductData);
   };
@@ -128,13 +143,37 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="currency"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Currency</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {CURRENCY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="price"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Price ($)</FormLabel>
+              <FormItem className="md:col-span-2">
+                <FormLabel>Price ({getCurrencySymbol(watchedCurrency)})</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} />
                 </FormControl>
@@ -142,6 +181,8 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
               </FormItem>
             )}
           />
+        </div>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="stock"
@@ -155,9 +196,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
               </FormItem>
             )}
           />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
+           <FormField
             control={form.control}
             name="category"
             render={({ field }) => (
@@ -181,13 +220,14 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
               </FormItem>
             )}
           />
-          <FormField
+        </div>
+        <FormField
             control={form.control}
             name="region"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Region (Optional)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value ?? undefined}>
+                <Select onValueChange={field.onChange} defaultValue={field.value === undefined ? NO_REGION_VALUE : field.value} value={field.value ?? undefined}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a region" />
@@ -206,7 +246,6 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
               </FormItem>
             )}
           />
-        </div>
         <FormField
           control={form.control}
           name="imageUrl"

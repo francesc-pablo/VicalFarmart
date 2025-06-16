@@ -31,6 +31,12 @@ interface AdminProductTableProps {
   onDeleteProduct: (productId: string) => void;
 }
 
+const getCurrencySymbol = (currencyCode?: string) => {
+  if (currencyCode === "GHS") return "₵";
+  if (currencyCode === "USD") return "$";
+  return "$"; // Default symbol
+};
+
 export function AdminProductTable({ products, onEditProduct, onDeleteProduct }: AdminProductTableProps) {
   return (
     <Table>
@@ -62,7 +68,7 @@ export function AdminProductTable({ products, onEditProduct, onDeleteProduct }: 
               <TableCell className="font-medium">{product.name}</TableCell>
               <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{product.sellerName || 'N/A'}</TableCell>
               <TableCell className="hidden lg:table-cell"><Badge variant="outline">{product.category}</Badge></TableCell>
-              <TableCell>${product.price.toFixed(2)}</TableCell>
+              <TableCell>{getCurrencySymbol(product.currency)}{product.price.toFixed(2)} {product.currency}</TableCell>
               <TableCell className="hidden sm:table-cell">{product.stock}</TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" size="icon" onClick={() => onEditProduct(product)} title="Edit Product">

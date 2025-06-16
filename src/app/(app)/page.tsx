@@ -23,10 +23,10 @@ import {
 
 // Mock data for featured products
 const mockFeaturedProducts: Product[] = [
-  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "North" },
-  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 6.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "West" },
-  { id: "5", name: "Organic Spinach Bunch", description: "A healthy bunch of organic spinach, great for cooking.", price: 2.99, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 70, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Central" },
-  { id: "4", name: "Free-Range Chicken Eggs", description: "Farm-fresh free-range chicken eggs, rich in color and taste.", price: 5.50, category: "Dairy", imageUrl: "https://placehold.co/400x300.png", stock: 50, sellerId: "seller1", sellerName: "Happy Hens Farm", region: "North" },
+  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "North", currency: "USD" },
+  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "West", currency: "GHS" },
+  { id: "5", name: "Organic Spinach Bunch", description: "A healthy bunch of organic spinach, great for cooking.", price: 2.99, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 70, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Central", currency: "USD" },
+  { id: "4", name: "Free-Range Chicken Eggs", description: "Farm-fresh free-range chicken eggs, rich in color and taste.", price: 55.00, category: "Dairy", imageUrl: "https://placehold.co/400x300.png", stock: 50, sellerId: "seller1", sellerName: "Happy Hens Farm", region: "North", currency: "GHS" },
 ];
 
 const categoryDisplayData = [
@@ -50,10 +50,8 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
       <section className="relative w-full pb-8 md:pb-12 overflow-hidden bg-background">
         <div className="container mx-auto px-12 flex flex-col md:flex-row gap-8 items-start">
-          {/* Left Vertical Category List */}
           <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-6">
             <h2 className="text-lg font-semibold mb-3 text-left">Browse Categories</h2>
             <div className="space-y-1.5">
@@ -71,7 +69,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right Main Hero Content */}
           <div className="w-full flex-1 flex flex-col items-center justify-center text-center md:text-left md:px-0">
             <Carousel
               opts={{
@@ -122,7 +119,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products Section */}
       <section className="py-12 md:py-16 w-full bg-background">
         <div className="container mx-auto px-12">
           <h2 className="text-3xl font-bold font-headline text-center mb-10 text-foreground">Featured Products</h2>

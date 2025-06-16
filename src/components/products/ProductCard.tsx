@@ -11,8 +11,16 @@ interface ProductCardProps {
   product: Product;
 }
 
+const getCurrencySymbol = (currencyCode?: string) => {
+  if (currencyCode === "GHS") return "₵";
+  if (currencyCode === "USD") return "$";
+  return "$"; // Default symbol
+};
+
 export function ProductCard({ product }: ProductCardProps) {
   const imageHint = product.category.split(/[&\s]+/g).slice(0, 2).join(" ");
+  const currencySymbol = getCurrencySymbol(product.currency);
+
   return (
     <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
       <Link href={`/market/${product.id}`} className="block">
@@ -35,7 +43,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardDescription className="mt-1 text-sm line-clamp-3 h-[3.75rem]">{product.description}</CardDescription>
         
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-2xl font-bold text-primary">${product.price.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-primary">{currencySymbol}{product.price.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">{product.currency}</span></p>
           <div className="flex items-center gap-1">
             <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
             <span className="text-sm text-muted-foreground">4.5 (20)</span> {/* Mock rating */}

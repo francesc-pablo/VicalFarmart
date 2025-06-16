@@ -28,25 +28,20 @@ const mockSellers: User[] = [
 ];
 
 const mockInitialProducts: Product[] = [
-  { id: "prod_admin_1", name: "Organic Fuji Apples (Admin)", description: "Crisp and sweet organic Fuji apples.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "North" },
-  { id: "prod_admin_2", name: "Vine-Ripened Tomatoes (Admin)", description: "Juicy vine-ripened tomatoes.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "South" },
-  { id: "prod_admin_3", name: "Sourdough Bread (Admin)", description: "Artisanal sourdough bread.", price: 6.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "West" },
+  { id: "prod_admin_1", name: "Organic Fuji Apples (Admin)", description: "Crisp and sweet organic Fuji apples.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "North", currency: "USD" },
+  { id: "prod_admin_2", name: "Vine-Ripened Tomatoes (Admin)", description: "Juicy vine-ripened tomatoes.", price: 25.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "South", currency: "GHS" },
+  { id: "prod_admin_3", name: "Sourdough Bread (Admin)", description: "Artisanal sourdough bread.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "West", currency: "GHS" },
 ];
 
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>(mockInitialProducts);
-  const [sellers, setSellers] = useState<User[]>(mockSellers); // In a real app, fetch sellers
+  const [sellers, setSellers] = useState<User[]>(mockSellers); 
   const [searchTerm, setSearchTerm] = useState("");
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { toast } = useToast();
 
-  // In a real app, you might fetch sellers from an API
-  // useEffect(() => {
-  //   // const fetchedSellers = await fetchSellersFromAPI();
-  //   // setSellers(fetchedSellers);
-  // }, []);
 
   const handleAddNewProduct = () => {
     setEditingProduct(null);
@@ -68,7 +63,6 @@ export default function AdminProductsPage() {
       setProducts(products.map(p => p.id === productData.id ? productData : p));
       toast({ title: "Product Updated", description: `Product "${productData.name}" details saved by admin.` });
     } else {
-      // For new product, ensure ID is unique if not already handled by productData generation
       const newProductWithId = { ...productData, id: productData.id || `prod_admin_${Date.now()}` };
       setProducts([newProductWithId, ...products]);
       toast({ title: "Product Added", description: `New product "${newProductWithId.name}" listed by admin.` });

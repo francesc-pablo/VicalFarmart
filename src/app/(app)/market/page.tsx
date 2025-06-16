@@ -18,14 +18,14 @@ import { PRODUCT_CATEGORIES, PRODUCT_REGIONS } from '@/lib/constants';
 
 // Mock data for products
 const mockProducts: Product[] = [
-  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "North" },
-  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads and sauces.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "South" },
-  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust and tangy flavor.", price: 6.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "West" },
-  { id: "4", name: "Free-Range Chicken Eggs", description: "Farm-fresh free-range chicken eggs, rich in color and taste.", price: 5.50, category: "Dairy", imageUrl: "https://placehold.co/400x300.png", stock: 50, sellerId: "seller1", sellerName: "Happy Hens Farm", region: "North" },
-  { id: "5", name: "Organic Spinach Bunch", description: "A healthy bunch of organic spinach, great for smoothies or cooking.", price: 2.99, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 70, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Central" },
-  { id: "6", name: "Raw Honey Jar", description: "Pure, unfiltered raw honey from local beekeepers. Nature's sweetener.", price: 8.75, category: "Other", imageUrl: "https://placehold.co/400x300.png", stock: 40, sellerId: "seller3", sellerName: "Buzzworthy Bees", region: "East" },
-  { id: "7", name: "Grass-Fed Beef Steak", description: "Premium quality grass-fed beef steak, tender and flavorful.", price: 12.99, category: "Meat", imageUrl: "https://placehold.co/400x300.png", stock: 30, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "West" },
-  { id: "8", name: "Pastured Chicken Breast", description: "Juicy and healthy pastured chicken breast.", price: 9.50, category: "Poultry", imageUrl: "https://placehold.co/400x300.png", stock: 45, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "Central" },
+  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "North", currency: "USD" },
+  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads and sauces.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "South", currency: "USD" },
+  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust and tangy flavor.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "West", currency: "GHS" },
+  { id: "4", name: "Free-Range Chicken Eggs", description: "Farm-fresh free-range chicken eggs, rich in color and taste.", price: 55.00, category: "Dairy", imageUrl: "https://placehold.co/400x300.png", stock: 50, sellerId: "seller1", sellerName: "Happy Hens Farm", region: "North", currency: "GHS" },
+  { id: "5", name: "Organic Spinach Bunch", description: "A healthy bunch of organic spinach, great for smoothies or cooking.", price: 2.99, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 70, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Central", currency: "USD" },
+  { id: "6", name: "Raw Honey Jar", description: "Pure, unfiltered raw honey from local beekeepers. Nature's sweetener.", price: 87.50, category: "Other", imageUrl: "https://placehold.co/400x300.png", stock: 40, sellerId: "seller3", sellerName: "Buzzworthy Bees", region: "East", currency: "GHS" },
+  { id: "7", name: "Grass-Fed Beef Steak", description: "Premium quality grass-fed beef steak, tender and flavorful.", price: 12.99, category: "Meat", imageUrl: "https://placehold.co/400x300.png", stock: 30, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "West", currency: "USD" },
+  { id: "8", name: "Pastured Chicken Breast", description: "Juicy and healthy pastured chicken breast.", price: 95.00, category: "Poultry", imageUrl: "https://placehold.co/400x300.png", stock: 45, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "Central", currency: "GHS" },
 ];
 
 
@@ -33,12 +33,10 @@ export default function MarketPage() {
   const searchParams = useSearchParams();
   const router = useRouter(); 
   
-  // Local state for filters, initialized from URL
   const [localSearchTerm, setLocalSearchTerm] = useState(searchParams.get('search') || "");
   const [localCategoryFilter, setLocalCategoryFilter] = useState<string>(searchParams.get('category') || "All");
   const [localRegionFilter, setLocalRegionFilter] = useState<string>(searchParams.get('region') || "All");
 
-  // Effect to synchronize local state with URL parameters when they change externally
   useEffect(() => {
     const urlSearch = searchParams.get('search') || "";
     const urlCategory = searchParams.get('category') || "All";
@@ -53,23 +51,14 @@ export default function MarketPage() {
     if (urlRegion !== localRegionFilter) {
       setLocalRegionFilter(urlRegion);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.toString()]); // Depend on the string representation of searchParams
+  }, [searchParams, localSearchTerm, localCategoryFilter, localRegionFilter]); 
 
   const handleLocalSearchTermChange = useCallback((value: string) => {
-    setLocalSearchTerm(value); // Only update local state
-    // If you want this input to also update the URL in real-time:
-    // const newParams = new URLSearchParams(searchParams.toString());
-    // if (value.trim()) newParams.set('search', value.trim()); else newParams.delete('search');
-    // router.push(`/market?${newParams.toString()}`, { scroll: false }); 
+    setLocalSearchTerm(value); 
   }, []);
 
   const handleLocalCategoryChange = useCallback((value: string) => {
-    setLocalCategoryFilter(value); // Only update local state
-    // If you want this select to also update the URL in real-time:
-    // const newParams = new URLSearchParams(searchParams.toString());
-    // if (value && value !== "All") newParams.set('category', value); else newParams.delete('category');
-    // router.push(`/market?${newParams.toString()}`, { scroll: false });
+    setLocalCategoryFilter(value); 
   }, []);
   
   const filteredProducts = mockProducts
