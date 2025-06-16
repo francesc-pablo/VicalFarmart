@@ -25,7 +25,7 @@ body {
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 60 30% 82%; /* Beige Border */
-    --input: 60 40% 88%; /* Muted Beige for Input Background */
+    --input: 60 35% 82%; /* Adjusted from 60 40% 88% for more visible border */
     --ring: 120 25% 55%; /* Green for Focus */
     --chart-1: 120 70% 50%; /* Adjusted for theme */
     --chart-2: 90 60% 45%;  /* Adjusted for theme */
