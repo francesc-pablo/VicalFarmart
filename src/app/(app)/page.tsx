@@ -3,8 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import React from 'react'; // Removed useState, useEffect
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
@@ -20,7 +19,6 @@ import {
   MoveRight,
   Citrus, Carrot, Wheat, Milk, Archive, Fish
 } from 'lucide-react';
-// Removed Input, Select components, SearchIcon, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS
 
 
 // Mock data for featured products
@@ -48,10 +46,6 @@ const carouselImages = [
 
 
 export default function HomePage() {
-  const router = useRouter();
-  // Removed state variables for search (searchTerm, selectedRegion, selectedTown, availableTowns)
-  // Removed useEffect for populating towns
-  // Removed handleSearchSubmit function
 
   return (
     <div className="flex flex-col">
@@ -108,15 +102,15 @@ export default function HomePage() {
             </Carousel>
 
             <div className="w-full text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center justify-between mb-2 md:mb-4">
-                <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3 md:mb-0">
+              <div className="flex flex-col md:flex-row items-center justify-between mb-1 md:mb-2">
+                <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3 md:mb-0 text-center md:text-left">
                   Discover Freshness at <span className="text-accent">Vical Farmart</span>
                 </h1>
                 <Button size="lg" className="h-12 text-lg shadow-md mt-2 md:mt-0" asChild>
                   <Link href="/market">Explore Market <MoveRight className="ml-2 h-5 w-5" /></Link>
                 </Button>
               </div>
-              <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto md:mx-0">
+              <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto md:mx-0 text-center md:text-left">
                 Find the best local produce, artisanal goods, and more. Your direct link to quality farm products.
               </p>
             </div>
