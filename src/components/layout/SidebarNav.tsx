@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -57,7 +58,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                       const isSubActive = subItem.href ? pathname === subItem.href || pathname.startsWith(subItem.href) : false;
                       return (
                         <SidebarMenuSubItem key={subIndex}>
-                          <Link href={subItem.disabled ? "#" : subItem.href} passHref legacyBehavior>
+                          <Link href={subItem.disabled ? "#" : subItem.href} asChild>
                             <SidebarMenuSubButton isActive={isSubActive} disabled={subItem.disabled} aria-disabled={subItem.disabled}>
                               {SubIcon && <SubIcon />}
                               <span>{subItem.title}</span>
@@ -79,7 +80,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
 
         return (
           <SidebarMenuItem key={index}>
-            <Link href={item.disabled ? "#" : item.href} passHref legacyBehavior>
+            <Link href={item.disabled ? "#" : item.href}>
               <SidebarMenuButton
                 isActive={isActive}
                 disabled={item.disabled}
@@ -101,3 +102,4 @@ export function SidebarNav({ items }: SidebarNavProps) {
     </SidebarMenu>
   );
 }
+
