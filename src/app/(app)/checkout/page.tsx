@@ -9,25 +9,21 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CreditCard, DollarSign, Package, ShoppingCart, Truck } from "lucide-react";
+import { ArrowLeft, CreditCard, Minus, Package, Plus, ShoppingCart, Trash2, Truck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-
-// Mock cart items
-const mockCartItems = [
-  { id: "1", name: "Organic Fuji Apples", price: 3.99, quantity: 2, imageUrl: "https://placehold.co/100x100.png", category: "Fruits" },
-  { id: "2", name: "Vine-Ripened Tomatoes", price: 2.50, quantity: 3, imageUrl: "https://placehold.co/100x100.png", category: "Vegetables" },
-];
+import { useCart } from "@/context/CartContext";
 
 export default function CheckoutPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [paymentMethod, setPaymentMethod] = useState<"mobile" | "cod">("mobile");
+  const { cartItems, updateCartItemQuantity, removeFromCart, clearCart } = useCart();
 
-  const subtotal = mockCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingFee = 5.00; // Mock shipping
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shippingFee = subtotal > 0 ? 5.00 : 0; // No shipping fee for empty cart
   const total = subtotal + shippingFee;
 
   const handlePlaceOrder = () => {
@@ -36,8 +32,26 @@ export default function CheckoutPage() {
       title: "Order Placed Successfully!",
       description: `Your order will be processed. Payment method: ${paymentMethod === 'mobile' ? 'Mobile Payment' : 'Pay on Delivery'}.`,
     });
+    clearCart(); // Clear the cart
     router.push("/"); // Redirect to homepage or order confirmation page
   };
+  
+  if (cartItems.length === 0) {
+    return (
+        <div className="max-w-4xl mx-auto text-center py-10">
+            <PageHeader
+                title="Your Cart is Empty"
+                description="Looks like you haven't added anything to your cart yet."
+            />
+            <ShoppingCart className="mx-auto h-24 w-24 text-muted-foreground mb-6" />
+            <Button asChild>
+                <Link href="/market">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Start Shopping
+                </Link>
+            </Button>
+        </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -130,20 +144,34 @@ export default function CheckoutPage() {
           <Card className="shadow-lg sticky top-24">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
-                <ShoppingCart className="h-6 w-6" /> Your Cart
+                <ShoppingCart className="h-6 w-6" /> Your Order
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockCartItems.map(item => (
-                <div key={item.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="rounded-md object-cover" data-ai-hint={`${item.category} item`} />
+              {cartItems.map(item => (
+                <div key={item.id} className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <Image src={item.imageUrl} alt={item.name} width={60} height={60} className="rounded-md object-cover" data-ai-hint={`${item.category} item`} />
                     <div>
-                      <p className="font-medium text-sm">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                      <p className="font-medium text-sm line-clamp-2">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">${item.price.toFixed(2)} each</p>
+                      <div className="flex items-center gap-2 mt-2">
+                         <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}>
+                            <Minus className="h-3 w-3" />
+                         </Button>
+                         <span className="text-sm font-medium w-5 text-center">{item.quantity}</span>
+                         <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}>
+                            <Plus className="h-3 w-3" />
+                         </Button>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-sm font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                  <div className="text-right flex flex-col items-end h-full">
+                    <p className="text-sm font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive mt-auto" onClick={() => removeFromCart(item.id)} title="Remove item">
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
               <Separator />

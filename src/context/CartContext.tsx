@@ -11,6 +11,9 @@ export interface CartItem extends Product {
 interface CartContextType {
   cartItems: CartItem[];
   addToCart: (product: Product, quantity: number) => void;
+  removeFromCart: (productId: string) => void;
+  updateCartItemQuantity: (productId: string, newQuantity: number) => void;
+  clearCart: () => void;
   cartCount: number;
 }
 
@@ -58,11 +61,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const removeFromCart = (productId: string) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+    toast({
+      title: "Item Removed",
+      description: "The item has been removed from your cart.",
+      variant: "destructive"
+    });
+  };
+
+  const updateCartItemQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    setCartItems(prevItems =>
+      prevItems.map(item =>
+        item.id === productId ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+  
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
   const value = {
     cartItems,
     addToCart,
+    removeFromCart,
+    updateCartItemQuantity,
+    clearCart,
     cartCount,
   };
 
