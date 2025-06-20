@@ -1,6 +1,6 @@
 
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { useCart } from '@/context/CartContext';
 
 // Mock data for products
 const mockProducts: Product[] = [
@@ -28,6 +29,8 @@ const getCurrencySymbol = (currencyCode?: string) => {
 export default function ProductDetailPage({ params }: { params: { productId: string } }) {
   const resolvedParams = React.use(params);
   const product = mockProducts.find(p => p.id === resolvedParams.productId);
+  const [quantity, setQuantity] = useState(1);
+  const { addToCart } = useCart();
 
   if (!product) {
     return (
@@ -40,6 +43,11 @@ export default function ProductDetailPage({ params }: { params: { productId: str
       </div>
     );
   }
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    addToCart(product, quantity);
+  };
 
   const relatedProducts = mockProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
   const mainImageHint = product.category.split(/[&\s]+/g)[0] + " closeup";
@@ -96,8 +104,17 @@ export default function ProductDetailPage({ params }: { params: { productId: str
           )}
 
           <div className="flex items-center gap-4 mt-auto pt-6 border-t">
-            <Input type="number" defaultValue="1" min="1" max={product.stock > 0 ? product.stock : 1} className="w-20 text-center" disabled={product.stock === 0} aria-label="Quantity"/>
-            <Button size="lg" className="flex-grow shadow-md" disabled={product.stock === 0}>
+            <Input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+              min="1"
+              max={product.stock > 0 ? product.stock : 1}
+              className="w-20 text-center"
+              disabled={product.stock === 0}
+              aria-label="Quantity"
+            />
+            <Button size="lg" className="flex-grow shadow-md" disabled={product.stock === 0} onClick={handleAddToCart}>
               <ShoppingCart className="mr-2 h-5 w-5" /> {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
             </Button>
             <Button variant="outline" size="lg" title="Contact Seller">

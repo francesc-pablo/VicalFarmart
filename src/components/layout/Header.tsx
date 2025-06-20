@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCart } from '@/context/CartContext';
 
 interface AuthStatus {
   isAuthenticated: boolean;
@@ -43,6 +44,7 @@ export function Header() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
+  const { cartCount } = useCart();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string>(NO_REGION_SELECTED);
@@ -86,17 +88,21 @@ export function Header() {
 
 
   useEffect(() => {
-    setSearchTerm(searchParams.get('search') || "");
+    const urlSearch = searchParams.get('search') || "";
     const urlRegion = searchParams.get('region') || NO_REGION_SELECTED;
     const urlTown = searchParams.get('town') || NO_TOWN_SELECTED;
 
+    if (urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
+    }
     if (urlRegion !== selectedRegion) {
         setSelectedRegion(urlRegion);
     }
     if (urlTown !== selectedTown) {
         setSelectedTown(urlTown);
     }
-  }, [searchParams]); // removed selectedRegion, selectedTown to avoid loops
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   useEffect(() => {
     if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
@@ -111,7 +117,8 @@ export function Header() {
         setSelectedTown(NO_TOWN_SELECTED);
       }
     }
-  }, [selectedRegion, selectedTown]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRegion]);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -285,8 +292,13 @@ export function Header() {
                 </Button>
               </>
             )}
-             <Button variant="outline" size="icon" asChild className="h-9 w-9">
+             <Button variant="outline" size="icon" asChild className="relative h-9 w-9">
               <Link href="/checkout">
+                {cartCount > 0 && (
+                  <span className="absolute top-0 right-0 flex h-5 w-5 -translate-y-1/2 translate-x-1/2 transform items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    {cartCount}
+                  </span>
+                )}
                 <ShoppingCart className="h-5 w-5" />
                 <span className="sr-only">Cart</span>
               </Link>
