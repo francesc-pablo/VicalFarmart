@@ -168,20 +168,16 @@ export function Header() {
   };
 
   const SearchBarForm = ({ isMobileLayout }: { isMobileLayout?: boolean }) => (
-    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobileLayout ? 'flex-col sm:flex-row' : 'flex-grow max-w-2xl'}`}>
-      <div className={`relative ${isMobileLayout ? 'w-full' : 'flex-grow'}`}>
+    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobileLayout ? 'flex-col' : 'flex-grow max-w-2xl'}`}>
+      <div className={`${isMobileLayout ? 'w-full' : 'flex-grow'}`}>
         <Input
           type="search"
           placeholder="Search products..."
-          className="h-9 w-full pr-10"
+          className="h-9 w-full"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           aria-label="Search products"
         />
-        <Button type="submit" size="sm" variant="ghost" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2">
-          <SearchIcon className="h-4 w-4 text-muted-foreground" />
-          <span className="sr-only">Search</span>
-        </Button>
       </div>
       <div className={`grid gap-2 grid-cols-2 ${isMobileLayout ? 'w-full' : 'min-w-[360px]'}`}>
           <Select value={selectedRegion} onValueChange={handleRegionChange}>
@@ -214,10 +210,17 @@ export function Header() {
           </Select>
       </div>
       {!isMobileLayout && (
-         <Button type="submit" size="sm" className="h-9 px-4 shrink-0">
-           Search
+         <Button type="submit" size="icon" className="h-9 w-9 shrink-0">
+           <SearchIcon className="h-4 w-4" />
+           <span className="sr-only">Search</span>
          </Button>
        )}
+       {isMobileLayout && (
+          <Button type="submit" className="w-full h-9">
+            <SearchIcon className="h-4 w-4 mr-2" />
+            Search
+          </Button>
+        )}
     </form>
   );
 
