@@ -18,14 +18,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCart } from '@/context/CartContext';
 
@@ -36,21 +28,14 @@ interface AuthStatus {
   userRole?: UserRole | null;
 }
 
-const NO_REGION_SELECTED = "All";
-const NO_TOWN_SELECTED = "All";
-const HEADER_SCROLL_THRESHOLD = 50; // Pixels after which header hiding can occur
+const HEADER_SCROLL_THRESHOLD = 50;
 
 export function Header() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
   const { cartCount } = useCart();
-
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState<string>(NO_REGION_SELECTED);
-  const [selectedTown, setSelectedTown] = useState<string>(NO_TOWN_SELECTED);
-  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
-
   const _isMobileHookValue = useIsMobile();
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
@@ -62,18 +47,18 @@ export function Header() {
 
   useEffect(() => {
     if (!isMobileClient) {
-      setShowHeaderOnMobile(true); // Always show header on non-mobile
+      setShowHeaderOnMobile(true);
       return;
     }
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      if (currentScrollY < HEADER_SCROLL_THRESHOLD) { // Near the top, always show
+      if (currentScrollY < HEADER_SCROLL_THRESHOLD) {
         setShowHeaderOnMobile(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > HEADER_SCROLL_THRESHOLD) { // Scrolling down
+      } else if (currentScrollY > lastScrollY && currentScrollY > HEADER_SCROLL_THRESHOLD) {
         setShowHeaderOnMobile(false);
-      } else if (currentScrollY < lastScrollY) { // Scrolling up
+      } else if (currentScrollY < lastScrollY) {
         setShowHeaderOnMobile(true);
       }
       setLastScrollY(currentScrollY);
@@ -82,43 +67,17 @@ export function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      setLastScrollY(0); // Reset scroll position on cleanup
+      setLastScrollY(0);
     };
   }, [isMobileClient, lastScrollY]);
 
-
   useEffect(() => {
     const urlSearch = searchParams.get('search') || "";
-    const urlRegion = searchParams.get('region') || NO_REGION_SELECTED;
-    const urlTown = searchParams.get('town') || NO_TOWN_SELECTED;
-
     if (urlSearch !== searchTerm) {
       setSearchTerm(urlSearch);
     }
-    if (urlRegion !== selectedRegion) {
-        setSelectedRegion(urlRegion);
-    }
-    if (urlTown !== selectedTown) {
-        setSelectedTown(urlTown);
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-
-  useEffect(() => {
-    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
-      const townsForCurrentRegion = GHANA_REGIONS_AND_TOWNS[selectedRegion] || [];
-      setAvailableTowns(townsForCurrentRegion);
-      if (selectedTown !== NO_TOWN_SELECTED && !townsForCurrentRegion.includes(selectedTown)) {
-        setSelectedTown(NO_TOWN_SELECTED);
-      }
-    } else {
-      setAvailableTowns([]);
-      if (selectedTown !== NO_TOWN_SELECTED) {
-        setSelectedTown(NO_TOWN_SELECTED);
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRegion]);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -160,69 +119,31 @@ export function Header() {
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const queryParams = new URLSearchParams();
+    const newParams = new URLSearchParams(searchParams.toString());
     if (searchTerm.trim()) {
-      queryParams.set('search', searchTerm.trim());
+      newParams.set('search', searchTerm.trim());
+    } else {
+      newParams.delete('search');
     }
-    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED) {
-      queryParams.set('region', selectedRegion);
-    }
-    if (selectedRegion && selectedRegion !== NO_REGION_SELECTED && selectedTown && selectedTown !== NO_TOWN_SELECTED && availableTowns.includes(selectedTown)) {
-      queryParams.set('town', selectedTown);
-    }
-    router.push(`/market?${queryParams.toString()}`);
+    router.push(`/market?${newParams.toString()}`);
   };
 
-  const handleRegionChange = (newRegion: string) => {
-    setSelectedRegion(newRegion);
-    setSelectedTown(NO_TOWN_SELECTED);
-  };
-  
   const SearchBarForm = ({ isMobileLayout }: { isMobileLayout?: boolean }) => (
-    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobileLayout ? 'flex-col sm:flex-row' : 'flex-grow max-w-2xl'}`}>
-      <Input
-        type="search"
-        placeholder="Search products..."
-        className={`h-9 ${isMobileLayout ? 'w-full' : 'flex-grow'}`}
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        aria-label="Search products"
-      />
-      <div className={`flex gap-2 ${isMobileLayout ? 'w-full' : ''}`}>
-        <Select value={selectedRegion} onValueChange={handleRegionChange}>
-          <SelectTrigger className={`h-9 ${isMobileLayout ? 'flex-1' : 'w-[150px] sm:w-[130px] md:w-[150px]'}`}>
-            <SelectValue placeholder="Region" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_REGION_SELECTED}>All Regions</SelectItem>
-            {PRODUCT_REGIONS.map(region => (
-              <SelectItem key={region} value={region}>{region}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-            value={selectedTown}
-            onValueChange={setSelectedTown}
-            disabled={selectedRegion === NO_REGION_SELECTED || availableTowns.length === 0}
-        >
-          <SelectTrigger className={`h-9 ${isMobileLayout ? 'flex-1' : 'w-[150px] sm:w-[130px] md:w-[150px]'}`}>
-            <SelectValue placeholder="Town" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_TOWN_SELECTED}>All Towns</SelectItem>
-            {availableTowns.map((town) => (
-              <SelectItem key={town} value={town}>
-                {town}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobileLayout ? 'flex-col sm:flex-row' : 'flex-grow max-w-lg'}`}>
+      <div className="relative w-full">
+        <Input
+          type="search"
+          placeholder="Search products..."
+          className="h-9 w-full pr-10"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          aria-label="Search products"
+        />
+        <Button type="submit" size="sm" variant="ghost" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2">
+          <SearchIcon className="h-4 w-4 text-muted-foreground" />
+          <span className="sr-only">Search</span>
+        </Button>
       </div>
-      <Button type="submit" size="sm" variant="outline" className={`h-9 px-3 ${isMobileLayout ? 'w-full sm:w-auto' : ''}`}>
-        <SearchIcon className="h-4 w-4" />
-        <span className={`${isMobileLayout ? '' : 'sr-only md:not-sr-only md:ml-1'}`}>{isMobileLayout ? 'Search' : ''}</span>
-         <span className="sr-only">Search</span>
-      </Button>
     </form>
   );
 
@@ -306,7 +227,6 @@ export function Header() {
           </div>
         </nav>
       </div>
-      {/* Changed prop name from isMobile to isMobileLayout to avoid conflict */}
       <div className="container px-4 sm:px-12 pb-3 sm:hidden border-t border-border/40 pt-3">
         <SearchBarForm isMobileLayout />
       </div>

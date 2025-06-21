@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ProductCard } from "@/components/products/ProductCard";
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PRODUCT_CATEGORIES } from '@/lib/constants';
+import { PRODUCT_CATEGORIES, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 
 // Mock data for products
 const mockProducts: Product[] = [
@@ -33,34 +33,46 @@ export default function MarketPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
 
-  // Get filter values directly from URL search params
   const searchTerm = searchParams.get('search') || "";
   const categoryFilter = searchParams.get('category') || "All";
   const regionFilter = searchParams.get('region') || "All";
   const townFilter = searchParams.get('town') || "All";
 
-  const createQueryString = useCallback(
-    (paramsToUpdate: Record<string, string>) => {
-      const newSearchParams = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(paramsToUpdate)) {
-        if (!value || value.toLowerCase() === 'all') {
-          newSearchParams.delete(key);
-        } else {
-          newSearchParams.set(key, value);
-        }
+  useEffect(() => {
+    if (regionFilter && regionFilter !== "All") {
+      const townsForRegion = GHANA_REGIONS_AND_TOWNS[regionFilter] || [];
+      setAvailableTowns(townsForRegion);
+      if (townFilter !== 'All' && !townsForRegion.includes(townFilter)) {
+        // If the current town is not valid for the selected region, reset it.
+        handleFilterChange('town', 'All');
       }
-      return newSearchParams.toString();
-    },
-    [searchParams]
-  );
-  
-  const handleFilterChange = (key: 'search' | 'category', value: string) => {
-    const newQuery = createQueryString({ [key]: value });
-    router.push(`${pathname}?${newQuery}`, { scroll: false });
+    } else {
+      setAvailableTowns([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [regionFilter]);
+
+
+  const handleFilterChange = (key: 'search' | 'category' | 'region' | 'town', value: string) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    
+    if (!value || value.toLowerCase() === 'all') {
+      newParams.delete(key);
+      if (key === 'region') {
+        newParams.delete('town'); // Also remove town if region is removed
+      }
+    } else {
+      newParams.set(key, value);
+      if (key === 'region') {
+        newParams.delete('town'); // Reset town when region changes
+      }
+    }
+
+    router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
   };
   
-  // The search now filters by all available params.
   const filteredProducts = mockProducts
     .filter(product => categoryFilter === "All" || product.category === categoryFilter)
     .filter(product => regionFilter === "All" || !product.region || product.region === regionFilter)
@@ -81,8 +93,8 @@ export default function MarketPage() {
         description="Discover fresh produce and artisanal goods from local sellers."
       />
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-8 sticky top-16 bg-background py-4 z-10 shadow-sm rounded-lg p-4 border">
-        <div className="flex-grow relative flex items-center">
+      <div className="flex flex-col md:flex-row gap-2 mb-8 sticky top-[65px] bg-background py-4 z-10 shadow-sm rounded-lg p-4 border">
+        <div className="flex-grow relative flex items-center mb-2 md:mb-0">
           <Input
             placeholder="Search by name, category, seller..."
             value={searchTerm}
@@ -91,20 +103,46 @@ export default function MarketPage() {
           />
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         </div>
-        <Select value={categoryFilter} onValueChange={(value) => handleFilterChange('category', value)}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Filter by category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All">All Categories</SelectItem>
-            {PRODUCT_CATEGORIES.map(category => (
-              <SelectItem key={category} value={category}>{category}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="p-2 border rounded-md text-sm bg-muted min-w-[180px] text-center whitespace-nowrap">
-          Region: <span className="font-semibold">{regionFilter === "All" ? "All Regions" : regionFilter}</span>
-          {townFilter !== 'All' && ` - ${townFilter}`}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Select value={categoryFilter} onValueChange={(value) => handleFilterChange('category', value)}>
+            <SelectTrigger>
+                <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="All">All Categories</SelectItem>
+                {PRODUCT_CATEGORIES.map(category => (
+                <SelectItem key={category} value={category}>{category}</SelectItem>
+                ))}
+            </SelectContent>
+            </Select>
+
+            <Select value={regionFilter} onValueChange={(value) => handleFilterChange('region', value)}>
+            <SelectTrigger>
+                <SelectValue placeholder="Filter by region" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="All">All Regions</SelectItem>
+                {PRODUCT_REGIONS.map(region => (
+                <SelectItem key={region} value={region}>{region}</SelectItem>
+                ))}
+            </SelectContent>
+            </Select>
+
+            <Select 
+                value={townFilter} 
+                onValueChange={(value) => handleFilterChange('town', value)}
+                disabled={regionFilter === "All" || availableTowns.length === 0}
+            >
+            <SelectTrigger>
+                <SelectValue placeholder="Filter by town" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="All">All Towns</SelectItem>
+                {availableTowns.map(town => (
+                <SelectItem key={town} value={town}>{town}</SelectItem>
+                ))}
+            </SelectContent>
+            </Select>
         </div>
       </div>
 
