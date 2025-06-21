@@ -87,7 +87,7 @@ export default function ContactUsPage() {
               </div>
               <div>
                 <h3 className="font-semibold">Phone</h3>
-                <p className="text-muted-foreground">+233549331616</p>
+                <p className="text-muted-foreground">+233302958685</p>
                 {/* <p className="text-muted-foreground">(+254) 711 111 111</p> */}
               </div>
             </div>
