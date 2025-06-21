@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { ProductCard } from "@/components/products/ProductCard";
 import type { Product } from "@/types";
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, MapPin } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -38,18 +39,48 @@ export default function MarketPage() {
   const categoryFilter = searchParams.get('category') || "All";
   const regionFilter = searchParams.get('region') || "All";
   const townFilter = searchParams.get('town') || "All";
+  
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
 
+  useEffect(() => {
+    setLocalSearchTerm(searchTerm);
+  }, [searchTerm]);
 
-  const handleFilterChange = (key: 'category', value: string) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    
-    if (!value || value.toLowerCase() === 'all') {
-      newParams.delete(key);
+  useEffect(() => {
+    if (regionFilter && regionFilter !== 'All') {
+      const townsForRegion = GHANA_REGIONS_AND_TOWNS[regionFilter] || [];
+      setAvailableTowns(townsForRegion);
     } else {
-      newParams.set(key, value);
+      setAvailableTowns([]);
     }
-
-    router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
+  }, [regionFilter]);
+  
+  const createQueryString = useCallback((updates: { [key: string]: string }) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value && value.toLowerCase() !== 'all') {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+    return params.toString();
+  }, [searchParams]);
+  
+  const handleFilterChange = (key: 'category' | 'region' | 'town', value: string) => {
+    let updates = { [key]: value };
+    if (key === 'region') {
+      updates['town'] = 'All'; // Reset town when region changes
+    }
+    const queryString = createQueryString(updates);
+    router.push(`${pathname}?${queryString}`, { scroll: false });
+  };
+  
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const queryString = createQueryString({ search: localSearchTerm });
+    router.push(`${pathname}?${queryString}`, { scroll: false });
   };
   
   const filteredProducts = mockProducts
@@ -72,24 +103,46 @@ export default function MarketPage() {
         description="Discover fresh produce and artisanal goods from local sellers."
       />
 
-      <div className="flex flex-col md:flex-row gap-2 mb-8 sticky top-[65px] bg-background py-4 z-10 shadow-sm rounded-lg p-4 border">
-        <div className="flex-grow font-medium text-lg flex items-center mb-2 md:mb-0">
-          Filters
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-1 gap-2">
+      <form onSubmit={handleSearchSubmit}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-8 sticky top-[70px] bg-background/95 py-4 z-10 shadow-sm rounded-lg p-4 border backdrop-blur-sm">
+            <div className="relative lg:col-span-2">
+                <Input
+                    type="search"
+                    placeholder="Search by product, seller..."
+                    value={localSearchTerm}
+                    onChange={(e) => setLocalSearchTerm(e.target.value)}
+                    className="pr-10 h-10"
+                />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            </div>
+            
             <Select value={categoryFilter} onValueChange={(value) => handleFilterChange('category', value)}>
-            <SelectTrigger>
-                <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="All">All Categories</SelectItem>
-                {PRODUCT_CATEGORIES.map(category => (
-                <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-            </SelectContent>
+                <SelectTrigger className="h-10"><SelectValue placeholder="All Categories" /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="All">All Categories</SelectItem>
+                    {PRODUCT_CATEGORIES.map(category => (<SelectItem key={category} value={category}>{category}</SelectItem>))}
+                </SelectContent>
             </Select>
+
+            <Select value={regionFilter} onValueChange={(value) => handleFilterChange('region', value)}>
+                <SelectTrigger className="h-10"><MapPin className="h-4 w-4 mr-2" /><SelectValue placeholder="All Regions" /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="All">All Regions</SelectItem>
+                    {PRODUCT_REGIONS.map(region => (<SelectItem key={region} value={region}>{region}</SelectItem>))}
+                </SelectContent>
+            </Select>
+
+            <Select value={townFilter} onValueChange={(value) => handleFilterChange('town', value)} disabled={regionFilter === 'All' || availableTowns.length === 0}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="All Towns" /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="All">All Towns</SelectItem>
+                    {availableTowns.map(town => (<SelectItem key={town} value={town}>{town}</SelectItem>))}
+                </SelectContent>
+            </Select>
+            
+            <Button type="submit" className="w-full h-10 md:hidden lg:inline-flex">Search</Button>
         </div>
-      </div>
+      </form>
 
       {filteredProducts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

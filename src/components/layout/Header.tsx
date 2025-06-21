@@ -56,6 +56,9 @@ export function Header() {
   const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
+  // Conditionally show search bar based on path
+  const showSearchBar = pathname !== '/market';
+
   useEffect(() => {
     setIsMobileClient(_isMobileHookValue);
   }, [_isMobileHookValue]);
@@ -88,7 +91,6 @@ export function Header() {
   
   // Effect to sync URL params with local state
   useEffect(() => {
-    // This effect runs when the URL search params change (e.g., initial load, back/forward button)
     setSearchTerm(searchParams.get('search') || "");
     setSelectedRegion(searchParams.get('region') || "All");
     setSelectedTown(searchParams.get('town') || "All");
@@ -96,18 +98,16 @@ export function Header() {
 
   // Effect to manage available towns based on selected region
   useEffect(() => {
-    // This effect runs when the region changes, either by user interaction or URL change.
     if (selectedRegion && selectedRegion !== "All") {
       const townsForRegion = GHANA_REGIONS_AND_TOWNS[selectedRegion] || [];
       setAvailableTowns(townsForRegion);
-      // If the currently selected town is not valid for the new region, reset it
       if (selectedTown !== 'All' && !townsForRegion.includes(selectedTown)) {
           setSelectedTown("All");
       }
     } else {
       setAvailableTowns([]);
       if (selectedTown !== 'All') {
-        setSelectedTown("All"); // Also reset town if region is set back to "All"
+        setSelectedTown("All");
       }
     }
   }, [selectedRegion, selectedTown]);
@@ -153,23 +153,18 @@ export function Header() {
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newParams = new URLSearchParams(); // Start with fresh params for header search
+    const newParams = new URLSearchParams();
     
     if (searchTerm.trim()) newParams.set('search', searchTerm.trim());
     if (selectedRegion && selectedRegion !== "All") newParams.set('region', selectedRegion);
     if (selectedTown && selectedTown !== "All" && selectedRegion !== "All") newParams.set('town', selectedTown);
-
-    // Preserve category if it exists from a previous search on market page
-    if (pathname === '/market' && searchParams.has('category')) {
-      newParams.set('category', searchParams.get('category')!);
-    }
     
     router.push(`/market?${newParams.toString()}`);
   };
 
   const handleRegionChange = (value: string) => {
     setSelectedRegion(value);
-    setSelectedTown("All"); // Reset town when region changes
+    setSelectedTown("All");
   };
 
   const SearchBarForm = ({ isMobileLayout }: { isMobileLayout?: boolean }) => (
@@ -233,9 +228,11 @@ export function Header() {
         <div className="sm:hidden"> <Logo className="text-xl" /></div>
 
         <nav className="flex items-center gap-2 md:gap-4 flex-grow">
-          <div className="hidden sm:flex flex-grow justify-center">
-             <SearchBarForm />
-          </div>
+          {showSearchBar && (
+            <div className="hidden sm:flex flex-grow justify-center">
+               <SearchBarForm />
+            </div>
+          )}
           
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
             {authStatus.isAuthenticated ? (
@@ -306,9 +303,11 @@ export function Header() {
           </div>
         </nav>
       </div>
-      <div className="container px-4 sm:px-12 pb-3 sm:hidden border-t border-border/40 pt-3">
-        <SearchBarForm isMobileLayout />
-      </div>
+      {showSearchBar && (
+        <div className="container px-4 sm:px-12 pb-3 sm:hidden border-t border-border/40 pt-3">
+          <SearchBarForm isMobileLayout />
+        </div>
+      )}
     </header>
   );
 }
