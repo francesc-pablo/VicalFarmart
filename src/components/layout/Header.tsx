@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon } from 'lucide-react';
-import React, { useState, useEffect, useCallback } from 'react';
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import type { UserRole } from '@/types';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -18,8 +18,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCart } from '@/context/CartContext';
+import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 
 interface AuthStatus {
   isAuthenticated: boolean;
@@ -32,10 +40,17 @@ const HEADER_SCROLL_THRESHOLD = 50;
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
   const { cartCount } = useCart();
+
+  // State for search filters
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState("All");
+  const [selectedTown, setSelectedTown] = useState("All");
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
+
   const _isMobileHookValue = useIsMobile();
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
@@ -70,14 +85,33 @@ export function Header() {
       setLastScrollY(0);
     };
   }, [isMobileClient, lastScrollY]);
-
+  
+  // Effect to sync URL params with local state
   useEffect(() => {
-    const urlSearch = searchParams.get('search') || "";
-    if (urlSearch !== searchTerm) {
-      setSearchTerm(urlSearch);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // This effect runs when the URL search params change (e.g., initial load, back/forward button)
+    setSearchTerm(searchParams.get('search') || "");
+    setSelectedRegion(searchParams.get('region') || "All");
+    setSelectedTown(searchParams.get('town') || "All");
   }, [searchParams]);
+
+  // Effect to manage available towns based on selected region
+  useEffect(() => {
+    // This effect runs when the region changes, either by user interaction or URL change.
+    if (selectedRegion && selectedRegion !== "All") {
+      const townsForRegion = GHANA_REGIONS_AND_TOWNS[selectedRegion] || [];
+      setAvailableTowns(townsForRegion);
+      // If the currently selected town is not valid for the new region, reset it
+      if (selectedTown !== 'All' && !townsForRegion.includes(selectedTown)) {
+          setSelectedTown("All");
+      }
+    } else {
+      setAvailableTowns([]);
+      if (selectedTown !== 'All') {
+        setSelectedTown("All"); // Also reset town if region is set back to "All"
+      }
+    }
+  }, [selectedRegion, selectedTown]);
+
 
   useEffect(() => {
     const checkAuth = () => {
@@ -119,18 +153,28 @@ export function Header() {
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newParams = new URLSearchParams(searchParams.toString());
-    if (searchTerm.trim()) {
-      newParams.set('search', searchTerm.trim());
-    } else {
-      newParams.delete('search');
+    const newParams = new URLSearchParams(); // Start with fresh params for header search
+    
+    if (searchTerm.trim()) newParams.set('search', searchTerm.trim());
+    if (selectedRegion && selectedRegion !== "All") newParams.set('region', selectedRegion);
+    if (selectedTown && selectedTown !== "All" && selectedRegion !== "All") newParams.set('town', selectedTown);
+
+    // Preserve category if it exists from a previous search on market page
+    if (pathname === '/market' && searchParams.has('category')) {
+      newParams.set('category', searchParams.get('category')!);
     }
+    
     router.push(`/market?${newParams.toString()}`);
   };
 
+  const handleRegionChange = (value: string) => {
+    setSelectedRegion(value);
+    setSelectedTown("All"); // Reset town when region changes
+  };
+
   const SearchBarForm = ({ isMobileLayout }: { isMobileLayout?: boolean }) => (
-    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobileLayout ? 'flex-col sm:flex-row' : 'flex-grow max-w-lg'}`}>
-      <div className="relative w-full">
+    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobileLayout ? 'flex-col sm:flex-row' : 'flex-grow max-w-2xl'}`}>
+      <div className={`relative ${isMobileLayout ? 'w-full' : 'flex-grow'}`}>
         <Input
           type="search"
           placeholder="Search products..."
@@ -144,6 +188,41 @@ export function Header() {
           <span className="sr-only">Search</span>
         </Button>
       </div>
+      <div className={`grid gap-2 grid-cols-2 ${isMobileLayout ? 'w-full' : 'min-w-[360px]'}`}>
+          <Select value={selectedRegion} onValueChange={handleRegionChange}>
+            <SelectTrigger className="h-9 text-xs">
+              <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="All Regions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Regions</SelectItem>
+              {PRODUCT_REGIONS.map(region => (
+                <SelectItem key={region} value={region}>{region}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+              value={selectedTown} 
+              onValueChange={setSelectedTown}
+              disabled={selectedRegion === "All" || availableTowns.length === 0}
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="All Towns" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Towns</SelectItem>
+              {availableTowns.map(town => (
+                <SelectItem key={town} value={town}>{town}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+      </div>
+      {!isMobileLayout && (
+         <Button type="submit" size="sm" className="h-9 px-4 shrink-0">
+           Search
+         </Button>
+       )}
     </form>
   );
 

@@ -33,41 +33,20 @@ export default function MarketPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
-
+  
   const searchTerm = searchParams.get('search') || "";
   const categoryFilter = searchParams.get('category') || "All";
   const regionFilter = searchParams.get('region') || "All";
   const townFilter = searchParams.get('town') || "All";
 
-  useEffect(() => {
-    if (regionFilter && regionFilter !== "All") {
-      const townsForRegion = GHANA_REGIONS_AND_TOWNS[regionFilter] || [];
-      setAvailableTowns(townsForRegion);
-      if (townFilter !== 'All' && !townsForRegion.includes(townFilter)) {
-        // If the current town is not valid for the selected region, reset it.
-        handleFilterChange('town', 'All');
-      }
-    } else {
-      setAvailableTowns([]);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [regionFilter]);
 
-
-  const handleFilterChange = (key: 'search' | 'category' | 'region' | 'town', value: string) => {
+  const handleFilterChange = (key: 'category', value: string) => {
     const newParams = new URLSearchParams(searchParams.toString());
     
     if (!value || value.toLowerCase() === 'all') {
       newParams.delete(key);
-      if (key === 'region') {
-        newParams.delete('town'); // Also remove town if region is removed
-      }
     } else {
       newParams.set(key, value);
-      if (key === 'region') {
-        newParams.delete('town'); // Reset town when region changes
-      }
     }
 
     router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
@@ -94,16 +73,10 @@ export default function MarketPage() {
       />
 
       <div className="flex flex-col md:flex-row gap-2 mb-8 sticky top-[65px] bg-background py-4 z-10 shadow-sm rounded-lg p-4 border">
-        <div className="flex-grow relative flex items-center mb-2 md:mb-0">
-          <Input
-            placeholder="Search by name, category, seller..."
-            value={searchTerm}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="w-full pr-10"
-          />
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <div className="flex-grow font-medium text-lg flex items-center mb-2 md:mb-0">
+          Filters
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-1 gap-2">
             <Select value={categoryFilter} onValueChange={(value) => handleFilterChange('category', value)}>
             <SelectTrigger>
                 <SelectValue placeholder="Filter by category" />
@@ -112,34 +85,6 @@ export default function MarketPage() {
                 <SelectItem value="All">All Categories</SelectItem>
                 {PRODUCT_CATEGORIES.map(category => (
                 <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-            </SelectContent>
-            </Select>
-
-            <Select value={regionFilter} onValueChange={(value) => handleFilterChange('region', value)}>
-            <SelectTrigger>
-                <SelectValue placeholder="Filter by region" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="All">All Regions</SelectItem>
-                {PRODUCT_REGIONS.map(region => (
-                <SelectItem key={region} value={region}>{region}</SelectItem>
-                ))}
-            </SelectContent>
-            </Select>
-
-            <Select 
-                value={townFilter} 
-                onValueChange={(value) => handleFilterChange('town', value)}
-                disabled={regionFilter === "All" || availableTowns.length === 0}
-            >
-            <SelectTrigger>
-                <SelectValue placeholder="Filter by town" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="All">All Towns</SelectItem>
-                {availableTowns.map(town => (
-                <SelectItem key={town} value={town}>{town}</SelectItem>
                 ))}
             </SelectContent>
             </Select>
