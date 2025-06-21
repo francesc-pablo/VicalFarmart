@@ -1,7 +1,7 @@
 
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import React, { useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ProductCard } from "@/components/products/ProductCard";
 import type { Product } from "@/types";
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PRODUCT_CATEGORIES, PRODUCT_REGIONS } from '@/lib/constants';
+import { PRODUCT_CATEGORIES } from '@/lib/constants';
 
 // Mock data for products
 const mockProducts: Product[] = [
@@ -30,46 +30,48 @@ const mockProducts: Product[] = [
 
 
 export default function MarketPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const [localSearchTerm, setLocalSearchTerm] = useState(searchParams.get('search') || "");
-  const [localCategoryFilter, setLocalCategoryFilter] = useState<string>(searchParams.get('category') || "All");
-  const [localRegionFilter, setLocalRegionFilter] = useState<string>(searchParams.get('region') || "All");
+  // Get filter values directly from URL search params
+  const searchTerm = searchParams.get('search') || "";
+  const categoryFilter = searchParams.get('category') || "All";
+  const regionFilter = searchParams.get('region') || "All";
+  const townFilter = searchParams.get('town') || "All";
 
-  useEffect(() => {
-    const urlSearch = searchParams.get('search') || "";
-    const urlCategory = searchParams.get('category') || "All";
-    const urlRegion = searchParams.get('region') || "All";
-
-    if (urlSearch !== localSearchTerm) {
-      setLocalSearchTerm(urlSearch);
-    }
-    if (urlCategory !== localCategoryFilter) {
-      setLocalCategoryFilter(urlCategory);
-    }
-    if (urlRegion !== localRegionFilter) {
-      setLocalRegionFilter(urlRegion);
-    }
-  }, [searchParams, localSearchTerm, localCategoryFilter, localRegionFilter]);
-
-  const handleLocalSearchTermChange = useCallback((value: string) => {
-    setLocalSearchTerm(value);
-  }, []);
-
-  const handleLocalCategoryChange = useCallback((value: string) => {
-    setLocalCategoryFilter(value);
-  }, []);
-
+  const createQueryString = useCallback(
+    (paramsToUpdate: Record<string, string>) => {
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(paramsToUpdate)) {
+        if (!value || value.toLowerCase() === 'all') {
+          newSearchParams.delete(key);
+        } else {
+          newSearchParams.set(key, value);
+        }
+      }
+      return newSearchParams.toString();
+    },
+    [searchParams]
+  );
+  
+  const handleFilterChange = (key: 'search' | 'category', value: string) => {
+    const newQuery = createQueryString({ [key]: value });
+    router.push(`${pathname}?${newQuery}`, { scroll: false });
+  };
+  
+  // The search now filters by all available params.
   const filteredProducts = mockProducts
-    .filter(product => localCategoryFilter === "All" || product.category === localCategoryFilter)
-    .filter(product => localRegionFilter === "All" || !product.region || product.region === localRegionFilter)
+    .filter(product => categoryFilter === "All" || product.category === categoryFilter)
+    .filter(product => regionFilter === "All" || !product.region || product.region === regionFilter)
+    .filter(product => townFilter === "All" || !product.town || product.town === townFilter)
     .filter(product =>
-      product.name.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
-      (product.region && product.region.toLowerCase().includes(localSearchTerm.toLowerCase())) ||
-      (product.town && product.town.toLowerCase().includes(localSearchTerm.toLowerCase()))
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.sellerName && product.sellerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (product.region && product.region.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (product.town && product.town.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
   return (
@@ -82,14 +84,14 @@ export default function MarketPage() {
       <div className="flex flex-col sm:flex-row gap-4 mb-8 sticky top-16 bg-background py-4 z-10 shadow-sm rounded-lg p-4 border">
         <div className="flex-grow relative flex items-center">
           <Input
-            placeholder="Refine search on this page..."
-            value={localSearchTerm}
-            onChange={(e) => handleLocalSearchTermChange(e.target.value)}
+            placeholder="Search by name, category, seller..."
+            value={searchTerm}
+            onChange={(e) => handleFilterChange('search', e.target.value)}
             className="w-full pr-10"
           />
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         </div>
-        <Select value={localCategoryFilter} onValueChange={handleLocalCategoryChange}>
+        <Select value={categoryFilter} onValueChange={(value) => handleFilterChange('category', value)}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Filter by category" />
           </SelectTrigger>
@@ -100,8 +102,9 @@ export default function MarketPage() {
             ))}
           </SelectContent>
         </Select>
-        <div className="p-2 border rounded-md text-sm bg-muted min-w-[180px] text-center">
-          Region: <span className="font-semibold">{localRegionFilter === "All" ? "All Regions" : localRegionFilter}</span>
+        <div className="p-2 border rounded-md text-sm bg-muted min-w-[180px] text-center whitespace-nowrap">
+          Region: <span className="font-semibold">{regionFilter === "All" ? "All Regions" : regionFilter}</span>
+          {townFilter !== 'All' && ` - ${townFilter}`}
         </div>
       </div>
 
@@ -114,7 +117,7 @@ export default function MarketPage() {
       ) : (
         <div className="text-center py-12">
           <p className="text-xl text-muted-foreground">No products found matching your criteria.</p>
-          <p className="text-sm text-muted-foreground">Try adjusting your search term, category, or region.</p>
+          <p className="text-sm text-muted-foreground">Try adjusting your search term or filters.</p>
         </div>
       )}
     </div>
