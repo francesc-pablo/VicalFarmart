@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -111,7 +111,9 @@ export default function AdminDashboardLayout({
             {/* Admin-specific header elements if any */}
           </header>
           <main className="flex-1 p-6 overflow-auto">
-            {children}
+            <Suspense>
+              {children}
+            </Suspense>
           </main>
         </SidebarInset>
       </div>
