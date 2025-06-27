@@ -94,8 +94,10 @@ export function AuthForm({ type }: AuthFormProps) {
         console.error("Login error: ", error);
         const errorCode = (error as FirebaseError).code;
         let errorMessage = "An unknown error occurred.";
-        if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
-            errorMessage = "Invalid email or password.";
+        if (errorCode === 'auth/user-not-found') {
+            errorMessage = "No account found with this email address.";
+        } else if (errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
+            errorMessage = "Incorrect password. Please try again.";
         }
         toast({ title: "Login Failed", description: errorMessage, variant: "destructive" });
       }
