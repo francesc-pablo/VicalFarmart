@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin } from 'lucide-react';
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import type { User, UserRole } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -258,15 +258,18 @@ export function Header() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {(authStatus.user.role === 'customer' || authStatus.user.role === 'seller') && (
-                      <>
-                        <DropdownMenuItem asChild>
-                          <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/my-orders"><ListOrdered className="mr-2 h-4 w-4" /> My Orders</Link>
-                        </DropdownMenuItem>
-                      </>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
+                    </DropdownMenuItem>
+                    {authStatus.user.role === 'customer' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/my-orders"><ListOrdered className="mr-2 h-4 w-4" /> My Orders</Link>
+                      </DropdownMenuItem>
+                    )}
+                    {authStatus.user.role === 'seller' && (
+                       <DropdownMenuItem asChild>
+                        <Link href="/seller/dashboard"><Briefcase className="mr-2 h-4 w-4" /> Seller Dashboard</Link>
+                       </DropdownMenuItem>
                     )}
                     {authStatus.user.role === 'admin' && (
                        <DropdownMenuItem asChild>
