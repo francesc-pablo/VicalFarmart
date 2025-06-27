@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { User, UserRole } from "@/types";
@@ -11,8 +12,20 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, ShieldCheck, ShieldAlert, ToggleLeft, ToggleRight } from "lucide-react";
+import { Edit, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 interface UserTableProps {
   users: User[];
@@ -79,9 +92,26 @@ export function UserTable({ users, onEditUser, onDeleteUser, onToggleUserStatus 
                   </Button>
                 )}
                 {onDeleteUser && (
-                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDeleteUser(user.id)} title="Delete User">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                   <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="Delete User">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the user's
+                          account data from Firestore. Note: This does not delete them from Firebase Authentication.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDeleteUser(user.id)}>Continue</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </TableCell>
             </TableRow>
