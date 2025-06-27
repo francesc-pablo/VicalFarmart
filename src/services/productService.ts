@@ -36,6 +36,21 @@ export async function getProductById(productId: string): Promise<Product | null>
   }
 }
 
+export async function getProductsBySellerId(sellerId: string): Promise<Product[]> {
+  try {
+    const q = query(productsCollectionRef, where("sellerId", "==", sellerId));
+    const querySnapshot = await getDocs(q);
+    const products = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    } as Product));
+    return products;
+  } catch (error) {
+    console.error(`Error fetching products for seller ${sellerId}: `, error);
+    return [];
+  }
+}
+
 export async function getFeaturedProducts(count: number = 4): Promise<Product[]> {
     try {
         // This is a simple implementation. For a real app, you might query

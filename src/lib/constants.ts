@@ -23,6 +23,7 @@ export const ADMIN_DASHBOARD_NAV_ITEMS: NavItem[] = [
 
 export const SELLER_DASHBOARD_NAV_ITEMS: NavItem[] = [
   { title: 'Overview', href: '/seller/dashboard', icon: LayoutDashboard },
+  { title: 'My Products', href: '/seller/dashboard/products', icon: ShoppingBasket },
   { title: 'My Sales', href: '/seller/dashboard/orders', icon: Package },
   { title: 'Profile', href: '/seller/dashboard/profile', icon: UserCog },
 ];

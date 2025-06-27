@@ -1,8 +1,8 @@
+
 "use client";
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2, Search } from "lucide-react";
 import type { Product } from "@/types";
 import Image from "next/image";
 import {
@@ -13,181 +13,168 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogDescription,
-  DialogClose
-} from "@/components/ui/dialog";
-import { ProductForm } from '@/components/seller/ProductForm';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { getProductsBySellerId } from '@/services/productService';
+import { getOrdersBySellerId } from '@/services/orderService';
+import { Badge } from '@/components/ui/badge';
 
+interface ProductWithStats extends Product {
+  ordersCount: number;
+  revenue: number;
+}
 
-const mockProducts: Product[] = [
-  { id: "1", name: "Organic Apples", description: "Freshly picked organic apples.", price: 2.99, category: "Fruits", imageUrl: "https://placehold.co/100x100.png", stock: 100, sellerId: "seller1" , sellerName: "FarmFresh"},
-  { id: "2", name: "Heirloom Tomatoes", description: "Sweet and juicy heirloom tomatoes.", price: 4.50, category: "Vegetables", imageUrl: "https://placehold.co/100x100.png", stock: 50, sellerId: "seller1" , sellerName: "FarmFresh"},
-  { id: "3", name: "Whole Wheat Bread", description: "Homemade whole wheat bread.", price: 5.00, category: "Grains", imageUrl: "https://placehold.co/100x100.png", stock: 30, sellerId: "seller1" , sellerName: "FarmFresh"},
-];
+const getCurrencySymbol = (currencyCode?: string) => {
+  if (currencyCode === "GHS") return "₵";
+  if (currencyCode === "USD") return "$";
+  return "$"; // Default symbol
+};
 
 export default function SellerProductsPage() {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [productsWithStats, setProductsWithStats] = useState<ProductWithStats[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [sellerId, setSellerId] = useState<string | null>(null);
+    const { toast } = useToast();
 
-  const handleAddNewProduct = () => {
-    setEditingProduct(null);
-    setShowProductForm(true);
-  };
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setSellerId(user.uid);
+            } else {
+                setIsLoading(false);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
 
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setShowProductForm(true);
-  };
+    const fetchData = useCallback(async () => {
+        if (!sellerId) return;
+        setIsLoading(true);
 
-  const handleDeleteProduct = (productId: string) => {
-    // Implement actual deletion logic here
-    setProducts(products.filter(p => p.id !== productId));
-    // toast({ title: "Product Deleted", description: "The product has been removed." });
-  };
-  
-  const handleProductFormSubmit = (productData: Product) => {
-    if (editingProduct) {
-      setProducts(products.map(p => p.id === productData.id ? productData : p));
-      // toast({ title: "Product Updated", description: "Product details saved." });
-    } else {
-      setProducts([...products, { ...productData, id: String(Date.now()) }]); // Mock ID
-      // toast({ title: "Product Added", description: "New product listed." });
-    }
-    setShowProductForm(false);
-    setEditingProduct(null);
-  };
+        try {
+            const [products, orders] = await Promise.all([
+                getProductsBySellerId(sellerId),
+                getOrdersBySellerId(sellerId)
+            ]);
+            
+            const statsMap = new Map<string, { ordersCount: number; revenue: number }>();
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+            // Only count completed orders for revenue and order count
+            const completedOrders = orders.filter(o => o.status === 'Delivered' || o.status === 'Paid');
+
+            completedOrders.forEach(order => {
+                const productIdsInOrder = new Set<string>();
+                order.items.forEach(item => {
+                    const currentStats = statsMap.get(item.productId) || { ordersCount: 0, revenue: 0 };
+                    statsMap.set(item.productId, {
+                        ...currentStats,
+                        // Add revenue from this item
+                        revenue: currentStats.revenue + (item.price * item.quantity),
+                    });
+                    // Track unique products in this order
+                    productIdsInOrder.add(item.productId);
+                });
+
+                // Increment order count for each unique product in the order
+                productIdsInOrder.forEach(productId => {
+                    const currentStats = statsMap.get(productId)!;
+                    statsMap.set(productId, {
+                        ...currentStats,
+                        ordersCount: currentStats.ordersCount + 1,
+                    });
+                });
+            });
+
+            const productsWithStatsData = products.map(product => ({
+                ...product,
+                ordersCount: statsMap.get(product.id)?.ordersCount || 0,
+                revenue: statsMap.get(product.id)?.revenue || 0,
+            })).sort((a, b) => b.revenue - a.revenue); // Sort by most revenue
+
+            setProductsWithStats(productsWithStatsData);
+
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Error", description: "Could not fetch your product data.", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [sellerId, toast]);
+
+    useEffect(() => {
+        if (sellerId) {
+            fetchData();
+        }
+    }, [sellerId, fetchData]);
+
+    const ProductRowSkeleton = () => (
+        <TableRow>
+            <TableCell><Skeleton className="h-10 w-10 rounded-md" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+            <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
+            <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-12" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+        </TableRow>
+    );
 
   return (
     <div>
       <PageHeader
-        title="Manage Products"
-        description="Add, edit, or remove your product listings."
-        actions={
-          <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
-            <DialogTrigger asChild>
-              <Button onClick={handleAddNewProduct}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
-                <DialogDescription>
-                  {editingProduct ? "Update the details of your product." : "Fill in the details to list a new product."}
-                </DialogDescription>
-              </DialogHeader>
-              <ProductForm 
-                product={editingProduct} 
-                onSubmit={handleProductFormSubmit} 
-                onCancel={() => { setShowProductForm(false); setEditingProduct(null);}}
-              />
-            </DialogContent>
-          </Dialog>
-        }
+        title="My Products"
+        description="View performance analytics for your product listings."
       />
-
-      <div className="mb-6">
-        <Input
-          placeholder="Search products..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-          icon={<Search className="h-4 w-4 text-muted-foreground" />}
-        />
-      </div>
 
       <Card className="shadow-lg">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[80px]">Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-[80px] hidden sm:table-cell">Image</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead className="hidden sm:table-cell">Price</TableHead>
+                <TableHead className="hidden md:table-cell">Stock</TableHead>
+                <TableHead>Orders</TableHead>
+                <TableHead>Revenue</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
+              {isLoading ? (
+                <>
+                    <ProductRowSkeleton />
+                    <ProductRowSkeleton />
+                    <ProductRowSkeleton />
+                </>
+              ) : productsWithStats.length > 0 ? (
+                productsWithStats.map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Image
-                        src={product.imageUrl}
+                        src={product.imageUrl || "https://placehold.co/100x100.png"}
                         alt={product.name}
                         width={50}
                         height={50}
                         className="rounded-md object-cover"
-                        data-ai-hint={`${product.category} produce`}
+                        data-ai-hint={`${product.category} item`}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell><Badge variant="outline">{product.category}</Badge></TableCell>
-                    <TableCell>${product.price.toFixed(2)}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
-                    <TableCell className="text-right">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                           <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                         <DialogContent className="sm:max-w-2xl">
-                          <DialogHeader>
-                            <DialogTitle>Edit Product</DialogTitle>
-                            <DialogDescription>Update the details of your product.</DialogDescription>
-                          </DialogHeader>
-                          <ProductForm product={product} onSubmit={handleProductFormSubmit} onCancel={() => {}} />
-                        </DialogContent>
-                      </Dialog>
-                     
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Confirm Deletion</DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to delete the product &quot;{product.name}&quot;? This action cannot be undone.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                            <DialogClose asChild>
-                              <Button variant="outline">Cancel</Button>
-                            </DialogClose>
-                            <Button variant="destructive" onClick={() => handleDeleteProduct(product.id)}>
-                              Delete
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                    <TableCell>
+                        <p className="font-medium">{product.name}</p>
+                        <Badge variant="outline" className="font-normal mt-1">{product.category}</Badge>
                     </TableCell>
+                    <TableCell className="hidden sm:table-cell">{getCurrencySymbol(product.currency)}{product.price.toFixed(2)}</TableCell>
+                    <TableCell className="hidden md:table-cell">{product.stock}</TableCell>
+                    <TableCell className="font-medium">{product.ordersCount}</TableCell>
+                    <TableCell className="font-medium">{getCurrencySymbol(product.currency)}{product.revenue.toFixed(2)}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center h-24">
-                    No products found.
+                    You have not listed any products yet.
                   </TableCell>
                 </TableRow>
               )}
