@@ -66,7 +66,6 @@ export function AuthForm({ type }: AuthFormProps) {
   });
 
   async function onSubmit(values: LoginFormValues | RegisterFormValues) {
-    form.formState.isSubmitting = true;
     if (isLogin) {
       // Handle Login
       const { email, password } = values as LoginFormValues;
@@ -77,7 +76,6 @@ export function AuthForm({ type }: AuthFormProps) {
 
         if (querySnapshot.empty) {
           toast({ title: "Login Failed", description: "invalid account", variant: "destructive" });
-          form.formState.isSubmitting = false;
           return;
         }
 
@@ -92,7 +90,6 @@ export function AuthForm({ type }: AuthFormProps) {
             description: `Too many failed login attempts. Please try again in ${remainingMinutes} minutes.`,
             variant: "destructive",
           });
-          form.formState.isSubmitting = false;
           return;
         }
 
@@ -146,7 +143,6 @@ export function AuthForm({ type }: AuthFormProps) {
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
             toast({ title: "Registration Failed", description: "This email address is already registered.", variant: "destructive" });
-            form.formState.isSubmitting = false;
             return;
         }
 
@@ -191,7 +187,6 @@ export function AuthForm({ type }: AuthFormProps) {
         toast({ title: "Registration Failed", description: errorMessage, variant: "destructive" });
       }
     }
-     form.formState.isSubmitting = false;
   }
 
   return (
