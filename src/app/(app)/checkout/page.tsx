@@ -15,6 +15,29 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const checkoutSchema = z.object({
+  fullName: z.string().min(2, { message: "Full name is required." }),
+  email: z.string().email({ message: "Please enter a valid email." }),
+  address: z.string().min(5, { message: "Address is required." }),
+  city: z.string().min(2, { message: "City is required." }),
+  zipCode: z.string().min(3, { message: "ZIP code is required." }),
+  phone: z.string().min(10, { message: "A valid phone number is required." }),
+  idCardNumber: z.string().min(5, { message: "ID card number is required." }),
+});
+
+type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
 export default function CheckoutPage() {
   const { toast } = useToast();
@@ -26,7 +49,21 @@ export default function CheckoutPage() {
   const shippingFee = subtotal > 0 ? 5.00 : 0; // No shipping fee for empty cart
   const total = subtotal + shippingFee;
 
-  const handlePlaceOrder = () => {
+  const form = useForm<CheckoutFormValues>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      address: "",
+      city: "",
+      zipCode: "",
+      phone: "",
+      idCardNumber: "",
+    },
+  });
+
+  function handlePlaceOrder(data: CheckoutFormValues) {
+    console.log("Order placed with data:", data);
     // Simulate order placement
     toast({
       title: "Order Placed Successfully!",
@@ -72,37 +109,104 @@ export default function CheckoutPage() {
             <CardHeader>
               <CardTitle className="text-xl">Shipping Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input id="fullName" placeholder="John Doe" />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" />
-              </div>
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" placeholder="123 Main St" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input id="city" placeholder="Anytown" />
-                </div>
-                <div>
-                  <Label htmlFor="zipCode">ZIP Code</Label>
-                  <Input id="zipCode" placeholder="12345" />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" type="tel" placeholder="(555) 123-4567" />
-              </div>
-              <div>
-                <Label htmlFor="idCardNumber">ID Card Number (GH Card/Passport)</Label>
-                <Input id="idCardNumber" placeholder="GHA-123456789-0 / P01234567" />
-              </div>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handlePlaceOrder)} className="space-y-4" id="shipping-form">
+                   <FormField
+                      control={form.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="you@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address</FormLabel>
+                          <FormControl>
+                             <Input placeholder="123 Main St" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                       <FormField
+                          control={form.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Anytown" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                         <FormField
+                          control={form.control}
+                          name="zipCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>ZIP Code</FormLabel>
+                              <FormControl>
+                                <Input placeholder="12345" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                    </div>
+                     <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone Number</FormLabel>
+                            <FormControl>
+                              <Input type="tel" placeholder="(555) 123-4567" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                          control={form.control}
+                          name="idCardNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>ID Card Number (GH Card/Passport)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="GHA-123456789-0 / P01234567" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                </form>
+              </Form>
             </CardContent>
           </Card>
 
@@ -190,7 +294,7 @@ export default function CheckoutPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button size="lg" className="w-full shadow-md" onClick={handlePlaceOrder}>
+              <Button size="lg" className="w-full shadow-md" type="submit" form="shipping-form">
                 <Package className="mr-2 h-5 w-5" /> Place Order
               </Button>
             </CardFooter>
