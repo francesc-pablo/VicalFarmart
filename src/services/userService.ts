@@ -1,21 +1,30 @@
 
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, serverTimestamp, orderBy } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
 const usersCollectionRef = collection(db, "users");
 
-// Function to get all users
+// Function to get all users, sorted by most recently created
 export async function getUsers(): Promise<User[]> {
   try {
-    const querySnapshot = await getDocs(usersCollectionRef);
+    const q = query(usersCollectionRef, orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
     const users = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     } as User));
-    return users.sort((a, b) => a.name.localeCompare(b.name));
+    return users;
   } catch (error) {
+    const anyError = error as any;
+    // Fallback for when createdAt field doesn't exist on all documents yet, which throws a specific error
+    if (anyError.code === "failed-precondition") {
+      console.log("Fallback: fetching users without sorting due to missing 'createdAt' field on some documents.");
+      const fallbackSnapshot = await getDocs(usersCollectionRef);
+      const users = fallbackSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      return users.sort((a, b) => a.name.localeCompare(b.name));
+    }
     console.error("Error fetching users: ", error);
     return [];
   }
@@ -50,12 +59,12 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
     const user = userCredential.user;
 
     // 2. Create user document in Firestore
-    const newUser: User = {
-      id: user.uid,
+    const newUser: Omit<User, 'id'> = {
       name: userData.name || "New User",
       email: user.email!,
       role: userData.role || 'customer',
       isActive: true,
+      createdAt: serverTimestamp(),
       businessName: userData.businessName || "",
       businessOwnerName: userData.businessOwnerName || "",
       businessAddress: userData.businessAddress || "",
@@ -70,7 +79,7 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
     };
     
     await setDoc(doc(db, "users", user.uid), newUser);
-    return newUser;
+    return { id: user.uid, ...newUser } as User;
 
   } catch (error) {
     console.error("Error adding new user:", error);

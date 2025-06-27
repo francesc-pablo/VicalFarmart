@@ -12,6 +12,7 @@ export interface Product {
   region?: string;
   town?: string; // Added town
   currency?: string;
+  createdAt?: any;
 }
 
 export interface OrderItem {
@@ -46,6 +47,7 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   isActive: boolean;
+  createdAt?: any;
 
   // Seller-specific fields
   businessName?: string;

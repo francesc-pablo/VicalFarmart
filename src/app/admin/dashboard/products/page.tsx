@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Search } from "lucide-react";
@@ -18,30 +18,34 @@ import {
 import { AdminProductForm } from '@/components/admin/AdminProductForm';
 import { AdminProductTable } from '@/components/admin/AdminProductTable';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock data for initial products and sellers
-const mockSellers: User[] = [
-  { id: "seller1", name: "Green Valley Orchards", email: "gvo@example.com", role: "seller", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
-  { id: "seller2", name: "Sunshine Farms", email: "sunshine@example.com", role: "seller", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
-  { id: "seller3", name: "The Local Bakery", email: "bakery@example.com", role: "seller", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
-  { id: "seller4", name: "Pasture Perfect Meats", email: "meats@example.com", role: "seller", isActive: true, avatarUrl: "https://placehold.co/40x40.png" },
-];
-
-const mockInitialProducts: Product[] = [
-  { id: "prod_admin_1", name: "Organic Fuji Apples (Admin)", description: "Crisp and sweet organic Fuji apples.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", town: "Kumasi", currency: "USD" },
-  { id: "prod_admin_2", name: "Vine-Ripened Tomatoes (Admin)", description: "Juicy vine-ripened tomatoes.", price: 25.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", town: "Ho", currency: "GHS" },
-  { id: "prod_admin_3", name: "Sourdough Bread (Admin)", description: "Artisanal sourdough bread.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", town: "Accra", currency: "GHS" },
-];
+import { getProducts, addProduct, updateProduct, deleteProduct } from '@/services/productService';
+import { getUsers } from '@/services/userService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<Product[]>(mockInitialProducts);
-  const [sellers, setSellers] = useState<User[]>(mockSellers);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [sellers, setSellers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { toast } = useToast();
 
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    const [productsFromDb, usersFromDb] = await Promise.all([
+      getProducts(),
+      getUsers()
+    ]);
+    setProducts(productsFromDb);
+    setSellers(usersFromDb.filter(u => u.role === 'seller'));
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleAddNewProduct = () => {
     setEditingProduct(null);
@@ -53,22 +57,25 @@ export default function AdminProductsPage() {
     setShowProductForm(true);
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    setProducts(products.filter(p => p.id !== productId));
+  const handleDeleteProduct = async (productId: string) => {
+    await deleteProduct(productId);
     toast({ title: "Product Deleted", description: "The product has been removed by admin.", variant: "destructive" });
+    fetchData();
   };
 
-  const handleProductFormSubmit = (productData: Product) => {
+  const handleProductFormSubmit = async (productData: Product) => {
     if (editingProduct) {
-      setProducts(products.map(p => p.id === productData.id ? productData : p));
+      await updateProduct(productData.id, productData);
       toast({ title: "Product Updated", description: `Product "${productData.name}" details saved by admin.` });
     } else {
-      const newProductWithId = { ...productData, id: productData.id || `prod_admin_${Date.now()}` };
-      setProducts([newProductWithId, ...products]);
-      toast({ title: "Product Added", description: `New product "${newProductWithId.name}" listed by admin.` });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, ...newProductData } = productData;
+      await addProduct(newProductData);
+      toast({ title: "Product Added", description: `New product "${productData.name}" listed by admin.` });
     }
     setShowProductForm(false);
     setEditingProduct(null);
+    fetchData();
   };
 
   const filteredProducts = products.filter(product =>
@@ -78,6 +85,21 @@ export default function AdminProductsPage() {
     (product.region && product.region.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (product.town && product.town.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+  
+  const ProductTableSkeleton = () => (
+     <div className="space-y-2 p-4">
+       {[...Array(5)].map((_, i) => (
+         <div key={i} className="flex items-center space-x-4">
+           <Skeleton className="h-10 w-10" />
+           <div className="space-y-2 flex-grow">
+             <Skeleton className="h-4 w-3/5" />
+           </div>
+            <Skeleton className="h-4 w-1/5" />
+            <Skeleton className="h-8 w-1/6" />
+         </div>
+       ))}
+     </div>
+   );
 
   return (
     <div>
@@ -90,7 +112,7 @@ export default function AdminProductsPage() {
             if (!isOpen) setEditingProduct(null);
           }}>
             <DialogTrigger asChild>
-              <Button onClick={handleAddNewProduct}>
+              <Button onClick={handleAddNewProduct} disabled={isLoading}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Product
               </Button>
             </DialogTrigger>
@@ -112,23 +134,27 @@ export default function AdminProductsPage() {
         }
       />
 
-      <div className="mb-6">
+      <div className="mb-6 relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search by product, seller, category, region, town..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-          icon={<Search className="h-4 w-4 text-muted-foreground" />}
+          className="max-w-md pl-10"
         />
       </div>
 
       <Card className="shadow-lg">
         <CardContent className="p-0">
-          <AdminProductTable
-            products={filteredProducts}
-            onEditProduct={handleEditProduct}
-            onDeleteProduct={handleDeleteProduct}
-          />
+          {isLoading ? (
+            <ProductTableSkeleton />
+          ) : (
+            <AdminProductTable
+              products={filteredProducts}
+              onEditProduct={handleEditProduct}
+              onDeleteProduct={handleDeleteProduct}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

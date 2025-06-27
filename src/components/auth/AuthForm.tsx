@@ -28,7 +28,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, limit, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -91,6 +91,7 @@ export function AuthForm({ type }: AuthFormProps) {
           email: user.email!,
           role: 'customer',
           isActive: true,
+          createdAt: serverTimestamp(),
           failedLoginAttempts: 0,
           lockoutUntil: null,
           businessName: "",
@@ -148,7 +149,7 @@ export function AuthForm({ type }: AuthFormProps) {
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-          toast({ title: "Login Failed", description: "invalid account", variant: "destructive" });
+          toast({ title: "Login Failed", description: "No account found with this email address.", variant: "destructive" });
           return;
         }
 
@@ -230,6 +231,7 @@ export function AuthForm({ type }: AuthFormProps) {
             email: email,
             role: role,
             isActive: true,
+            createdAt: serverTimestamp(),
             failedLoginAttempts: 0,
             lockoutUntil: null,
             businessName: "",
@@ -383,4 +385,3 @@ export function AuthForm({ type }: AuthFormProps) {
     </div>
   );
 }
-

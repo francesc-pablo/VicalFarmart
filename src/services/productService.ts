@@ -1,7 +1,7 @@
 
 import { db } from "@/lib/firebase";
 import type { Product } from "@/types";
-import { collection, getDocs, doc, getDoc, query, where, limit } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where, limit, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 
 const productsCollectionRef = collection(db, "products");
 
@@ -71,4 +71,38 @@ export async function getRelatedProducts(category: string, currentProductId: str
         console.error("Error fetching related products: ", error);
         return [];
     }
+}
+
+// Admin functions
+export async function addProduct(productData: Omit<Product, 'id'>): Promise<Product | null> {
+  try {
+    const docRef = await addDoc(productsCollectionRef, {
+      ...productData,
+      createdAt: serverTimestamp(),
+    });
+    return { id: docRef.id, ...productData };
+  } catch (error) {
+    console.error("Error adding product: ", error);
+    return null;
+  }
+}
+
+export async function updateProduct(productId: string, productData: Partial<Product>): Promise<void> {
+  try {
+    const productDocRef = doc(db, "products", productId);
+    const dataToUpdate = { ...productData };
+    delete dataToUpdate.id; // Don't try to update the ID
+    await updateDoc(productDocRef, dataToUpdate);
+  } catch (error) {
+    console.error("Error updating product: ", error);
+  }
+}
+
+export async function deleteProduct(productId: string): Promise<void> {
+  try {
+    const productDocRef = doc(db, "products", productId);
+    await deleteDoc(productDocRef);
+  } catch (error) {
+    console.error("Error deleting product: ", error);
+  }
 }
