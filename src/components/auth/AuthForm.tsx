@@ -77,6 +77,7 @@ export function AuthForm({ type }: AuthFormProps) {
 
         if (querySnapshot.empty) {
           toast({ title: "Login Failed", description: "invalid account", variant: "destructive" });
+          form.formState.isSubmitting = false;
           return;
         }
 
@@ -91,6 +92,7 @@ export function AuthForm({ type }: AuthFormProps) {
             description: `Too many failed login attempts. Please try again in ${remainingMinutes} minutes.`,
             variant: "destructive",
           });
+          form.formState.isSubmitting = false;
           return;
         }
 
@@ -111,12 +113,12 @@ export function AuthForm({ type }: AuthFormProps) {
           let newLockoutUntil: number | null = userData.lockoutUntil || null;
           let lockoutMessage = "";
 
-          if (failedAttempts === 6) {
-            newLockoutUntil = Date.now() + 30 * 60 * 1000; // 30 minutes
-            lockoutMessage = "Too many failed attempts. Your account is locked for 30 minutes.";
-          } else if (failedAttempts === 12) {
+          if (failedAttempts === 12) {
             newLockoutUntil = Date.now() + 2 * 60 * 60 * 1000; // 2 hours
-            lockoutMessage = "Too many failed attempts. Your account is locked for 2 hours.";
+            lockoutMessage = "Your account has been locked for 2 hours due to too many failed login attempts.";
+          } else if (failedAttempts === 6) {
+            newLockoutUntil = Date.now() + 30 * 60 * 1000; // 30 minutes
+            lockoutMessage = "Your account has been locked for 30 minutes due to too many failed login attempts.";
           }
           
           await updateDoc(userDocRef, { failedLoginAttempts, lockoutUntil: newLockoutUntil });
@@ -124,7 +126,7 @@ export function AuthForm({ type }: AuthFormProps) {
           if (lockoutMessage) {
             toast({ title: "Account Locked", description: lockoutMessage, variant: "destructive" });
           } else {
-            toast({ title: "Login Failed", description: "invalid account", variant: "destructive" });
+            toast({ title: "Login Failed", description: "The password you entered is incorrect. Please try again.", variant: "destructive" });
           }
         }
       } catch (error) {
@@ -144,6 +146,7 @@ export function AuthForm({ type }: AuthFormProps) {
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
             toast({ title: "Registration Failed", description: "This email address is already registered.", variant: "destructive" });
+            form.formState.isSubmitting = false;
             return;
         }
 
