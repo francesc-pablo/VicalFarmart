@@ -2,6 +2,7 @@
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { CartProvider } from '@/context/CartContext';
+import { Suspense } from 'react';
 
 export default function AppLayout({
   children,
@@ -13,7 +14,9 @@ export default function AppLayout({
       <div className="flex flex-col min-h-screen">
         <Header />
         <main className="flex-grow container mx-auto px-12 py-8">
-          {children}
+          <Suspense>
+            {children}
+          </Suspense>
         </main>
         <Footer />
       </div>
