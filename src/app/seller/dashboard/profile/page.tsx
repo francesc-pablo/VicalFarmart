@@ -6,16 +6,27 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { User } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, User as UserIcon, Briefcase, Building, Phone, MapPin, Globe } from 'lucide-react';
+import { Mail, User as UserIcon, Briefcase, Building, Phone, MapPin, Globe, KeyRound } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ChangePasswordForm } from '@/components/seller/ChangePasswordForm';
 
 export default function SellerProfilePage() {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -71,6 +82,25 @@ export default function SellerProfilePage() {
       <PageHeader
         title="My Seller Profile"
         description="View your account and business details."
+        actions={
+          <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <KeyRound className="mr-2 h-4 w-4" />
+                Change Password
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Change Your Password</DialogTitle>
+                <DialogDescription>
+                  Enter your current password and a new password. After a successful change, you will be logged out.
+                </DialogDescription>
+              </DialogHeader>
+              <ChangePasswordForm onFinished={() => setIsPasswordDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        }
       />
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -85,18 +115,18 @@ export default function SellerProfilePage() {
                     <CardDescription>Seller</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-md">
-                        <UserIcon className="h-5 w-5 text-primary" />
+                     <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-md">
+                        <UserIcon className="h-5 w-5 text-primary mt-1" />
                         <div>
                         <p className="text-sm text-muted-foreground">Contact Person</p>
                         <p className="font-medium">{userProfile.name}</p>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-md">
-                        <Mail className="h-5 w-5 text-primary" />
+                    <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-md">
+                        <Mail className="h-5 w-5 text-primary mt-1" />
                         <div>
                         <p className="text-sm text-muted-foreground">Email</p>
-                        <p className="font-medium">{userProfile.email}</p>
+                        <p className="font-medium break-all">{userProfile.email}</p>
                         </div>
                     </div>
                 </CardContent>
