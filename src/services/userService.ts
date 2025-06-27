@@ -23,7 +23,7 @@ export async function getUsers(): Promise<User[]> {
       console.log("Fallback: fetching users without sorting due to missing 'createdAt' field on some documents.");
       const fallbackSnapshot = await getDocs(usersCollectionRef);
       const users = fallbackSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-      return users.sort((a, b) => a.name.localeCompare(b.name));
+      return users.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
     console.error("Error fetching users: ", error);
     return [];
