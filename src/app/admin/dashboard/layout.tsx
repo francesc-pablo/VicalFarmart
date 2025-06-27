@@ -16,8 +16,13 @@ import { LogOut, UserCog } from "lucide-react"; // Changed icon for admin
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { ADMIN_DASHBOARD_NAV_ITEMS } from "@/lib/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useRouter } from 'next/navigation'; // Added for logout redirection
-import { useToast } from '@/hooks/use-toast'; // Added for logout toast
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import type { User } from '@/types';
+
 
 export default function AdminDashboardLayout({
   children,
@@ -26,34 +31,47 @@ export default function AdminDashboardLayout({
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [adminName, setAdminName] = useState("Admin User");
-  const [adminEmail, setAdminEmail] = useState("admin@vicalfarmart.com");
+  const [adminUser, setAdminUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Access localStorage only on the client side
-    const storedName = localStorage.getItem("userName");
-    const storedEmail = localStorage.getItem("userEmail");
-    if (storedName) {
-      setAdminName(storedName);
-    }
-    if (storedEmail) {
-      setAdminEmail(storedEmail);
-    }
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().role === 'admin') {
+          setAdminUser({ id: docSnap.id, ...docSnap.data() } as User);
+        } else {
+          // Not an admin or no user doc, redirect
+          toast({ title: "Access Denied", description: "You must be an admin to view this page.", variant: "destructive" });
+          router.push("/login");
+        }
+      } else {
+        // Not logged in, redirect
+        router.push("/login");
+      }
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [router, toast]);
 
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userRole");
-    window.dispatchEvent(new Event("authChange")); // Notify other components like header
-    toast({ title: "Logged Out", description: "You have been successfully logged out." });
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout Error: ", error);
+      toast({ title: "Logout Failed", description: "An error occurred during logout.", variant: "destructive" });
+    }
   };
 
   const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase();
 
+  if (isLoading || !adminUser) {
+    return <div className="flex h-screen items-center justify-center">Loading Admin Dashboard...</div>;
+  }
 
   return (
     <SidebarProvider defaultOpen>
@@ -71,12 +89,12 @@ export default function AdminDashboardLayout({
           <SidebarFooter className="p-4 border-t border-sidebar-border">
              <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="https://placehold.co/40x40.png" alt="Admin Avatar" data-ai-hint="person face formal" />
-                <AvatarFallback>{getInitials(adminName)}</AvatarFallback>
+                <AvatarImage src={adminUser.avatarUrl || "https://placehold.co/40x40.png"} alt="Admin Avatar" data-ai-hint="person face formal" />
+                <AvatarFallback>{getInitials(adminUser.name)}</AvatarFallback>
               </Avatar>
               <div className="group-data-[collapsible=icon]:hidden">
-                <p className="text-sm font-medium">{adminName}</p>
-                <p className="text-xs text-sidebar-foreground/70">{adminEmail}</p>
+                <p className="text-sm font-medium">{adminUser.name}</p>
+                <p className="text-xs text-sidebar-foreground/70">{adminUser.email}</p>
               </div>
             </div>
             <Button variant="ghost" className="w-full justify-start mt-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:aspect-square" onClick={handleLogout}>

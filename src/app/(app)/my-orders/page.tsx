@@ -4,13 +4,17 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { OrderTable } from "@/components/shared/OrderTable";
-import type { Order, OrderStatus, UserRole } from "@/types";
+import type { Order, OrderStatus, UserRole, User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Package, History, ShoppingCart } from "lucide-react";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
 
 // Mock orders - in a real app, these would be fetched based on the logged-in user
 const allMockOrders: Order[] = [
@@ -25,22 +29,36 @@ const allMockOrders: Order[] = [
 
 export default function MyOrdersPage() {
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
-  const [customerName, setCustomerName] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
+  
   useEffect(() => {
-    const name = localStorage.getItem("userName");
-    const role = localStorage.getItem("userRole") as UserRole | null;
-    if (name && role === 'customer') {
-      setCustomerName(name);
-      // Filter orders for the logged-in customer by name (simple mock)
-      // In a real app, you'd fetch orders by customerId
-      const ordersForCustomer = allMockOrders.filter(order => order.customerName === name);
-      setCustomerOrders(ordersForCustomer);
-    } else if (role !== 'customer') {
-      // Redirect if not a customer (or handle appropriately)
-      router.push('/login');
-    }
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const userData = { id: docSnap.id, ...docSnap.data() } as User;
+          setCurrentUser(userData);
+          if (userData.role === 'customer') {
+            // In a real app, you'd fetch orders where customerId === user.uid
+            // For now, we continue to mock and filter by name.
+             const ordersForCustomer = allMockOrders.filter(order => order.customerName === userData.name);
+             setCustomerOrders(ordersForCustomer);
+          }
+        } else {
+           // No user doc, treat as not logged in for this page's purpose
+           setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
+        router.push('/login');
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   const ongoingStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped"];
@@ -49,26 +67,28 @@ export default function MyOrdersPage() {
   const ongoingOrders = customerOrders.filter(order => ongoingStatuses.includes(order.status));
   const pastOrders = customerOrders.filter(order => pastStatuses.includes(order.status));
 
-  if (!customerName) {
-    // Still loading or not logged in as customer
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <p>Loading your orders or please log in as a customer...</p>
+        <p>Loading your orders...</p>
       </div>
     );
   }
 
-  const handleViewOrderDetails = (orderId: string) => {
-    // For now, just an alert. Could navigate to a detailed order page.
-    alert(`Viewing details for order: ${orderId}. This feature can be expanded.`);
-    // router.push(`/my-orders/${orderId}`); // Example for future navigation
-  };
+  if (!currentUser || currentUser.role !== 'customer') {
+     return (
+      <div className="flex justify-center items-center h-64">
+        <p>You must be logged in as a customer to view this page.</p>
+        <Button onClick={() => router.push('/login')} className="ml-4">Login</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
       <PageHeader
         title="My Orders"
-        description={`Manage and track your orders, ${customerName}.`}
+        description={`Manage and track your orders, ${currentUser.name}.`}
         actions={
           <Button variant="outline" asChild>
             <Link href="/market"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Market</Link>
@@ -90,7 +110,7 @@ export default function MyOrdersPage() {
           <Card className="shadow-lg">
             <CardContent className="p-0">
               {ongoingOrders.length > 0 ? (
-                <OrderTable orders={ongoingOrders} onViewDetails={handleViewOrderDetails} showSellerColumn={false} />
+                <OrderTable orders={ongoingOrders} onViewDetails={(id) => alert(`Viewing order ${id}`)} showSellerColumn={false} />
               ) : (
                 <div className="p-10 text-center text-muted-foreground">
                   <ShoppingCart className="mx-auto h-12 w-12 mb-4" />
@@ -106,7 +126,7 @@ export default function MyOrdersPage() {
           <Card className="shadow-lg">
             <CardContent className="p-0">
                {pastOrders.length > 0 ? (
-                <OrderTable orders={pastOrders} onViewDetails={handleViewOrderDetails} showSellerColumn={false} />
+                <OrderTable orders={pastOrders} onViewDetails={(id) => alert(`Viewing order ${id}`)} showSellerColumn={false} />
               ) : (
                  <div className="p-10 text-center text-muted-foreground">
                   <History className="mx-auto h-12 w-12 mb-4" />

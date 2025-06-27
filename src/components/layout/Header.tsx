@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import type { UserRole } from '@/types';
+import type { User, UserRole } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -28,12 +28,14 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCart } from '@/context/CartContext';
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
 
 interface AuthStatus {
   isAuthenticated: boolean;
-  userName?: string | null;
-  userEmail?: string | null;
-  userRole?: UserRole | null;
+  user?: User | null;
 }
 
 const HEADER_SCROLL_THRESHOLD = 50;
@@ -45,7 +47,6 @@ export function Header() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
   const { cartCount } = useCart();
 
-  // State for search filters
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("All");
   const [selectedTown, setSelectedTown] = useState("All");
@@ -56,7 +57,6 @@ export function Header() {
   const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Conditionally show search bar based on path
   const showSearchBar = pathname !== '/market';
 
   useEffect(() => {
@@ -71,7 +71,6 @@ export function Header() {
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
       if (currentScrollY < HEADER_SCROLL_THRESHOLD) {
         setShowHeaderOnMobile(true);
       } else if (currentScrollY > lastScrollY && currentScrollY > HEADER_SCROLL_THRESHOLD) {
@@ -89,14 +88,12 @@ export function Header() {
     };
   }, [isMobileClient, lastScrollY]);
   
-  // Effect to sync URL params with local state
   useEffect(() => {
     setSearchTerm(searchParams.get('search') || "");
     setSelectedRegion(searchParams.get('region') || "All");
     setSelectedTown(searchParams.get('town') || "All");
   }, [searchParams]);
 
-  // Effect to manage available towns based on selected region
   useEffect(() => {
     if (selectedRegion && selectedRegion !== "All") {
       const townsForRegion = GHANA_REGIONS_AND_TOWNS[selectedRegion] || [];
@@ -114,31 +111,33 @@ export function Header() {
 
 
   useEffect(() => {
-    const checkAuth = () => {
-      const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
-      const userName = localStorage.getItem("userName");
-      const userEmail = localStorage.getItem("userEmail");
-      const userRole = localStorage.getItem("userRole") as UserRole | null;
-      setAuthStatus({ isAuthenticated, userName, userEmail, userRole });
-    };
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setAuthStatus({ isAuthenticated: true, user: { id: docSnap.id, ...docSnap.data() } as User });
+        } else {
+          // User exists in auth, but not in firestore. Maybe an error during registration.
+          // Log them out or handle as an incomplete profile.
+          setAuthStatus({ isAuthenticated: true, user: {
+            id: user.uid,
+            name: user.displayName || 'New User',
+            email: user.email || '',
+            role: 'customer',
+            isActive: true,
+          } });
+        }
+      } else {
+        setAuthStatus({ isAuthenticated: false, user: null });
+      }
+    });
 
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    window.addEventListener('authChange', checkAuth);
-
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('authChange', checkAuth);
-    };
+    return () => unsubscribe();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userRole");
-    setAuthStatus({ isAuthenticated: false });
-    window.dispatchEvent(new Event("authChange"));
+  const handleLogout = async () => {
+    await signOut(auth);
     router.push("/login");
   };
 
@@ -238,28 +237,28 @@ export function Header() {
           )}
           
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
-            {authStatus.isAuthenticated ? (
+            {authStatus.isAuthenticated && authStatus.user ? (
               <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={`https://placehold.co/40x40.png?text=${getUserInitials(authStatus.userName)}`} alt={authStatus.userName || "User"} data-ai-hint="person face"/>
-                        <AvatarFallback>{getUserInitials(authStatus.userName)}</AvatarFallback>
+                        <AvatarImage src={authStatus.user.avatarUrl || `https://placehold.co/40x40.png?text=${getUserInitials(authStatus.user.name)}`} alt={authStatus.user.name || "User"} data-ai-hint="person face"/>
+                        <AvatarFallback>{getUserInitials(authStatus.user.name)}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{authStatus.userName || "User"}</p>
+                        <p className="text-sm font-medium leading-none">{authStatus.user.name || "User"}</p>
                         <p className="text-xs leading-none text-muted-foreground">
-                          {authStatus.userEmail || "No email"}
+                          {authStatus.user.email || "No email"}
                         </p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {(authStatus.userRole === 'customer' || authStatus.userRole === 'seller') && (
+                    {(authStatus.user.role === 'customer' || authStatus.user.role === 'seller') && (
                       <>
                         <DropdownMenuItem asChild>
                           <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
@@ -269,7 +268,7 @@ export function Header() {
                         </DropdownMenuItem>
                       </>
                     )}
-                    {authStatus.userRole === 'admin' && (
+                    {authStatus.user.role === 'admin' && (
                        <DropdownMenuItem asChild>
                         <Link href="/admin/dashboard"><LayoutDashboardIcon className="mr-2 h-4 w-4" /> Admin Dashboard</Link>
                        </DropdownMenuItem>

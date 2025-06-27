@@ -19,11 +19,17 @@ import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { UserRole } from "@/types";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { auth, db } from "@/lib/firebase";
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  updateProfile,
+  FirebaseError
+} from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 interface AuthFormProps {
   type: "login" | "register";
-  defaultRole?: "customer" | "seller"; // seller role here is for admin creation context, not self-reg
 }
 
 const loginSchema = z.object({
@@ -31,22 +37,18 @@ const loginSchema = z.object({
   password: z.string().min(1, { message: "Password is required." }),
 });
 
-// Registration schema now only allows self-registration as 'customer'
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string(),
-  // Role is fixed to customer for self-registration
-  // role: z.literal("customer", { required_error: "Role is required." })
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match.",
   path: ["confirmPassword"],
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
-// Updated RegisterFormValues to reflect that role is implicitly 'customer' for self-registration
-type RegisterFormValues = Omit<z.infer<typeof registerSchema>, 'role'> & { role?: "customer" };
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 
 export function AuthForm({ type }: AuthFormProps) {
@@ -63,65 +65,88 @@ export function AuthForm({ type }: AuthFormProps) {
       : { name: "", email: "", password: "", confirmPassword: "" },
   });
 
-  function onSubmit(values: LoginFormValues | RegisterFormValues) {
-    console.log(values);
-    
+  async function onSubmit(values: LoginFormValues | RegisterFormValues) {
     if (isLogin) {
-      const { email } = values as LoginFormValues;
-      let userRole: UserRole = "customer"; // Default to customer
-      let userName = email.split('@')[0];
+      // Handle Login
+      const { email, password } = values as LoginFormValues;
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
 
-      // Mocking admin login
-      if (email.toLowerCase().includes("admin@")) {
-        userRole = "admin";
-        userName = "Admin User";
-      } else if (email.toLowerCase().startsWith("seller")) { 
-        // This case is for sellers created by admin. They might still login if admin sets a password.
-        // But they won't have a dedicated dashboard from here.
-        userRole = "seller";
-        userName = "Seller User"; // This would typically come from DB
-      } else {
-        userName = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1);
-      }
-      
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("userEmail", email);
-      localStorage.setItem("userName", userName);
-      localStorage.setItem("userRole", userRole);
-      
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
+        // Fetch user role from Firestore
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
 
-      window.dispatchEvent(new Event("authChange"));
-
-      if (userRole === "admin") {
-        router.push("/admin/dashboard");
-      } else if (userRole === "seller") {
-        // Sellers created by admin will login like customers and go to market.
-        // They don't have their own dashboard anymore.
-        router.push("/market"); 
-      } else { // Customer
-        router.push("/market");
+        if (docSnap.exists()) {
+            const userRole = docSnap.data().role as UserRole;
+            toast({ title: "Login Successful", description: "Welcome back!" });
+            
+            if (userRole === "admin") {
+                router.push("/admin/dashboard");
+            } else { // 'customer' or 'seller'
+                router.push("/market");
+            }
+        } else {
+             toast({ title: "Login Error", description: "User data not found. Please contact support.", variant: "destructive" });
+             auth.signOut();
+        }
+      } catch (error) {
+        console.error("Login error: ", error);
+        const errorCode = (error as FirebaseError).code;
+        let errorMessage = "An unknown error occurred.";
+        if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
+            errorMessage = "Invalid email or password.";
+        }
+        toast({ title: "Login Failed", description: errorMessage, variant: "destructive" });
       }
 
-    } else { // Registration - always as 'customer'
-      const { name, email } = values as RegisterFormValues;
-      const role: UserRole = "customer"; // Hardcoded for self-registration
+    } else { 
+      // Handle Registration
+      const { name, email, password } = values as RegisterFormValues;
+      const role: UserRole = "customer"; // All self-registrations are customers
 
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("userEmail", email);
-      localStorage.setItem("userName", name);
-      localStorage.setItem("userRole", role);
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // Update Firebase Auth profile
+        await updateProfile(user, { displayName: name });
+        
+        // Create user document in Firestore
+        await setDoc(doc(db, "users", user.uid), {
+            id: user.uid,
+            name: name,
+            email: email,
+            role: role,
+            isActive: true,
+            // Initialize seller fields as empty
+            businessName: "",
+            businessOwnerName: "",
+            businessAddress: "",
+            contactNumber: "",
+            businessLocationRegion: "",
+            businessLocationTown: "",
+            geoCoordinatesLat: "",
+            geoCoordinatesLng: "",
+            businessType: "",
+        });
 
-      toast({
-        title: "Registration Successful",
-        description: "Your account has been created as a customer.",
-      });
-      
-      window.dispatchEvent(new Event("authChange"));
-      router.push("/market"); // Redirect customers to market after registration
+        toast({
+          title: "Registration Successful",
+          description: "Your customer account has been created.",
+        });
+
+        router.push("/market"); // Redirect customers to market after registration
+
+      } catch (error) {
+        console.error("Registration error: ", error);
+        const errorCode = (error as FirebaseError).code;
+        let errorMessage = "An unknown error occurred during registration.";
+        if (errorCode === 'auth/email-already-in-use') {
+            errorMessage = "This email address is already registered.";
+        }
+        toast({ title: "Registration Failed", description: errorMessage, variant: "destructive" });
+      }
     }
   }
 
@@ -195,11 +220,10 @@ export function AuthForm({ type }: AuthFormProps) {
                       </FormItem>
                     )}
                   />
-                  {/* Role selection removed for self-registration */}
                 </>
               )}
-              <Button type="submit" className="w-full text-lg py-6 shadow-md">
-                {isLogin ? "Login" : "Register as Customer"}
+              <Button type="submit" className="w-full text-lg py-6 shadow-md" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Processing..." : (isLogin ? "Login" : "Register as Customer")}
               </Button>
             </form>
           </Form>

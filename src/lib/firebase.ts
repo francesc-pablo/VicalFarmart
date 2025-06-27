@@ -1,6 +1,7 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 // =================================================================
 // IMPORTANT: Replace the configuration below with your own
@@ -30,5 +31,6 @@ const firebaseConfig = {
 // This check prevents re-initializing the app on every hot-reload in development
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-export { app, db };
+export { app, db, auth };
