@@ -1,6 +1,7 @@
 
+
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, ShoppingBasket, ClipboardList, Users, Settings, Package, DollarSign, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, ShoppingBasket, ClipboardList, Users, Settings, Package, DollarSign, ShieldCheck, UserCog } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -23,6 +24,7 @@ export const ADMIN_DASHBOARD_NAV_ITEMS: NavItem[] = [
 export const SELLER_DASHBOARD_NAV_ITEMS: NavItem[] = [
   { title: 'Overview', href: '/seller/dashboard', icon: LayoutDashboard },
   { title: 'My Sales', href: '/seller/dashboard/orders', icon: Package },
+  { title: 'Profile', href: '/seller/dashboard/profile', icon: UserCog },
 ];
 
 
