@@ -119,6 +119,8 @@ export function AuthForm({ type }: AuthFormProps) {
       
       if (userRole === 'admin') {
         router.push("/admin/dashboard");
+      } else if (userRole === 'seller') {
+        router.push("/seller/dashboard");
       } else {
         router.push("/market");
       }
@@ -176,6 +178,8 @@ export function AuthForm({ type }: AuthFormProps) {
           toast({ title: "Login Successful", description: "Welcome back!" });
           if (userData.role === "admin") {
               router.push("/admin/dashboard");
+          } else if (userData.role === "seller") {
+              router.push("/seller/dashboard");
           } else {
               router.push("/market");
           }
