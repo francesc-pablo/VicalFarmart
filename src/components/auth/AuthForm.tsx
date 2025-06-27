@@ -118,7 +118,7 @@ export function AuthForm({ type }: AuthFormProps) {
             lockoutMessage = "Your account has been locked for 30 minutes due to too many failed login attempts.";
           }
           
-          await updateDoc(userDocRef, { failedLoginAttempts, lockoutUntil: newLockoutUntil });
+          await updateDoc(userDocRef, { failedLoginAttempts: failedAttempts, lockoutUntil: newLockoutUntil });
 
           if (lockoutMessage) {
             toast({ title: "Account Locked", description: lockoutMessage, variant: "destructive" });
