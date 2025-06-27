@@ -16,24 +16,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_CATEGORIES, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
-
-// Mock data for products
-const mockProducts: Product[] = [
-  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", town: "Kumasi", currency: "USD" },
-  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads and sauces.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", town: "Ho", currency: "USD" },
-  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust and tangy flavor.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", town: "Accra", currency: "GHS" },
-  { id: "4", name: "Free-Range Chicken Eggs", description: "Farm-fresh free-range chicken eggs, rich in color and taste.", price: 55.00, category: "Dairy", imageUrl: "https://placehold.co/400x300.png", stock: 50, sellerId: "seller1", sellerName: "Happy Hens Farm", region: "Bono", town: "Sunyani", currency: "GHS" },
-  { id: "5", name: "Organic Spinach Bunch", description: "A healthy bunch of organic spinach, great for smoothies or cooking.", price: 2.99, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 70, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Central", town: "Cape Coast", currency: "USD" },
-  { id: "6", name: "Raw Honey Jar", description: "Pure, unfiltered raw honey from local beekeepers. Nature's sweetener.", price: 87.50, category: "Other", imageUrl: "https://placehold.co/400x300.png", stock: 40, sellerId: "seller3", sellerName: "Buzzworthy Bees", region: "Eastern", town: "Koforidua", currency: "GHS" },
-  { id: "7", name: "Grass-Fed Beef Steak", description: "Premium quality grass-fed beef steak, tender and flavorful.", price: 12.99, category: "Meat", imageUrl: "https://placehold.co/400x300.png", stock: 30, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "Western", town: "Takoradi", currency: "USD" },
-  { id: "8", name: "Pastured Chicken Breast", description: "Juicy and healthy pastured chicken breast.", price: 95.00, category: "Poultry", imageUrl: "https://placehold.co/400x300.png", stock: 45, sellerId: "seller4", sellerName: "Pasture Perfect Meats", region: "Northern", town: "Tamale", currency: "GHS" },
-];
-
+import { getProducts } from '@/services/productService'; // Import the service
+import { Skeleton } from '@/components/ui/skeleton'; // For loading state
 
 export default function MarketPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const searchTerm = searchParams.get('search') || "";
   const categoryFilter = searchParams.get('category') || "All";
@@ -42,6 +34,16 @@ export default function MarketPage() {
   
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      const productsFromDb = await getProducts();
+      setAllProducts(productsFromDb);
+      setIsLoading(false);
+    };
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
     setLocalSearchTerm(searchTerm);
@@ -83,7 +85,7 @@ export default function MarketPage() {
     router.push(`${pathname}?${queryString}`, { scroll: false });
   };
   
-  const filteredProducts = mockProducts
+  const filteredProducts = allProducts
     .filter(product => categoryFilter === "All" || product.category === categoryFilter)
     .filter(product => regionFilter === "All" || !product.region || product.region === regionFilter)
     .filter(product => townFilter === "All" || !product.town || product.town === townFilter)
@@ -95,6 +97,16 @@ export default function MarketPage() {
       (product.region && product.region.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (product.town && product.town.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+
+  const ProductSkeleton = () => (
+    <div className="flex flex-col space-y-3">
+      <Skeleton className="h-[224px] w-full rounded-xl" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+    </div>
+  );
 
   return (
     <div>
@@ -144,7 +156,11 @@ export default function MarketPage() {
         </div>
       </form>
 
-      {filteredProducts.length > 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />)}
+        </div>
+      ) : filteredProducts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />

@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
@@ -19,15 +19,8 @@ import {
   MoveRight,
   Citrus, Carrot, Wheat, Milk, Archive, Fish
 } from 'lucide-react';
-
-
-// Mock data for featured products
-const mockFeaturedProducts: Product[] = [
-  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking.", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/400x300.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", town: "Kumasi", currency: "USD" },
-  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/400x300.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", town: "Accra", currency: "GHS" },
-  { id: "5", name: "Organic Spinach Bunch", description: "A healthy bunch of organic spinach, great for cooking.", price: 2.99, category: "Vegetables", imageUrl: "https://placehold.co/400x300.png", stock: 70, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Central", town: "Cape Coast", currency: "USD" },
-  { id: "4", name: "Free-Range Chicken Eggs", description: "Farm-fresh free-range chicken eggs, rich in color and taste.", price: 55.00, category: "Dairy", imageUrl: "https://placehold.co/400x300.png", stock: 50, sellerId: "seller1", sellerName: "Happy Hens Farm", region: "Volta", town: "Ho", currency: "GHS" },
-];
+import { getFeaturedProducts } from '@/services/productService'; // Import the service
+import { Skeleton } from '@/components/ui/skeleton'; // For loading state
 
 const categoryDisplayData = [
   { name: "Fruits", IconComponent: Citrus, imageHint: "fruits assortment", color: "text-orange-500" },
@@ -46,6 +39,28 @@ const carouselImages = [
 
 
 export default function HomePage() {
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      const products = await getFeaturedProducts(4); // Fetch 4 featured products
+      setFeaturedProducts(products);
+      setIsLoading(false);
+    };
+    fetchProducts();
+  }, []);
+
+  const ProductSkeleton = () => (
+    <div className="flex flex-col space-y-3">
+      <Skeleton className="h-[224px] w-full rounded-xl" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col">
@@ -121,9 +136,13 @@ export default function HomePage() {
       <section className="py-12 md:py-16 w-full bg-background">
         <div className="container mx-auto px-4 sm:px-12">
           <h2 className="text-3xl font-bold font-headline text-center mb-10 text-foreground">Featured Products</h2>
-          {mockFeaturedProducts.length > 0 ? (
+          {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {mockFeaturedProducts.map((product) => (
+              {Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>

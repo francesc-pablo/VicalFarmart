@@ -17,12 +17,13 @@ import { getFirestore } from "firebase/firestore";
 // =================================================================
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCgM9UTT07zSaVV1_HdefYyu1qz7y2KOBU",
+  authDomain: "vicalfarmart.firebaseapp.com",
+  projectId: "vicalfarmart",
+  storageBucket: "vicalfarmart.firebasestorage.app",
+  messagingSenderId: "318375487368",
+  appId: "1:318375487368:web:c0599eab4f20baf04ffc3d",
+  measurementId: "G-FEVVJSHFXL"
 };
 
 // Initialize Firebase

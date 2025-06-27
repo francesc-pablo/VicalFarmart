@@ -1,24 +1,19 @@
 
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/PageHeader';
 import type { Product } from '@/types';
-import { ShoppingCart, Star, MessageSquare, ArrowLeft, MapPin } from 'lucide-react'; // Added MapPin
+import { ShoppingCart, Star, MessageSquare, ArrowLeft, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
-
-// Mock data for products
-const mockProducts: Product[] = [
-  { id: "1", name: "Organic Fuji Apples", description: "Crisp and sweet organic Fuji apples, perfect for snacking or baking. Grown locally using sustainable farming practices. Each apple is hand-picked to ensure the highest quality. Enjoy the natural goodness!", price: 3.99, category: "Fruits", imageUrl: "https://placehold.co/600x400.png", stock: 120, sellerId: "seller1", sellerName: "Green Valley Orchards", region: "Ashanti", town: "Kumasi", currency: "USD" },
-  { id: "2", name: "Vine-Ripened Tomatoes", description: "Juicy and flavorful vine-ripened tomatoes, ideal for salads, sauces, and sandwiches. These tomatoes are grown in rich soil and picked at peak ripeness for maximum taste.", price: 2.50, category: "Vegetables", imageUrl: "https://placehold.co/600x400.png", stock: 80, sellerId: "seller2", sellerName: "Sunshine Farms", region: "Volta", town: "Ho", currency: "USD" },
-  { id: "3", name: "Artisanal Sourdough Bread", description: "Freshly baked artisanal sourdough bread with a chewy crust.", price: 60.00, category: "Grains", imageUrl: "https://placehold.co/600x400.png", stock: 25, sellerId: "seller3", sellerName: "The Local Bakery", region: "Greater Accra", town: "Accra", currency: "GHS" },
-];
+import { getProductById, getRelatedProducts } from '@/services/productService'; // Import services
+import { Skeleton } from '@/components/ui/skeleton';
 
 const getCurrencySymbol = (currencyCode?: string) => {
   if (currencyCode === "GHS") return "₵";
@@ -27,10 +22,54 @@ const getCurrencySymbol = (currencyCode?: string) => {
 };
 
 export default function ProductDetailPage({ params }: { params: { productId: string } }) {
-  const resolvedParams = React.use(params);
-  const product = mockProducts.find(p => p.id === resolvedParams.productId);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
+
+  useEffect(() => {
+    if (!params.productId) return;
+    const fetchProductData = async () => {
+      setIsLoading(true);
+      const fetchedProduct = await getProductById(params.productId);
+      setProduct(fetchedProduct);
+      if (fetchedProduct) {
+        const fetchedRelated = await getRelatedProducts(fetchedProduct.category, fetchedProduct.id);
+        setRelatedProducts(fetchedRelated);
+      }
+      setIsLoading(false);
+    };
+    fetchProductData();
+  }, [params.productId]);
+
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+         <Button variant="outline" asChild className="mb-6">
+            <Link href="/market"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Market</Link>
+         </Button>
+         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+            <div>
+                <Skeleton className="rounded-lg shadow-xl w-full aspect-[3/2]" />
+            </div>
+            <div className="flex flex-col space-y-4">
+                <Skeleton className="h-6 w-1/4" />
+                <Skeleton className="h-10 w-3/4" />
+                <Skeleton className="h-6 w-1/2" />
+                <Skeleton className="h-8 w-1/3" />
+                <Skeleton className="h-20 w-full" />
+                <div className="flex items-center gap-4 mt-auto pt-6 border-t">
+                    <Skeleton className="h-12 w-20" />
+                    <Skeleton className="h-12 flex-grow" />
+                    <Skeleton className="h-12 w-12" />
+                </div>
+            </div>
+         </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -49,7 +88,6 @@ export default function ProductDetailPage({ params }: { params: { productId: str
     addToCart(product, quantity);
   };
 
-  const relatedProducts = mockProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
   const mainImageHint = product.category.split(/[&\s]+/g)[0] + " closeup";
   const currencySymbol = getCurrencySymbol(product.currency);
 
