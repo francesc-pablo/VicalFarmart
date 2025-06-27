@@ -110,10 +110,10 @@ export function AuthForm({ type }: AuthFormProps) {
           let newLockoutUntil: number | null = userData.lockoutUntil || null;
           let lockoutMessage = "";
 
-          if (failedAttempts === 12) {
+          if (failedAttempts >= 12) {
             newLockoutUntil = Date.now() + 2 * 60 * 60 * 1000; // 2 hours
             lockoutMessage = "Your account has been locked for 2 hours due to too many failed login attempts.";
-          } else if (failedAttempts === 6) {
+          } else if (failedAttempts >= 6) {
             newLockoutUntil = Date.now() + 30 * 60 * 1000; // 30 minutes
             lockoutMessage = "Your account has been locked for 30 minutes due to too many failed login attempts.";
           }
