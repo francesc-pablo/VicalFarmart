@@ -57,4 +57,8 @@ export interface User {
   geoCoordinatesLat?: string;
   geoCoordinatesLng?: string;
   businessType?: string;
+
+  // For login attempts
+  failedLoginAttempts?: number;
+  lockoutUntil?: number | null; // Store as UTC milliseconds
 }

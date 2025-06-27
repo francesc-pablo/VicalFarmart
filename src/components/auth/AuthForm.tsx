@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import type { UserRole } from "@/types";
+import type { User, UserRole } from "@/types";
 import { auth, db } from "@/lib/firebase";
 import { 
   createUserWithEmailAndPassword, 
@@ -26,7 +26,7 @@ import {
   updateProfile,
   FirebaseError
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, query, setDoc, updateDoc, where } from "firebase/firestore";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -66,47 +66,70 @@ export function AuthForm({ type }: AuthFormProps) {
   });
 
   async function onSubmit(values: LoginFormValues | RegisterFormValues) {
+    form.formState.isSubmitting = true;
     if (isLogin) {
       // Handle Login
       const { email, password } = values as LoginFormValues;
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", email), limit(1));
+        const querySnapshot = await getDocs(q);
 
-        // Fetch user role from Firestore
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
+        if (querySnapshot.empty) {
+          toast({ title: "Login Failed", description: "invalid account", variant: "destructive" });
+          return;
+        }
 
-        if (docSnap.exists()) {
-            const userRole = docSnap.data().role as UserRole;
-            toast({ title: "Login Successful", description: "Welcome back!" });
-            
-            if (userRole === "admin") {
-                router.push("/admin/dashboard");
-            } else { // 'customer' or 'seller'
-                router.push("/market");
-            }
-        } else {
-             toast({ title: "Login Error", description: "User data not found. Please contact support.", variant: "destructive" });
-             auth.signOut();
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data() as User;
+        const userDocRef = userDoc.ref;
+
+        if (userData.lockoutUntil && userData.lockoutUntil > Date.now()) {
+          const remainingMinutes = Math.ceil((userData.lockoutUntil - Date.now()) / 60000);
+          toast({
+            title: "Account Locked",
+            description: `Too many failed login attempts. Please try again in ${remainingMinutes} minutes.`,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          if (userData.failedLoginAttempts && userData.failedLoginAttempts > 0) {
+            await updateDoc(userDocRef, { failedLoginAttempts: 0, lockoutUntil: null });
+          }
+          
+          toast({ title: "Login Successful", description: "Welcome back!" });
+          if (userData.role === "admin") {
+              router.push("/admin/dashboard");
+          } else {
+              router.push("/market");
+          }
+        } catch (authError) {
+          const failedAttempts = (userData.failedLoginAttempts || 0) + 1;
+          let newLockoutUntil: number | null = userData.lockoutUntil || null;
+          let lockoutMessage = "";
+
+          if (failedAttempts === 6) {
+            newLockoutUntil = Date.now() + 30 * 60 * 1000; // 30 minutes
+            lockoutMessage = "Too many failed attempts. Your account is locked for 30 minutes.";
+          } else if (failedAttempts === 12) {
+            newLockoutUntil = Date.now() + 2 * 60 * 60 * 1000; // 2 hours
+            lockoutMessage = "Too many failed attempts. Your account is locked for 2 hours.";
+          }
+          
+          await updateDoc(userDocRef, { failedLoginAttempts, lockoutUntil: newLockoutUntil });
+
+          if (lockoutMessage) {
+            toast({ title: "Account Locked", description: lockoutMessage, variant: "destructive" });
+          } else {
+            toast({ title: "Login Failed", description: "invalid account", variant: "destructive" });
+          }
         }
       } catch (error) {
-        console.error("Login error: ", error);
-        const errorCode = (error as FirebaseError).code;
-        
-        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password') {
-            toast({ 
-                title: "Login Failed", 
-                description: "invalid account", 
-                variant: "destructive" 
-            });
-        } else {
-            toast({ 
-                title: "Login Failed", 
-                description: "An unexpected error occurred. Please try again.", 
-                variant: "destructive" 
-            });
-        }
+        console.error("Login process error: ", error);
+        toast({ title: "Login Failed", description: "An unexpected error occurred.", variant: "destructive" });
       }
 
     } else { 
@@ -115,20 +138,28 @@ export function AuthForm({ type }: AuthFormProps) {
       const role: UserRole = "customer"; // All self-registrations are customers
 
       try {
+        // Check if user already exists
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", email), limit(1));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            toast({ title: "Registration Failed", description: "This email address is already registered.", variant: "destructive" });
+            return;
+        }
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
-        // Update Firebase Auth profile
         await updateProfile(user, { displayName: name });
         
-        // Create user document in Firestore
         await setDoc(doc(db, "users", user.uid), {
             id: user.uid,
             name: name,
             email: email,
             role: role,
             isActive: true,
-            // Initialize seller fields as empty
+            failedLoginAttempts: 0,
+            lockoutUntil: null,
             businessName: "",
             businessOwnerName: "",
             businessAddress: "",
@@ -145,7 +176,7 @@ export function AuthForm({ type }: AuthFormProps) {
           description: "Your customer account has been created.",
         });
 
-        router.push("/market"); // Redirect customers to market after registration
+        router.push("/market");
 
       } catch (error) {
         console.error("Registration error: ", error);
@@ -157,6 +188,7 @@ export function AuthForm({ type }: AuthFormProps) {
         toast({ title: "Registration Failed", description: errorMessage, variant: "destructive" });
       }
     }
+     form.formState.isSubmitting = false;
   }
 
   return (
