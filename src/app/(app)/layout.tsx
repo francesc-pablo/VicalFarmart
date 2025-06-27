@@ -12,11 +12,11 @@ export default function AppLayout({
   return (
     <CartProvider>
       <div className="flex flex-col min-h-screen">
-        <Header />
+        <Suspense>
+          <Header />
+        </Suspense>
         <main className="flex-grow container mx-auto px-12 py-8">
-          <Suspense>
-            {children}
-          </Suspense>
+          {children}
         </main>
         <Footer />
       </div>
