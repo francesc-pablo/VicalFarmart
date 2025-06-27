@@ -9,22 +9,26 @@ const usersCollectionRef = collection(db, "users");
 // Function to get all users, sorted by most recently created
 export async function getUsers(): Promise<User[]> {
   try {
-    const q = query(usersCollectionRef, orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
+    // Fetch all users without server-side sorting to avoid indexing issues.
+    const querySnapshot = await getDocs(usersCollectionRef);
     const users = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     } as User));
-    return users;
+
+    // Sort client-side. Users without a createdAt date will be at the end.
+    return users.sort((a, b) => {
+      const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0;
+      const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0;
+      
+      // If timestamps are the same or one is missing, fall back to sorting by name
+      if (timeB - timeA === 0) {
+        return (a.name || "").localeCompare(b.name || "");
+      }
+
+      return timeB - timeA; // Sort descending (newest first)
+    });
   } catch (error) {
-    const anyError = error as any;
-    // Fallback for when createdAt field doesn't exist on all documents yet, which throws a specific error
-    if (anyError.code === "failed-precondition") {
-      console.log("Fallback: fetching users without sorting due to missing 'createdAt' field on some documents.");
-      const fallbackSnapshot = await getDocs(usersCollectionRef);
-      const users = fallbackSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-      return users.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    }
     console.error("Error fetching users: ", error);
     return [];
   }
