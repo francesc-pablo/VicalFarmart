@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ClipboardList, DollarSign, Clock } from "lucide-react";
-import type { User, Order } from '@/types';
+import type { Order } from '@/types';
 import { getOrdersBySellerId } from '@/services/orderService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,14 +19,14 @@ import { format } from 'date-fns';
 
 export default function SellerDashboardPage() {
   const router = useRouter();
-  const [seller, setSeller] = useState<User | null>(null);
+  const [sellerId, setSellerId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setSeller(user as unknown as User); // Simplified for this context
+        setSellerId(user.uid);
       } else {
         router.push('/login');
       }
@@ -35,12 +35,12 @@ export default function SellerDashboardPage() {
   }, [router]);
 
   const fetchData = useCallback(async () => {
-    if (!seller) return;
+    if (!sellerId) return;
     setIsLoading(true);
-    const sellerOrders = await getOrdersBySellerId(seller.id);
+    const sellerOrders = await getOrdersBySellerId(sellerId);
     setOrders(sellerOrders);
     setIsLoading(false);
-  }, [seller]);
+  }, [sellerId]);
 
   useEffect(() => {
     fetchData();
