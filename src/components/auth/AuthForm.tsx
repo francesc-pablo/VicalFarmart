@@ -24,7 +24,9 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   updateProfile,
-  FirebaseError
+  FirebaseError,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, limit, query, setDoc, updateDoc, where } from "firebase/firestore";
 
@@ -50,6 +52,12 @@ const registerSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
+const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.9-4.82 1.9-5.78 0-10.47-4.88-10.47-10.9s4.7-10.9 10.47-10.9c3.28 0 5.48 1.34 6.73 2.54l2.25-2.25C19.5 1.05 16.48 0 12.48 0 5.6 0 0 5.6 0 12.5S5.6 25 12.48 25c7.04 0 11.52-4.92 11.52-11.72 0-.8-.08-1.52-.22-2.28H12.48z" fill="currentColor" />
+  </svg>
+);
+
 
 export function AuthForm({ type }: AuthFormProps) {
   const { toast } = useToast();
@@ -64,6 +72,71 @@ export function AuthForm({ type }: AuthFormProps) {
       ? { email: "", password: "" }
       : { name: "", email: "", password: "", confirmPassword: "" },
   });
+
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      let userRole: UserRole = 'customer';
+
+      if (!userDocSnap.exists()) {
+        await setDoc(userDocRef, {
+          id: user.uid,
+          name: user.displayName || 'Google User',
+          email: user.email!,
+          role: 'customer',
+          isActive: true,
+          failedLoginAttempts: 0,
+          lockoutUntil: null,
+          businessName: "",
+          businessOwnerName: "",
+          businessAddress: "",
+          contactNumber: "",
+          businessLocationRegion: "",
+          businessLocationTown: "",
+          geoCoordinatesLat: "",
+          geoCoordinatesLng: "",
+          businessType: "",
+        });
+        toast({
+          title: "Registration Successful",
+          description: "Your account has been created via Google.",
+        });
+      } else {
+        const userData = userDocSnap.data() as User;
+        userRole = userData.role;
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+      }
+      
+      if (userRole === 'admin') {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/market");
+      }
+
+    } catch (error) {
+      console.error("Google Sign-In Error: ", error);
+      const firebaseError = error as FirebaseError;
+      let message = "An error occurred with Google Sign-In. Please try again.";
+      if (firebaseError.code === 'auth/popup-closed-by-user') {
+        message = 'The sign-in popup was closed before completing. Please try again.';
+      }
+      toast({
+        title: "Google Sign-In Failed",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  };
+
 
   async function onSubmit(values: LoginFormValues | RegisterFormValues) {
     if (isLogin) {
@@ -266,6 +339,23 @@ export function AuthForm({ type }: AuthFormProps) {
               </Button>
             </form>
           </Form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn}>
+            <GoogleIcon className="mr-2 h-5 w-5" />
+            Continue with Google
+          </Button>
+          
           <div className="mt-6 text-center text-sm">
             {isLogin ? (
               <p>
@@ -293,3 +383,4 @@ export function AuthForm({ type }: AuthFormProps) {
     </div>
   );
 }
+
