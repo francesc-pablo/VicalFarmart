@@ -4,7 +4,7 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Target, Eye, BookOpen } from "lucide-react";
+import { ArrowLeft, Target } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -32,38 +32,38 @@ export default function AboutUsPage() {
                     data-ai-hint="farming lush"
                 />
             </div>
-          <CardContent className="p-8">
-            <h2 className="text-2xl font-bold font-headline mb-4">Our Story</h2>
+          <CardContent className="p-8 space-y-4">
+            <h2 className="text-2xl font-bold font-headline mb-4">Our Background</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Vical Farmart was born from a simple yet powerful idea: to bridge the gap between hardworking local farmers and consumers who seek fresh, high-quality produce. We saw the challenges farmers faced in reaching broader markets and the desire of buyers for a direct, transparent connection to their food sources. With a passion for both technology and agriculture, we set out to build a platform that empowers both sides of the agricultural equation. Our journey is one of community, innovation, and a deep-rooted belief in the power of local farming to nourish our communities and sustain our planet.
+              VICAL FARMARTS is an online farmer’s market platform developed by VICAL FARM in partnership 
+              with the GHANA CO-OPERATIVE AGRICULTURAL PRODUCERS AND MARKETING ASSOCIATION to 
+              facilitate the needed market linkages between producers, actors in the agriculture value chain and 
+              consumer.
+            </p>
+            <p className="text-muted-foreground leading-relaxed">
+              VICAL FARMS is a business enterprise incorporated under the Laws of Ghana since 2014 as an out-grower, marketer and exporter of agricultural commodities both locally and internationally and was 
+              later became the accredited center of FARMERS SUPPORT INITIATIVE U.K, responsible for promoting 
+              agricultural development in Ghana.
+            </p>
+             <p className="text-muted-foreground leading-relaxed">
+              VICAL FARMS is an official partner of the Ghana Co-operative Agricultural Producers and Marketing Association (AGRICCOPS GHANA) which is the apex body of all 
+              agriculture co-operative in Ghana with its membership drawn from all the sectors of the agriculture 
+              value chain in Ghana. It was founded in 1972 and registered as a co-operative association in 1974.
             </p>
           </CardContent>
         </Card>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-1 gap-8">
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <Target className="h-8 w-8 text-primary" />
-                <span className="text-2xl font-headline">Our Mission</span>
+                <span className="text-2xl font-headline">Mission Statement</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                To empower local farmers by providing them with a robust, accessible digital marketplace to sell their produce directly to consumers, ensuring fair prices and sustainable growth.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <Eye className="h-8 w-8 text-primary" />
-                <span className="text-2xl font-headline">Our Vision</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                To create a future where every consumer has access to fresh, locally-sourced food, and every farmer has the tools they need to thrive in a modern economy.
+              <p className="text-muted-foreground text-lg">
+                To make food readily available and accessible to all through technology and innovation.
               </p>
             </CardContent>
           </Card>
