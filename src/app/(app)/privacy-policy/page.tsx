@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
         </CardHeader>
         <CardContent className="space-y-6 prose prose-sm sm:prose-base max-w-none">
           <p>
-            ‘VICAL FARMART’ is a service provided by Agricultural Investment Consult (VICAL FARMS).
+            ‘VICAL FARMART’ is a service provided by VICAL FARMS.
             The term ‘User’ refers to any person(s) visiting our website/ mobile Application
             “www.vicalfarmart.com / vical farmart mobile App”.
             This policy outlines how users of our service information’s are collected, used and protected.

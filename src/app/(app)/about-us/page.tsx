@@ -77,17 +77,17 @@ export default function AboutUsPage() {
           <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
              <div className="text-center">
                 <Image src="https://placehold.co/128x128.png" alt="Team Member 1" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md" data-ai-hint="person face portrait"/>
-                <h3 className="font-semibold text-lg">Alex Doe</h3>
+                <h3 className="font-semibold text-lg">Mr. Victor Alorbu</h3>
                 <p className="text-primary">Founder & CEO</p>
              </div>
              <div className="text-center">
                 <Image src="https://placehold.co/128x128.png" alt="Team Member 2" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md" data-ai-hint="person face portrait"/>
-                <h3 className="font-semibold text-lg">Jane Smith</h3>
+                <h3 className="font-semibold text-lg">Mr. William</h3>
                 <p className="text-primary">Head of Technology</p>
              </div>
              <div className="text-center">
                 <Image src="https://placehold.co/128x128.png" alt="Team Member 3" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md" data-ai-hint="person face portrait"/>
-                <h3 className="font-semibold text-lg">Samuel Green</h3>
+                <h3 className="font-semibold text-lg">Mr. Victor Alorbu</h3>
                 <p className="text-primary">Farmer Relations</p>
              </div>
           </CardContent>
