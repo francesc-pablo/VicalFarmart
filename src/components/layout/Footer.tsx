@@ -18,9 +18,9 @@ export function Footer() {
   ];
 
   const companyLinks = [
-    { href: "#", text: "About Vical Farmart" }, // Placeholder for now
+    { href: "/about-us", text: "About Vical Farmart" },
     { href: "/contact-us", text: "Contact Us" },
-    { href: "#", text: "Terms of Service" }, // Placeholder for now
+    { href: "/terms-of-service", text: "Terms of Service" },
     { href: "/privacy-policy", text: "Privacy Policy" },
   ];
 
@@ -90,4 +90,3 @@ export function Footer() {
     </footer>
   );
 }
-
