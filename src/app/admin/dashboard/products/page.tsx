@@ -140,7 +140,7 @@ export default function AdminProductsPage() {
           placeholder="Search by product, seller, category, region, town..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md pl-10"
+          className="w-full max-w-md pl-10"
         />
       </div>
 

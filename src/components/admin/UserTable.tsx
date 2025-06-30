@@ -52,9 +52,9 @@ export function UserTable({ users, onEditUser, onDeleteUser, onToggleUserStatus 
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[80px]">Avatar</TableHead>
+          <TableHead className="w-[80px] hidden sm:table-cell">Avatar</TableHead>
           <TableHead>Name</TableHead>
-          <TableHead>Email</TableHead>
+          <TableHead className="hidden md:table-cell">Email</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
@@ -64,14 +64,14 @@ export function UserTable({ users, onEditUser, onDeleteUser, onToggleUserStatus 
         {users.length > 0 ? (
           users.map((user) => (
             <TableRow key={user.id}>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={user.avatarUrl || `https://placehold.co/40x40.png`} alt={user.name} data-ai-hint="person face" />
                   <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
               </TableCell>
               <TableCell className="font-medium">{user.name}</TableCell>
-              <TableCell>{user.email}</TableCell>
+              <TableCell className="hidden md:table-cell">{user.email}</TableCell>
               <TableCell>
                 <Badge variant={getRoleBadgeVariant(user.role)}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</Badge>
               </TableCell>

@@ -15,7 +15,7 @@ export default function AppLayout({
         <Suspense>
           <Header />
         </Suspense>
-        <main className="flex-grow container mx-auto px-12 py-8">
+        <main className="flex-grow container mx-auto px-4 sm:px-6 md:px-12 py-8">
           <Suspense>
             {children}
           </Suspense>

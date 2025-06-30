@@ -115,7 +115,7 @@ export default function SellerDashboardPage() {
                 <TableRow>
                   <TableHead>Order ID</TableHead>
                   <TableHead>Customer</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="hidden sm:table-cell">Date</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -125,7 +125,7 @@ export default function SellerDashboardPage() {
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">#{order.id.substring(0, 6)}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
-                    <TableCell>{format(new Date(order.orderDate), "MMM d, yyyy")}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{format(new Date(order.orderDate), "MMM d, yyyy")}</TableCell>
                     <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
                     <TableCell><Badge variant={order.status === 'Delivered' ? 'default' : 'outline'}>{order.status}</Badge></TableCell>
                   </TableRow>

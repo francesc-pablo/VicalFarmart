@@ -110,7 +110,7 @@ export default function AdminDashboardLayout({
             </div>
             {/* Admin-specific header elements if any */}
           </header>
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 p-4 sm:p-6 overflow-auto">
             <Suspense>
               {children}
             </Suspense>

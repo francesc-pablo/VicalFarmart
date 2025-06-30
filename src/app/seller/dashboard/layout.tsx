@@ -105,7 +105,7 @@ export default function SellerDashboardLayout({
               <SidebarTrigger className="text-foreground hover:text-accent-foreground hover:bg-accent" />
             </div>
           </header>
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 p-4 sm:p-6 overflow-auto">
             <Suspense>
               {children}
             </Suspense>

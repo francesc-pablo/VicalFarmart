@@ -152,7 +152,7 @@ export default function AdminUsersPage() {
           placeholder="Search by name, email, or business name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm pl-10"
+          className="w-full max-w-sm pl-10"
         />
       </div>
 
