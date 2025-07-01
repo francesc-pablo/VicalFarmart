@@ -24,7 +24,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ProfileForm } from '@/components/profile/ProfileForm';
-import { ChangePasswordForm } from '@/components/admin/ChangePasswordForm';
+import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm';
 
 export default function AdminProfilePage() {
   const [userProfile, setUserProfile] = useState<User | null>(null);

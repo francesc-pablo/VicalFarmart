@@ -21,7 +21,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ChangePasswordForm } from '@/components/seller/ChangePasswordForm';
+import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm';
 
 export default function SellerProfilePage() {
   const [userProfile, setUserProfile] = useState<User | null>(null);

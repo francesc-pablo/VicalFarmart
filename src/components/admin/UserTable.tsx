@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
@@ -29,7 +29,6 @@ import {
 
 interface UserTableProps {
   users: User[];
-  onEditUser?: (userId: string) => void;
   onDeleteUser?: (userId: string) => void;
   onToggleUserStatus?: (userId: string, currentStatus: boolean) => void;
 }
@@ -47,7 +46,7 @@ const getRoleBadgeVariant = (role: UserRole): "default" | "secondary" | "outline
   }
 };
 
-export function UserTable({ users, onEditUser, onDeleteUser, onToggleUserStatus }: UserTableProps) {
+export function UserTable({ users, onDeleteUser, onToggleUserStatus }: UserTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -84,11 +83,6 @@ export function UserTable({ users, onEditUser, onDeleteUser, onToggleUserStatus 
                 {onToggleUserStatus && (
                   <Button variant="ghost" size="icon" onClick={() => onToggleUserStatus(user.id, user.isActive)} title={user.isActive ? "Deactivate User" : "Activate User"}>
                     {user.isActive ? <ToggleRight className="h-5 w-5 text-green-500" /> : <ToggleLeft className="h-5 w-5 text-red-500" />}
-                  </Button>
-                )}
-                {onEditUser && (
-                  <Button variant="ghost" size="icon" onClick={() => onEditUser(user.id)} title="Edit User">
-                    <Edit className="h-4 w-4" />
                   </Button>
                 )}
                 {onDeleteUser && (

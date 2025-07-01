@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import type { User, UserRole } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, User as UserIcon, Shield, Briefcase, ArrowLeft } from 'lucide-react';
+import { Mail, User as UserIcon, Shield, Briefcase, ArrowLeft, KeyRound } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -23,11 +23,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ProfileForm } from '@/components/profile/ProfileForm';
+import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm';
 
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -149,7 +151,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="pt-4 text-center">
+          <div className="pt-4 text-center flex justify-center gap-4">
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">Edit Profile</Button>
@@ -166,6 +168,24 @@ export default function ProfilePage() {
                   onSubmit={handleProfileUpdate} 
                   onCancel={() => setIsEditDialogOpen(false)}
                 />
+              </DialogContent>
+            </Dialog>
+
+             <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Change Password
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Change Your Password</DialogTitle>
+                  <DialogDescription>
+                    Enter your current password and a new password. After a successful change, you will be logged out.
+                  </DialogDescription>
+                </DialogHeader>
+                <ChangePasswordForm onFinished={() => setIsPasswordDialogOpen(false)} />
               </DialogContent>
             </Dialog>
           </div>
