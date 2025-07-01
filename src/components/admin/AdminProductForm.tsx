@@ -27,10 +27,6 @@ import type { Product, User } from "@/types";
 import { PRODUCT_CATEGORIES, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/lib/constants";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
-import { ImagePlus } from "lucide-react";
-import { CloudinaryUploadWidget } from "@/components/shared/CloudinaryUploadWidget";
-
 
 interface AdminProductFormProps {
   product?: Product | null;
@@ -60,7 +56,7 @@ const productFormSchema = z.object({
   currency: z.string().default("GHS"),
   category: z.string().min(1, { message: "Please select a category." }),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
-  imageUrl: z.string().optional().or(z.literal('')),
+  imageUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
   sellerId: z.string().min(1, { message: "Please select a seller." }),
   region: z.string().optional(),
   town: z.string().optional(),
@@ -73,7 +69,6 @@ const NO_TOWN_VALUE = "--NONE--";
 
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState(product?.imageUrl || "");
   const { toast } = useToast();
 
   const form = useForm<ProductFormValues>({
@@ -91,11 +86,6 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       town: product?.town || undefined,
     },
   });
-  
-  useEffect(() => {
-    setImagePreviewUrl(product?.imageUrl || "");
-    form.setValue("imageUrl", product?.imageUrl || "");
-  }, [product, form]);
 
   const watchedCurrency = form.watch("currency");
   const watchedRegion = form.watch("region");
@@ -111,12 +101,6 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       form.setValue("town", undefined);
     }
   }, [watchedRegion, form, product?.region]);
-
-  const handleImageUpload = (url: string) => {
-    setImagePreviewUrl(url);
-    form.setValue("imageUrl", url, { shouldValidate: true });
-    toast({ title: "Image Uploaded", description: "The product image is ready." });
-  };
 
 
   const getCurrencySymbol = (currencyCode?: string) => {
@@ -341,36 +325,14 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
           />
         )}
 
-        <FormItem>
-          <FormLabel>Product Image</FormLabel>
-          <div className="flex items-center gap-4">
-            <CloudinaryUploadWidget onUpload={handleImageUpload}>
-                {({ open }) => (
-                  <div
-                    onClick={() => open && open()}
-                    className="relative w-24 h-24 shrink-0 rounded-md border border-dashed flex items-center justify-center hover:bg-muted transition-colors cursor-pointer"
-                  >
-                    {imagePreviewUrl ? (
-                      <Image src={imagePreviewUrl} alt="Product image preview" fill className="object-cover rounded-md" />
-                    ) : (
-                      <ImagePlus className="h-8 w-8 text-muted-foreground" />
-                    )}
-                  </div>
-                )}
-            </CloudinaryUploadWidget>
-            <div className="space-y-2">
-                 <p className="text-xs text-muted-foreground">Click the image box to upload a new photo. <br /> Defaults to placeholder if none.</p>
-            </div>
-          </div>
-        </FormItem>
-        
         <FormField
           control={form.control}
           name="imageUrl"
           render={({ field }) => (
-            <FormItem className="hidden">
+            <FormItem>
+              <FormLabel>Image URL (Optional)</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input placeholder="https://example.com/image.png" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

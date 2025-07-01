@@ -15,7 +15,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { updateUser } from '@/services/userService';
-import { CloudinaryUploadWidget } from '@/components/shared/CloudinaryUploadWidget';
 
 
 export default function ProfilePage() {
@@ -50,20 +49,6 @@ export default function ProfilePage() {
     });
     return () => unsubscribe();
   }, [router]);
-
-  const handleUpload = async (url: string) => {
-    if (userProfile) {
-      try {
-        await updateUser(userProfile.id, { avatarUrl: url });
-        setUserProfile(prev => prev ? { ...prev, avatarUrl: url } : null);
-        toast({ title: "Success", description: "Profile picture updated." });
-      } catch (error) {
-        console.error(error);
-        toast({ title: "Update Failed", description: "Could not update your profile picture.", variant: "destructive" });
-      }
-    }
-  };
-
 
   const getUserInitials = (name?: string | null) => {
     if (!name) return "P";
@@ -111,19 +96,10 @@ export default function ProfilePage() {
 
       <Card className="shadow-lg">
         <CardHeader className="items-center text-center">
-           <CloudinaryUploadWidget onUpload={handleUpload}>
-             {({ open }) => (
-                <Avatar
-                  key={userProfile.avatarUrl}
-                  onClick={() => open && open()}
-                  className="h-24 w-24 mb-4 cursor-pointer"
-                  title="Click to upload new picture"
-                >
-                  <AvatarImage src={userProfile.avatarUrl || `https://placehold.co/100x100.png?text=${getUserInitials(userProfile.name)}`} alt={userProfile.name || "User"}/>
-                  <AvatarFallback>{getUserInitials(userProfile.name)}</AvatarFallback>
-                </Avatar>
-             )}
-           </CloudinaryUploadWidget>
+           <Avatar className="h-24 w-24 mb-4">
+              <AvatarImage src={userProfile.avatarUrl || `https://placehold.co/100x100.png?text=${getUserInitials(userProfile.name)}`} alt={userProfile.name || "User"}/>
+              <AvatarFallback>{getUserInitials(userProfile.name)}</AvatarFallback>
+            </Avatar>
           <CardTitle className="text-2xl">{userProfile.name || "User Name"}</CardTitle>
           <CardDescription>{userProfile.role ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1) : "Role not found"}</CardDescription>
         </CardHeader>
