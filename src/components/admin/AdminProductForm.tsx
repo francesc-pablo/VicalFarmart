@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -26,6 +26,11 @@ import {
 import type { Product, User } from "@/types";
 import { PRODUCT_CATEGORIES, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/lib/constants";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { uploadFile } from "@/services/storageService";
+import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
+import { Loader2, ImagePlus } from "lucide-react";
+
 
 interface AdminProductFormProps {
   product?: Product | null;
@@ -55,7 +60,7 @@ const productFormSchema = z.object({
   currency: z.string().default("GHS"),
   category: z.string().min(1, { message: "Please select a category." }),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
-  imageUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
+  imageUrl: z.string().optional().or(z.literal('')),
   sellerId: z.string().min(1, { message: "Please select a seller." }),
   region: z.string().optional(),
   town: z.string().optional(),
@@ -66,9 +71,12 @@ type ProductFormValues = z.infer<typeof productFormSchema>;
 const NO_REGION_VALUE = "--NONE--";
 const NO_TOWN_VALUE = "--NONE--";
 
-
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(product?.imageUrl || "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -85,6 +93,11 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       town: product?.town || undefined,
     },
   });
+  
+  useEffect(() => {
+    setImagePreviewUrl(product?.imageUrl || "");
+    form.setValue("imageUrl", product?.imageUrl || "");
+  }, [product, form]);
 
   const watchedCurrency = form.watch("currency");
   const watchedRegion = form.watch("region");
@@ -92,7 +105,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
   useEffect(() => {
     if (watchedRegion && watchedRegion !== NO_REGION_VALUE) {
       setAvailableTowns(GHANA_REGIONS_AND_TOWNS[watchedRegion] || []);
-      if(product?.region !== watchedRegion) { // if region changed, reset town only if it's a new region selection
+      if(product?.region !== watchedRegion) {
          form.setValue("town", undefined);
       }
     } else {
@@ -100,6 +113,24 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       form.setValue("town", undefined);
     }
   }, [watchedRegion, form, product?.region]);
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      try {
+        const downloadURL = await uploadFile(file, 'product-images');
+        setImagePreviewUrl(downloadURL);
+        form.setValue("imageUrl", downloadURL, { shouldValidate: true });
+        toast({ title: "Image Uploaded", description: "The product image is ready." });
+      } catch (error) {
+        console.error("Image upload failed:", error);
+        toast({ title: "Upload Failed", variant: "destructive", description: "Could not upload the image." });
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
 
 
   const getCurrencySymbol = (currencyCode?: string) => {
@@ -324,19 +355,47 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
           />
         )}
 
+        <FormItem>
+          <FormLabel>Product Image</FormLabel>
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              hidden
+              accept="image/png, image/jpeg, image/webp"
+            />
+            <div className="relative w-24 h-24 shrink-0 rounded-md border border-dashed flex items-center justify-center">
+              {isUploading ? (
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              ) : imagePreviewUrl ? (
+                <Image src={imagePreviewUrl} alt="Product image preview" fill className="object-cover rounded-md" />
+              ) : (
+                <ImagePlus className="h-8 w-8 text-muted-foreground" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                {isUploading ? "Uploading..." : "Upload Image"}
+              </Button>
+              <p className="text-xs text-muted-foreground">PNG, JPG, WEBP. Defaults to placeholder if none.</p>
+            </div>
+          </div>
+        </FormItem>
+        
         <FormField
           control={form.control}
           name="imageUrl"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Image URL (Optional)</FormLabel>
+            <FormItem className="hidden">
               <FormControl>
-                <Input placeholder="https://example.com/image.png" {...field} />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        
         <DialogFooter className="pt-6 sticky bottom-0 bg-background py-4">
           <DialogClose asChild>
             <Button type="button" variant="outline" onClick={onCancel}>

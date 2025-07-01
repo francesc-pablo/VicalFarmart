@@ -1,58 +1,84 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import type { User, UserRole } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, User, Shield, Briefcase, ArrowLeft } from 'lucide-react';
+import { Mail, User as UserIcon, Shield, Briefcase, ArrowLeft, Loader2 } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { updateUser } from '@/services/userService';
+import { uploadFile } from '@/services/storageService';
 
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // User is signed in, see docs for a list of available properties
-        // https://firebase.google.com/docs/reference/js/firebase.User
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           setUserProfile({ id: docSnap.id, ...docSnap.data() } as User);
         } else {
-          // doc.data() will be undefined in this case
           console.log("No such document!");
-          // Handle case where user exists in Auth but not in Firestore
           setUserProfile({
             id: user.uid,
             name: user.displayName || 'User',
             email: user.email || 'No email',
-            role: 'customer', // default role
+            role: 'customer', 
             isActive: true,
           });
         }
       } else {
-        // User is signed out
         setUserProfile(null);
         router.push('/login');
       }
       setIsLoading(false);
     });
-
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, [router]);
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && userProfile) {
+      setIsUploading(true);
+      try {
+        const avatarUrl = await uploadFile(file, `avatars/${userProfile.id}`);
+        await updateUser(userProfile.id, { avatarUrl });
+        
+        setUserProfile(prev => prev ? { ...prev, avatarUrl } : null);
+        
+        toast({ title: "Success", description: "Profile picture updated." });
+      } catch (error) {
+        console.error(error);
+        toast({ title: "Upload Failed", description: "Could not upload your profile picture.", variant: "destructive" });
+      } finally {
+        setIsUploading(false);
+        if(fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (isUploading) return;
+    fileInputRef.current?.click();
+  };
 
   const getUserInitials = (name?: string | null) => {
     if (!name) return "P";
@@ -66,7 +92,7 @@ export default function ProfilePage() {
   const getRoleIcon = (role?: UserRole | null) => {
     if (role === 'admin') return <Shield className="h-5 w-5 text-primary" />;
     if (role === 'seller') return <Briefcase className="h-5 w-5 text-primary" />;
-    return <User className="h-5 w-5 text-primary" />;
+    return <UserIcon className="h-5 w-5 text-primary" />;
   }
   
   if (isLoading) {
@@ -78,7 +104,6 @@ export default function ProfilePage() {
   }
 
   if (!userProfile) {
-    // This case is handled by the redirect in onAuthStateChanged, but as a fallback
      return (
         <div className="max-w-2xl mx-auto text-center">
             <p>Please log in to view your profile.</p>
@@ -101,10 +126,20 @@ export default function ProfilePage() {
 
       <Card className="shadow-lg">
         <CardHeader className="items-center text-center">
-          <Avatar className="h-24 w-24 mb-4">
-            <AvatarImage src={`https://placehold.co/100x100.png?text=${getUserInitials(userProfile.name)}`} alt={userProfile.name || "User"} data-ai-hint="person face neutral"/>
-            <AvatarFallback>{getUserInitials(userProfile.name)}</AvatarFallback>
-          </Avatar>
+           <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            hidden
+            accept="image/png, image/jpeg"
+          />
+          <div className="relative">
+            <Avatar className="h-24 w-24 mb-4 cursor-pointer" onClick={handleAvatarClick} title="Click to upload new picture">
+              <AvatarImage src={userProfile.avatarUrl || `https://placehold.co/100x100.png?text=${getUserInitials(userProfile.name)}`} alt={userProfile.name || "User"}/>
+              <AvatarFallback>{getUserInitials(userProfile.name)}</AvatarFallback>
+            </Avatar>
+            {isUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full mb-4"><Loader2 className="h-8 w-8 animate-spin text-white" /></div>}
+          </div>
           <CardTitle className="text-2xl">{userProfile.name || "User Name"}</CardTitle>
           <CardDescription>{userProfile.role ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1) : "Role not found"}</CardDescription>
         </CardHeader>
@@ -125,7 +160,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Placeholder for more profile actions */}
           <div className="pt-4 text-center">
             <Button variant="outline" disabled>Edit Profile (Coming Soon)</Button>
           </div>
