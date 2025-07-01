@@ -1,27 +1,26 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import type { User, UserRole } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, User as UserIcon, Shield, Briefcase, ArrowLeft, Loader2 } from 'lucide-react';
+import { Mail, User as UserIcon, Shield, Briefcase, ArrowLeft } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { updateUser } from '@/services/userService';
-import { uploadFile } from '@/services/storageService';
+import { CloudinaryUploadWidget } from '@/components/shared/CloudinaryUploadWidget';
+
 
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -52,33 +51,19 @@ export default function ProfilePage() {
     return () => unsubscribe();
   }, [router]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && userProfile) {
-      setIsUploading(true);
+  const handleUpload = async (url: string) => {
+    if (userProfile) {
       try {
-        const avatarUrl = await uploadFile(file, `avatars/${userProfile.id}`);
-        await updateUser(userProfile.id, { avatarUrl });
-        
-        setUserProfile(prev => prev ? { ...prev, avatarUrl } : null);
-        
+        await updateUser(userProfile.id, { avatarUrl: url });
+        setUserProfile(prev => prev ? { ...prev, avatarUrl: url } : null);
         toast({ title: "Success", description: "Profile picture updated." });
       } catch (error) {
         console.error(error);
-        toast({ title: "Upload Failed", description: "Could not upload your profile picture.", variant: "destructive" });
-      } finally {
-        setIsUploading(false);
-        if(fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
+        toast({ title: "Update Failed", description: "Could not update your profile picture.", variant: "destructive" });
       }
     }
   };
 
-  const handleAvatarClick = () => {
-    if (isUploading) return;
-    fileInputRef.current?.click();
-  };
 
   const getUserInitials = (name?: string | null) => {
     if (!name) return "P";
@@ -126,20 +111,12 @@ export default function ProfilePage() {
 
       <Card className="shadow-lg">
         <CardHeader className="items-center text-center">
-           <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            hidden
-            accept="image/png, image/jpeg"
-          />
-          <div className="relative">
-            <Avatar className="h-24 w-24 mb-4 cursor-pointer" onClick={handleAvatarClick} title="Click to upload new picture">
-              <AvatarImage src={userProfile.avatarUrl || `https://placehold.co/100x100.png?text=${getUserInitials(userProfile.name)}`} alt={userProfile.name || "User"}/>
-              <AvatarFallback>{getUserInitials(userProfile.name)}</AvatarFallback>
-            </Avatar>
-            {isUploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full mb-4"><Loader2 className="h-8 w-8 animate-spin text-white" /></div>}
-          </div>
+           <CloudinaryUploadWidget onUpload={handleUpload}>
+             <Avatar className="h-24 w-24 mb-4 cursor-pointer" title="Click to upload new picture">
+                <AvatarImage src={userProfile.avatarUrl || `https://placehold.co/100x100.png?text=${getUserInitials(userProfile.name)}`} alt={userProfile.name || "User"}/>
+                <AvatarFallback>{getUserInitials(userProfile.name)}</AvatarFallback>
+              </Avatar>
+           </CloudinaryUploadWidget>
           <CardTitle className="text-2xl">{userProfile.name || "User Name"}</CardTitle>
           <CardDescription>{userProfile.role ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1) : "Role not found"}</CardDescription>
         </CardHeader>

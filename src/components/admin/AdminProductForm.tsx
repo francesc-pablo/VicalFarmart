@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -26,10 +26,10 @@ import {
 import type { Product, User } from "@/types";
 import { PRODUCT_CATEGORIES, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/lib/constants";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { uploadFile } from "@/services/storageService";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import { Loader2, ImagePlus } from "lucide-react";
+import { ImagePlus } from "lucide-react";
+import { CloudinaryUploadWidget } from "@/components/shared/CloudinaryUploadWidget";
 
 
 interface AdminProductFormProps {
@@ -73,9 +73,7 @@ const NO_TOWN_VALUE = "--NONE--";
 
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(product?.imageUrl || "");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const form = useForm<ProductFormValues>({
@@ -114,22 +112,10 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
     }
   }, [watchedRegion, form, product?.region]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setIsUploading(true);
-      try {
-        const downloadURL = await uploadFile(file, 'product-images');
-        setImagePreviewUrl(downloadURL);
-        form.setValue("imageUrl", downloadURL, { shouldValidate: true });
-        toast({ title: "Image Uploaded", description: "The product image is ready." });
-      } catch (error) {
-        console.error("Image upload failed:", error);
-        toast({ title: "Upload Failed", variant: "destructive", description: "Could not upload the image." });
-      } finally {
-        setIsUploading(false);
-      }
-    }
+  const handleImageUpload = (url: string) => {
+    setImagePreviewUrl(url);
+    form.setValue("imageUrl", url, { shouldValidate: true });
+    toast({ title: "Image Uploaded", description: "The product image is ready." });
   };
 
 
@@ -358,27 +344,17 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
         <FormItem>
           <FormLabel>Product Image</FormLabel>
           <div className="flex items-center gap-4">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              hidden
-              accept="image/png, image/jpeg, image/webp"
-            />
-            <div className="relative w-24 h-24 shrink-0 rounded-md border border-dashed flex items-center justify-center">
-              {isUploading ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : imagePreviewUrl ? (
-                <Image src={imagePreviewUrl} alt="Product image preview" fill className="object-cover rounded-md" />
-              ) : (
-                <ImagePlus className="h-8 w-8 text-muted-foreground" />
-              )}
-            </div>
+            <CloudinaryUploadWidget onUpload={handleImageUpload}>
+                <div className="relative w-24 h-24 shrink-0 rounded-md border border-dashed flex items-center justify-center hover:bg-muted transition-colors">
+                  {imagePreviewUrl ? (
+                    <Image src={imagePreviewUrl} alt="Product image preview" fill className="object-cover rounded-md" />
+                  ) : (
+                    <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                  )}
+                </div>
+            </CloudinaryUploadWidget>
             <div className="space-y-2">
-              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                {isUploading ? "Uploading..." : "Upload Image"}
-              </Button>
-              <p className="text-xs text-muted-foreground">PNG, JPG, WEBP. Defaults to placeholder if none.</p>
+                 <p className="text-xs text-muted-foreground">Click the image box to upload a new photo. <br /> Defaults to placeholder if none.</p>
             </div>
           </div>
         </FormItem>
