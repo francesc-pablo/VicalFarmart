@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Trash2, ToggleLeft, ToggleRight, Edit } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
@@ -31,6 +31,7 @@ interface UserTableProps {
   users: User[];
   onDeleteUser?: (userId: string) => void;
   onToggleUserStatus?: (userId: string, currentStatus: boolean) => void;
+  onEditUser?: (user: User) => void;
 }
 
 const getRoleBadgeVariant = (role: UserRole): "default" | "secondary" | "outline" => {
@@ -46,16 +47,15 @@ const getRoleBadgeVariant = (role: UserRole): "default" | "secondary" | "outline
   }
 };
 
-export function UserTable({ users, onDeleteUser, onToggleUserStatus }: UserTableProps) {
+export function UserTable({ users, onDeleteUser, onToggleUserStatus, onEditUser }: UserTableProps) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead className="w-[80px] hidden sm:table-cell">Avatar</TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead className="hidden md:table-cell">Email</TableHead>
-          <TableHead>Role</TableHead>
-          <TableHead>Status</TableHead>
+          <TableHead>User</TableHead>
+          <TableHead className="hidden md:table-cell">Role</TableHead>
+          <TableHead className="hidden sm:table-cell">Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -69,17 +69,24 @@ export function UserTable({ users, onDeleteUser, onToggleUserStatus }: UserTable
                   <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
               </TableCell>
-              <TableCell className="font-medium">{user.name}</TableCell>
-              <TableCell className="hidden md:table-cell">{user.email}</TableCell>
               <TableCell>
+                <div className="font-medium">{user.name}</div>
+                <div className="text-sm text-muted-foreground hidden md:inline">{user.email}</div>
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
                 <Badge variant={getRoleBadgeVariant(user.role)}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</Badge>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <Badge variant={user.isActive ? "default" : "destructive"} className={user.isActive ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}>
                   {user.isActive ? "Active" : "Inactive"}
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
+                {onEditUser && (
+                  <Button variant="ghost" size="icon" onClick={() => onEditUser(user)} title="Edit User">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                )}
                 {onToggleUserStatus && (
                   <Button variant="ghost" size="icon" onClick={() => onToggleUserStatus(user.id, user.isActive)} title={user.isActive ? "Deactivate User" : "Activate User"}>
                     {user.isActive ? <ToggleRight className="h-5 w-5 text-green-500" /> : <ToggleLeft className="h-5 w-5 text-red-500" />}
@@ -112,7 +119,7 @@ export function UserTable({ users, onDeleteUser, onToggleUserStatus }: UserTable
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={6} className="text-center h-24">
+            <TableCell colSpan={5} className="text-center h-24">
               No users found.
             </TableCell>
           </TableRow>

@@ -87,7 +87,7 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
 
   } catch (error) {
     console.error("Error adding new user:", error);
-    return null;
+    throw error;
   }
 }
 
