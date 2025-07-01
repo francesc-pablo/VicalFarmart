@@ -18,6 +18,7 @@ export const ADMIN_DASHBOARD_NAV_ITEMS: NavItem[] = [
   { title: 'Manage Users', href: '/admin/dashboard/users', icon: Users },
   { title: 'Manage Products', href: '/admin/dashboard/products', icon: ShoppingBasket },
   { title: 'All Orders', href: '/admin/dashboard/orders', icon: Package },
+  { title: 'Profile', href: '/admin/dashboard/profile', icon: UserCog },
   { title: 'Platform Settings', href: '/admin/dashboard/settings', icon: Settings, disabled: true },
 ];
 
