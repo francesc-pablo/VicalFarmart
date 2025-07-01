@@ -347,7 +347,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
             <CloudinaryUploadWidget onUpload={handleImageUpload}>
                 {({ open }) => (
                   <div
-                    onClick={open}
+                    onClick={() => open && open()}
                     className="relative w-24 h-24 shrink-0 rounded-md border border-dashed flex items-center justify-center hover:bg-muted transition-colors cursor-pointer"
                   >
                     {imagePreviewUrl ? (

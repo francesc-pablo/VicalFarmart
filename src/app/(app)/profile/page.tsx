@@ -115,7 +115,7 @@ export default function ProfilePage() {
              {({ open }) => (
                 <Avatar
                   key={userProfile.avatarUrl}
-                  onClick={open}
+                  onClick={() => open && open()}
                   className="h-24 w-24 mb-4 cursor-pointer"
                   title="Click to upload new picture"
                 >

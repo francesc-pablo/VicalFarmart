@@ -6,7 +6,7 @@ import React from 'react';
 
 interface CustomUploadWidgetProps {
   onUpload: (url: string) => void;
-  children: ({ open }: { open: () => void }) => React.ReactNode;
+  children: ({ open }: { open: (() => void) | undefined }) => React.ReactNode;
 }
 
 export function CloudinaryUploadWidget({ onUpload, children }: CustomUploadWidgetProps) {
@@ -37,14 +37,7 @@ export function CloudinaryUploadWidget({ onUpload, children }: CustomUploadWidge
             }}
         >
         {({ open }) => {
-            const safeOpen = () => {
-                if (open) {
-                    open();
-                } else {
-                    console.warn("Cloudinary widget is not yet ready to open.");
-                }
-            };
-            return <>{children({ open: safeOpen })}</>;
+            return <>{children({ open })}</>;
         }}
       </CldUploadWidget>
     );
