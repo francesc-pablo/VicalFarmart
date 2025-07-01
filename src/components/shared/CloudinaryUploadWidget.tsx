@@ -37,7 +37,14 @@ export function CloudinaryUploadWidget({ onUpload, children }: CustomUploadWidge
             }}
         >
         {({ open }) => {
-          return <>{children({ open: () => open() })}</>;
+            const safeOpen = () => {
+                if (open) {
+                    open();
+                } else {
+                    console.warn("Cloudinary widget is not yet ready to open.");
+                }
+            };
+            return <>{children({ open: safeOpen })}</>;
         }}
       </CldUploadWidget>
     );
