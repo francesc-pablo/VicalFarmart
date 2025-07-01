@@ -112,10 +112,16 @@ export default function ProfilePage() {
       <Card className="shadow-lg">
         <CardHeader className="items-center text-center">
            <CloudinaryUploadWidget onUpload={handleUpload}>
-             <Avatar className="h-24 w-24 mb-4 cursor-pointer" title="Click to upload new picture">
-                <AvatarImage src={userProfile.avatarUrl || `https://placehold.co/100x100.png?text=${getUserInitials(userProfile.name)}`} alt={userProfile.name || "User"}/>
-                <AvatarFallback>{getUserInitials(userProfile.name)}</AvatarFallback>
-              </Avatar>
+             {({ open }) => (
+                <Avatar
+                  onClick={open}
+                  className="h-24 w-24 mb-4 cursor-pointer"
+                  title="Click to upload new picture"
+                >
+                  <AvatarImage src={userProfile.avatarUrl || `https://placehold.co/100x100.png?text=${getUserInitials(userProfile.name)}`} alt={userProfile.name || "User"}/>
+                  <AvatarFallback>{getUserInitials(userProfile.name)}</AvatarFallback>
+                </Avatar>
+             )}
            </CloudinaryUploadWidget>
           <CardTitle className="text-2xl">{userProfile.name || "User Name"}</CardTitle>
           <CardDescription>{userProfile.role ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1) : "Role not found"}</CardDescription>

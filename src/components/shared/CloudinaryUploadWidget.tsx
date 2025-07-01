@@ -1,35 +1,33 @@
 
 "use client";
 
-import { CldUploadWidget } from 'next-cloudinary';
+import { CldUploadWidget, type CldUploadWidgetProps } from 'next-cloudinary';
 import React from 'react';
 
-interface CloudinaryUploadWidgetProps {
+interface CustomUploadWidgetProps {
   onUpload: (url: string) => void;
-  children: React.ReactNode;
+  children: ({ open }: { open: () => void }) => React.ReactNode;
 }
 
-export function CloudinaryUploadWidget({ onUpload, children }: CloudinaryUploadWidgetProps) {
+export function CloudinaryUploadWidget({ onUpload, children }: CustomUploadWidgetProps) {
     
-    // Developer-friendly warning for missing environment variables
     if (!process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || !process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
         console.error("Cloudinary upload will not work. Environment variables NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET must be set in your .env.local file.");
-        // Render the children but make it clear that it's disabled.
-        return <div className="cursor-not-allowed opacity-50" title="Cloudinary not configured">{children}</div>;
+        const disabledOpen = () => console.error("Cloudinary not configured. Cannot open widget.");
+        return <div className="cursor-not-allowed opacity-50" title="Cloudinary not configured">{children({ open: disabledOpen })}</div>;
     }
     
-    // The type for the result object from the onUpload callback is complex,
-    // so we use `any` and perform safe runtime checks.
-    const handleUpload = (result: any) => {
+    const handleUpload: CldUploadWidgetProps['onUpload'] = (result, { widget }) => {
         if (result.event === 'success' && typeof result.info === 'object' && result.info !== null && 'secure_url' in result.info) {
           onUpload(result.info.secure_url as string);
+          widget.close();
         }
     };
 
     return (
         <CldUploadWidget
             uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-            onUpload={handleUpload} // Use onUpload instead of the deprecated onSuccess
+            onUpload={handleUpload}
             options={{
                 sources: ['local', 'url'],
                 maxFiles: 1,
@@ -39,15 +37,7 @@ export function CloudinaryUploadWidget({ onUpload, children }: CloudinaryUploadW
             }}
         >
         {({ open }) => {
-          function handleOnClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-            e.preventDefault();
-            open();
-          }
-          return (
-            <div onClick={handleOnClick} className="cursor-pointer w-fit">
-                {children}
-            </div>
-          );
+          return <>{children({ open: () => open() })}</>;
         }}
       </CldUploadWidget>
     );

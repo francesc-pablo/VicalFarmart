@@ -345,13 +345,18 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
           <FormLabel>Product Image</FormLabel>
           <div className="flex items-center gap-4">
             <CloudinaryUploadWidget onUpload={handleImageUpload}>
-                <div className="relative w-24 h-24 shrink-0 rounded-md border border-dashed flex items-center justify-center hover:bg-muted transition-colors">
-                  {imagePreviewUrl ? (
-                    <Image src={imagePreviewUrl} alt="Product image preview" fill className="object-cover rounded-md" />
-                  ) : (
-                    <ImagePlus className="h-8 w-8 text-muted-foreground" />
-                  )}
-                </div>
+                {({ open }) => (
+                  <div
+                    onClick={open}
+                    className="relative w-24 h-24 shrink-0 rounded-md border border-dashed flex items-center justify-center hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    {imagePreviewUrl ? (
+                      <Image src={imagePreviewUrl} alt="Product image preview" fill className="object-cover rounded-md" />
+                    ) : (
+                      <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
             </CloudinaryUploadWidget>
             <div className="space-y-2">
                  <p className="text-xs text-muted-foreground">Click the image box to upload a new photo. <br /> Defaults to placeholder if none.</p>
