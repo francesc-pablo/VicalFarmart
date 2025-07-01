@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -15,11 +14,20 @@ import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { updateUser } from '@/services/userService';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { ProfileForm } from '@/components/profile/ProfileForm';
 
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -33,6 +41,7 @@ export default function ProfilePage() {
           setUserProfile({ id: docSnap.id, ...docSnap.data() } as User);
         } else {
           console.log("No such document!");
+          // Fallback for users who exist in Auth but not Firestore
           setUserProfile({
             id: user.uid,
             name: user.displayName || 'User',
@@ -49,6 +58,26 @@ export default function ProfilePage() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  const handleProfileUpdate = async (data: Partial<User>) => {
+    if (!userProfile) return;
+    try {
+      await updateUser(userProfile.id, data);
+      setUserProfile(prev => prev ? { ...prev, ...data } : null);
+      toast({
+        title: "Profile Updated",
+        description: "Your details have been successfully saved.",
+      });
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error("Profile update error:", error);
+      toast({
+        title: "Update Failed",
+        description: "Could not update your profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getUserInitials = (name?: string | null) => {
     if (!name) return "P";
@@ -121,7 +150,24 @@ export default function ProfilePage() {
           </div>
 
           <div className="pt-4 text-center">
-            <Button variant="outline" disabled>Edit Profile (Coming Soon)</Button>
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">Edit Profile</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit Your Profile</DialogTitle>
+                  <DialogDescription>
+                    Make changes to your personal details here. Click save when you're done.
+                  </DialogDescription>
+                </DialogHeader>
+                <ProfileForm 
+                  user={userProfile} 
+                  onSubmit={handleProfileUpdate} 
+                  onCancel={() => setIsEditDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
