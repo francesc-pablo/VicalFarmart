@@ -114,6 +114,7 @@ export default function ProfilePage() {
            <CloudinaryUploadWidget onUpload={handleUpload}>
              {({ open }) => (
                 <Avatar
+                  key={userProfile.avatarUrl}
                   onClick={open}
                   className="h-24 w-24 mb-4 cursor-pointer"
                   title="Click to upload new picture"
