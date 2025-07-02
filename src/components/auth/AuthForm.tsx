@@ -26,7 +26,8 @@ import {
   updateProfile,
   FirebaseError,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signOut
 } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 
@@ -84,7 +85,23 @@ export function AuthForm({ type }: AuthFormProps) {
 
       let userRole: UserRole = 'customer';
 
-      if (!userDocSnap.exists()) {
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data() as User;
+        if (!userData.isActive) {
+          toast({
+            title: "Login Failed",
+            description: "Your account has been deactivated. Please contact an administrator.",
+            variant: "destructive",
+          });
+          await signOut(auth);
+          return;
+        }
+        userRole = userData.role;
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+      } else {
         await setDoc(userDocRef, {
           id: user.uid,
           name: user.displayName || 'Google User',
@@ -107,13 +124,6 @@ export function AuthForm({ type }: AuthFormProps) {
         toast({
           title: "Registration Successful",
           description: "Your account has been created via Google.",
-        });
-      } else {
-        const userData = userDocSnap.data() as User;
-        userRole = userData.role;
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
         });
       }
       
@@ -159,6 +169,15 @@ export function AuthForm({ type }: AuthFormProps) {
         const userData = userDoc.data() as User;
         const userDocRef = userDoc.ref;
 
+        if (!userData.isActive) {
+          toast({
+            title: "Login Failed",
+            description: "Your account has been deactivated. Please contact an administrator.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         if (userData.lockoutUntil && userData.lockoutUntil > Date.now()) {
           const remainingMinutes = Math.ceil((userData.lockoutUntil - Date.now()) / 60000);
           toast({
