@@ -3,6 +3,7 @@ import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, serverTimestamp, orderBy } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
 const usersCollectionRef = collection(db, "users");
 
@@ -83,6 +84,10 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
     };
     
     await setDoc(doc(db, "users", user.uid), newUser);
+
+    // Send welcome email
+    await sendWelcomeEmail({ name: newUser.name, email: newUser.email });
+    
     return { id: user.uid, ...newUser } as User;
 
   } catch (error) {
