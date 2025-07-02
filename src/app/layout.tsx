@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 export const metadata: Metadata = {
   title: 'Vical Farmart',
   description: 'Connecting farmers and buyers for fresh agricultural produce.',
-  icons: null, // Explicitly state no icons are provided via metadata
+  icons: "https://res.cloudinary.com/ddvlexmvj/image/upload/v1751434079/VF_logo-removebg-preview_kgzusq.png",
 };
 
 const MissingEnvError = () => (
