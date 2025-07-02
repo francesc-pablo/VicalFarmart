@@ -44,6 +44,7 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
+  phone: z.string().min(10, { message: "A valid phone number is required." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -72,7 +73,7 @@ export function AuthForm({ type }: AuthFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: isLogin
       ? { email: "", password: "" }
-      : { name: "", email: "", password: "", confirmPassword: "" },
+      : { name: "", email: "", phone: "", password: "", confirmPassword: "" },
   });
 
   const handleGoogleSignIn = async () => {
@@ -107,6 +108,7 @@ export function AuthForm({ type }: AuthFormProps) {
           id: user.uid,
           name: user.displayName || 'Google User',
           email: user.email!,
+          phone: user.phoneNumber || "",
           role: 'customer',
           isActive: true,
           createdAt: serverTimestamp(),
@@ -232,7 +234,7 @@ export function AuthForm({ type }: AuthFormProps) {
 
     } else { 
       // Handle Registration
-      const { name, email, password } = values as RegisterFormValues;
+      const { name, email, password, phone } = values as RegisterFormValues;
       const role: UserRole = "customer"; // All self-registrations are customers
 
       try {
@@ -254,6 +256,7 @@ export function AuthForm({ type }: AuthFormProps) {
             id: user.uid,
             name: name,
             email: email,
+            phone: phone,
             role: role,
             isActive: true,
             createdAt: serverTimestamp(),
@@ -333,6 +336,21 @@ export function AuthForm({ type }: AuthFormProps) {
                   </FormItem>
                 )}
               />
+              {!isLogin && (
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input type="tel" placeholder="(123) 456-7890" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="password"

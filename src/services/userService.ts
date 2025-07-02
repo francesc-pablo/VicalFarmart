@@ -67,6 +67,7 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
     const newUser: Omit<User, 'id'> = {
       name: userData.name || "New User",
       email: user.email!,
+      phone: userData.phone || "",
       role: userData.role || 'customer',
       isActive: true,
       createdAt: serverTimestamp(),

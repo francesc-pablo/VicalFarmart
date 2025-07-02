@@ -36,6 +36,7 @@ interface UserFormProps {
 const userFormSchemaBase = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
+  phone: z.string().optional(),
   role: z.enum(["customer", "seller", "admin"], { required_error: "Please select a role." }),
   businessName: z.string().optional(),
   businessOwnerName: z.string().optional(),
@@ -74,6 +75,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     defaultValues: {
       name: user?.name || "",
       email: user?.email || "",
+      phone: user?.phone || "",
       role: user?.role || "customer",
       password: "",
       businessName: user?.businessName || "",
@@ -136,19 +138,34 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email Address</FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="user@example.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email Address</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="user@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                  <Input type="tel" placeholder="(123) 456-7890" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="role"

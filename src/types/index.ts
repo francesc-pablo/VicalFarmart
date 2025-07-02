@@ -48,6 +48,7 @@ export interface User {
   avatarUrl?: string;
   isActive: boolean;
   createdAt?: any;
+  phone?: string;
 
   // Seller-specific fields
   businessName?: string;
