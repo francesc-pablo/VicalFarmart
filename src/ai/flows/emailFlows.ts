@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview AI flows for generating and sending transactional emails.
@@ -82,11 +83,11 @@ const newOrderPrompt = ai.definePrompt({
       Order Details:
       - Order ID: {{{orderId}}}
       - Customer Name: {{{customerName}}}
-      - Total Amount: {{{totalAmount}}}
+      - Total Amount: \${{{totalAmount}}}
 
       Items:
       {{#each items}}
-      - {{this.quantity}}x {{this.productName}} at ${{this.price}} each
+      - {{this.quantity}}x {{this.productName}} at \${{this.price}} each
       {{/each}}
 
       Generate a subject line appropriate for the recipient's role.
