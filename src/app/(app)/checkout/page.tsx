@@ -13,7 +13,7 @@ import { ArrowLeft, CreditCard, Minus, Package, Plus, ShoppingCart, Trash2, Truc
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,6 +26,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { createOrder } from '@/services/orderService';
+import { getUsers, getUserById } from '@/services/userService';
+import { sendNewOrderEmail } from '@/ai/flows/emailFlows';
+import { auth } from '@/lib/firebase';
+import type { Order, User, OrderItem } from '@/types';
+import { onAuthStateChanged } from 'firebase/auth';
+
 
 const checkoutSchema = z.object({
   fullName: z.string().min(2, { message: "Full name is required." }),
@@ -44,6 +51,18 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [paymentMethod, setPaymentMethod] = useState<"mobile" | "cod">("mobile");
   const { cartItems, updateCartItemQuantity, removeFromCart, clearCart } = useCart();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        getUserById(user.uid).then(setCurrentUser);
+      } else {
+        setCurrentUser(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shippingFee = subtotal > 0 ? 5.00 : 0; // No shipping fee for empty cart
@@ -62,15 +81,92 @@ export default function CheckoutPage() {
     },
   });
 
-  function handlePlaceOrder(data: CheckoutFormValues) {
-    console.log("Order placed with data:", data);
-    // Simulate order placement
-    toast({
-      title: "Order Placed Successfully!",
-      description: `Your order will be processed. Payment method: ${paymentMethod === 'mobile' ? 'Mobile Payment' : 'Pay on Delivery'}.`,
-    });
-    clearCart(); // Clear the cart
-    router.push("/"); // Redirect to homepage or order confirmation page
+  async function handlePlaceOrder(data: CheckoutFormValues) {
+    if (!currentUser) {
+        toast({ title: "Please log in", description: "You must be logged in to place an order.", variant: "destructive" });
+        router.push('/login');
+        return;
+    }
+    if (cartItems.length === 0) {
+        toast({ title: "Empty Cart", description: "Cannot place an order with an empty cart.", variant: "destructive" });
+        return;
+    }
+
+    const orderItems: OrderItem[] = cartItems.map(item => ({
+        productId: item.id,
+        productName: item.name,
+        quantity: item.quantity,
+        price: item.price,
+    }));
+
+    // For simplicity, this example assumes all items in the cart belong to one seller.
+    const sellerId = cartItems[0]?.sellerId;
+
+    const orderData: Omit<Order, 'id' | 'orderDate'> = {
+        customerId: currentUser.id,
+        customerName: data.fullName, // Use name from form
+        items: orderItems,
+        totalAmount: total,
+        status: 'Pending',
+        paymentMethod: paymentMethod === 'mobile' ? 'Mobile Payment' : 'Pay on Delivery',
+        shippingAddress: `${data.address}, ${data.city}, ${data.zipCode}`,
+        sellerId: sellerId,
+    };
+
+    const newOrderId = await createOrder(orderData);
+    
+    if (newOrderId) {
+        toast({
+            title: "Order Placed Successfully!",
+            description: `Your order #${newOrderId.substring(0, 6)} will be processed.`,
+        });
+
+        // Send notification emails
+        try {
+            // 1. Notify Admin
+            const allUsers = await getUsers();
+            const adminUser = allUsers.find(u => u.role === 'admin');
+            if (adminUser?.email) {
+                await sendNewOrderEmail({
+                    recipientEmail: adminUser.email,
+                    recipientName: adminUser.name,
+                    recipientRole: 'admin',
+                    orderId: newOrderId,
+                    customerName: currentUser.name,
+                    totalAmount: total,
+                    items: orderItems,
+                });
+            }
+
+            // 2. Notify Seller
+            if (sellerId) {
+                const seller = await getUserById(sellerId);
+                if (seller?.email) {
+                    await sendNewOrderEmail({
+                        recipientEmail: seller.email,
+                        recipientName: seller.name,
+                        recipientRole: 'seller',
+                        orderId: newOrderId,
+                        customerName: currentUser.name,
+                        totalAmount: total,
+                        items: orderItems,
+                    });
+                }
+            }
+        } catch (emailError) {
+            console.error("Failed to send notification emails:", emailError);
+            // Don't block the user flow for this, just log it.
+        }
+
+        clearCart();
+        router.push("/my-orders");
+    } else {
+        toast({
+            title: "Order Failed",
+            description: "There was a problem placing your order. Please try again.",
+            variant: "destructive",
+        });
+    }
   };
   
   if (cartItems.length === 0) {
@@ -294,8 +390,8 @@ export default function CheckoutPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button size="lg" className="w-full shadow-md" type="submit" form="shipping-form">
-                <Package className="mr-2 h-5 w-5" /> Place Order
+              <Button size="lg" className="w-full shadow-md" type="submit" form="shipping-form" disabled={form.formState.isSubmitting}>
+                <Package className="mr-2 h-5 w-5" /> {form.formState.isSubmitting ? 'Placing Order...' : 'Place Order'}
               </Button>
             </CardFooter>
           </Card>

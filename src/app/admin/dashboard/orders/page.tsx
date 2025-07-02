@@ -15,7 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
-import { getAllOrders, updateOrderStatus } from '@/services/orderService';
+import { getAllOrders, updateOrderStatus, getOrderById } from '@/services/orderService';
+import { getUserById } from '@/services/userService';
+import { sendOrderStatusUpdateEmail } from '@/ai/flows/emailFlows';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminOrdersPage() {
@@ -41,6 +43,38 @@ export default function AdminOrdersPage() {
         await updateOrderStatus(orderId, newStatus);
         toast({ title: "Order Status Updated", description: `Order #${orderId.substring(0,6)} marked as ${newStatus}.` });
         fetchOrders(); // Re-fetch to get the latest state
+
+        // Send notification emails
+        const order = await getOrderById(orderId);
+        if (order) {
+            // 1. Notify Customer
+            const customer = await getUserById(order.customerId);
+            if (customer?.email) {
+                await sendOrderStatusUpdateEmail({
+                    recipientEmail: customer.email,
+                    recipientRole: 'customer',
+                    customerName: order.customerName,
+                    orderId: order.id,
+                    newStatus: newStatus,
+                    items: order.items.map(i => ({ productName: i.productName, quantity: i.quantity })),
+                });
+            }
+
+            // 2. Notify Seller
+            if (order.sellerId) {
+                const seller = await getUserById(order.sellerId);
+                if (seller?.email) {
+                     await sendOrderStatusUpdateEmail({
+                        recipientEmail: seller.email,
+                        recipientRole: 'seller',
+                        customerName: order.customerName,
+                        orderId: order.id,
+                        newStatus: newStatus,
+                        items: order.items.map(i => ({ productName: i.productName, quantity: i.quantity })),
+                    });
+                }
+            }
+        }
     } catch (error) {
         toast({ title: "Update Failed", description: "Could not update the order status.", variant: "destructive" });
     }

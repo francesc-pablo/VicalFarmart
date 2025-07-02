@@ -30,6 +30,7 @@ import {
   signOut
 } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
+import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -121,6 +122,7 @@ export function AuthForm({ type }: AuthFormProps) {
           geoCoordinatesLng: "",
           businessType: "",
         });
+        await sendWelcomeEmail({ name: user.displayName || 'Google User', email: user.email! });
         toast({
           title: "Registration Successful",
           description: "Your account has been created via Google.",
@@ -267,6 +269,8 @@ export function AuthForm({ type }: AuthFormProps) {
             geoCoordinatesLng: "",
             businessType: "",
         });
+
+        await sendWelcomeEmail({ name, email });
 
         toast({
           title: "Registration Successful",
