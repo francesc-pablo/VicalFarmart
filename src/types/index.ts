@@ -49,6 +49,9 @@ export interface User {
   isActive: boolean;
   createdAt?: any;
   phone?: string;
+  address?: string;
+  region?: string;
+  town?: string;
 
   // Seller-specific fields
   businessName?: string;

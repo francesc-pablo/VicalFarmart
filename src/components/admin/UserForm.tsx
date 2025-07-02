@@ -37,6 +37,9 @@ const userFormSchemaBase = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   phone: z.string().optional(),
+  address: z.string().optional(),
+  region: z.string().optional(),
+  town: z.string().optional(),
   role: z.enum(["customer", "seller", "admin"], { required_error: "Please select a role." }),
   businessName: z.string().optional(),
   businessOwnerName: z.string().optional(),
@@ -68,6 +71,7 @@ const NO_TOWN_VALUE = "--NONE--";
 export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
   const isEditing = !!user;
   const formSchema = isEditing ? userFormSchemaUpdate : userFormSchemaCreate;
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
   const [availableBusinessTowns, setAvailableBusinessTowns] = useState<string[]>([]);
 
   const form = useForm<UserFormValues>({
@@ -76,6 +80,9 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
+      address: user?.address || "",
+      region: user?.region || undefined,
+      town: user?.town || undefined,
       role: user?.role || "customer",
       password: "",
       businessName: user?.businessName || "",
@@ -91,7 +98,20 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
   });
 
   const watchedRole = form.watch("role");
+  const watchedRegion = form.watch("region");
   const watchedBusinessRegion = form.watch("businessLocationRegion");
+
+  useEffect(() => {
+    if (watchedRegion && watchedRegion !== NO_REGION_VALUE) {
+      setAvailableTowns(GHANA_REGIONS_AND_TOWNS[watchedRegion] || []);
+      if(user?.region !== watchedRegion) {
+        form.setValue("town", undefined);
+      }
+    } else {
+      setAvailableTowns([]);
+      form.setValue("town", undefined);
+    }
+  }, [watchedRegion, form, user?.region]);
 
   useEffect(() => {
     if (watchedRole === 'seller' && watchedBusinessRegion && watchedBusinessRegion !== NO_REGION_VALUE) {
@@ -108,6 +128,8 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
   const handleSubmit = (values: UserFormValues) => {
     const dataToSubmit: Partial<User> = {
         ...values,
+        region: values.region === NO_REGION_VALUE ? undefined : values.region,
+        town: values.town === NO_TOWN_VALUE || !values.town ? undefined : values.town,
         businessLocationRegion: values.businessLocationRegion === NO_REGION_VALUE ? undefined : values.businessLocationRegion,
         businessLocationTown: values.businessLocationTown === NO_TOWN_VALUE || !values.businessLocationTown ? undefined : values.businessLocationTown,
     };
@@ -203,6 +225,85 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
             </FormItem>
           )}
         />
+        
+        <Separator className="my-6" />
+        <h3 className="text-lg font-medium mb-3">Personal Address</h3>
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Home Address</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. 123 Flower Pot Lane" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="region"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Region</FormLabel>
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value === NO_REGION_VALUE ? undefined : value);
+                  }}
+                  value={field.value ?? NO_REGION_VALUE}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a region" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_REGION_VALUE}>No Region</SelectItem>
+                    {PRODUCT_REGIONS.map((region) => (
+                      <SelectItem key={region} value={region}>
+                        {region}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="town"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Town</FormLabel>
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value === NO_TOWN_VALUE ? undefined : value);
+                  }}
+                  value={field.value ?? NO_TOWN_VALUE}
+                  disabled={!watchedRegion || watchedRegion === NO_REGION_VALUE || availableTowns.length === 0}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a town" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_TOWN_VALUE}>No Town</SelectItem>
+                    {availableTowns.map((town) => (
+                      <SelectItem key={town} value={town}>
+                        {town}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         {watchedRole === 'seller' && (
           <>

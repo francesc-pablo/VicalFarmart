@@ -31,6 +31,15 @@ import {
 } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
+import React, { useState, useEffect } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -45,6 +54,9 @@ const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   phone: z.string().min(10, { message: "A valid phone number is required." }),
+  address: z.string().min(5, { message: "Home address is required." }),
+  region: z.string().min(1, { message: "Please select a region." }),
+  town: z.string().min(1, { message: "Please select a town." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -73,8 +85,24 @@ export function AuthForm({ type }: AuthFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: isLogin
       ? { email: "", password: "" }
-      : { name: "", email: "", phone: "", password: "", confirmPassword: "" },
+      : { name: "", email: "", phone: "", address: "", region: "", town: "", password: "", confirmPassword: "" },
   });
+
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
+  const watchedRegion = (form.watch as (name: string) => any)("region");
+
+  useEffect(() => {
+    if (watchedRegion) {
+      const towns = GHANA_REGIONS_AND_TOWNS[watchedRegion] || [];
+      setAvailableTowns(towns);
+      const currentTown = (form.getValues as (name: string) => any)("town");
+      if (currentTown && !towns.includes(currentTown)) {
+        (form.setValue as (name: string, value: any) => void)("town", "");
+      }
+    } else {
+      setAvailableTowns([]);
+    }
+  }, [watchedRegion, form]);
 
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
@@ -109,6 +137,9 @@ export function AuthForm({ type }: AuthFormProps) {
           name: user.displayName || 'Google User',
           email: user.email!,
           phone: user.phoneNumber || "",
+          address: "",
+          region: "",
+          town: "",
           role: 'customer',
           isActive: true,
           createdAt: serverTimestamp(),
@@ -234,7 +265,7 @@ export function AuthForm({ type }: AuthFormProps) {
 
     } else { 
       // Handle Registration
-      const { name, email, password, phone } = values as RegisterFormValues;
+      const { name, email, password, phone, address, region, town } = values as RegisterFormValues;
       const role: UserRole = "customer"; // All self-registrations are customers
 
       try {
@@ -257,6 +288,9 @@ export function AuthForm({ type }: AuthFormProps) {
             name: name,
             email: email,
             phone: phone,
+            address: address,
+            region: region,
+            town: town,
             role: role,
             isActive: true,
             createdAt: serverTimestamp(),
@@ -337,19 +371,84 @@ export function AuthForm({ type }: AuthFormProps) {
                 )}
               />
               {!isLogin && (
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input type="tel" placeholder="(123) 456-7890" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <>
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input type="tel" placeholder="(123) 456-7890" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Home Address</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 123 Flower Pot Lane" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                          control={form.control}
+                          name="region"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Region</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Select your region" />
+                                  </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                  {PRODUCT_REGIONS.map((region) => (
+                                      <SelectItem key={region} value={region}>
+                                      {region}
+                                      </SelectItem>
+                                  ))}
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField
+                          control={form.control}
+                          name="town"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Town</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={availableTowns.length === 0}>
+                                  <FormControl>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Select your town" />
+                                  </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                  {availableTowns.map((town) => (
+                                      <SelectItem key={town} value={town}>
+                                      {town}
+                                      </SelectItem>
+                                  ))}
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                  </div>
+                </>
               )}
               <FormField
                 control={form.control}
