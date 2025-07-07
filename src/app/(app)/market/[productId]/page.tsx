@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { getProductById, getRelatedProducts } from '@/services/productService'; // Import services
 import { Skeleton } from '@/components/ui/skeleton';
+import { useParams } from 'next/navigation';
 
 const getCurrencySymbol = (currencyCode?: string) => {
   if (currencyCode === "GHS") return "₵";
@@ -21,7 +22,10 @@ const getCurrencySymbol = (currencyCode?: string) => {
   return "$"; // Default symbol
 };
 
-export default function ProductDetailPage({ params }: { params: { productId: string } }) {
+export default function ProductDetailPage() {
+  const params = useParams<{ productId: string }>();
+  const productId = params.productId;
+  
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,10 +33,10 @@ export default function ProductDetailPage({ params }: { params: { productId: str
   const { addToCart } = useCart();
 
   useEffect(() => {
-    if (!params.productId) return;
+    if (!productId) return;
     const fetchProductData = async () => {
       setIsLoading(true);
-      const fetchedProduct = await getProductById(params.productId);
+      const fetchedProduct = await getProductById(productId as string);
       setProduct(fetchedProduct);
       if (fetchedProduct) {
         const fetchedRelated = await getRelatedProducts(fetchedProduct.category, fetchedProduct.id);
@@ -41,7 +45,7 @@ export default function ProductDetailPage({ params }: { params: { productId: str
       setIsLoading(false);
     };
     fetchProductData();
-  }, [params.productId]);
+  }, [productId]);
 
 
   if (isLoading) {
