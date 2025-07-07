@@ -66,9 +66,6 @@ const productFormSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
-const NO_REGION_VALUE = "--NONE--";
-const NO_TOWN_VALUE = "--NONE--";
-
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,8 +80,8 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       category: product?.category || "",
       stock: product?.stock || 0,
       sellerId: product?.sellerId || "",
-      region: product?.region || undefined,
-      town: product?.town || undefined,
+      region: product?.region || "",
+      town: product?.town || "",
       imageFile: undefined,
     },
   });
@@ -95,14 +92,14 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
   const watchedRegion = form.watch("region");
   
   useEffect(() => {
-    if (watchedRegion && watchedRegion !== NO_REGION_VALUE) {
+    if (watchedRegion) {
       setAvailableTowns(GHANA_REGIONS_AND_TOWNS[watchedRegion] || []);
       if(product?.region !== watchedRegion) {
-         form.setValue("town", undefined);
+         form.setValue("town", "");
       }
     } else {
       setAvailableTowns([]);
-      form.setValue("town", undefined);
+      form.setValue("town", "");
     }
   }, [watchedRegion, form, product?.region]);
 
@@ -159,8 +156,8 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       imageUrl: imageUrl || "https://placehold.co/400x300.png",
       sellerId: values.sellerId,
       sellerName: selectedSeller?.name || "Unknown Seller",
-      region: values.region === NO_REGION_VALUE ? undefined : values.region,
-      town: values.town === NO_TOWN_VALUE || !values.town ? undefined : values.town,
+      region: values.region || undefined,
+      town: values.town || undefined,
     };
     
     onSubmit(completeProductData);
@@ -339,10 +336,8 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
               <FormItem>
                 <FormLabel>Region</FormLabel>
                 <Select
-                  onValueChange={(value) => {
-                    field.onChange(value === NO_REGION_VALUE ? undefined : value);
-                  }}
-                  value={field.value ?? NO_REGION_VALUE}
+                  onValueChange={field.onChange}
+                  value={field.value || ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -350,7 +345,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NO_REGION_VALUE}>No Specific Region</SelectItem>
+                    <SelectItem value="">No Specific Region</SelectItem>
                     {PRODUCT_REGIONS.map((region) => (
                       <SelectItem key={region} value={region}>
                         {region}
@@ -363,7 +358,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
             )}
           />
 
-        {watchedRegion && watchedRegion !== NO_REGION_VALUE && availableTowns.length > 0 && (
+        {watchedRegion && availableTowns.length > 0 && (
           <FormField
             control={form.control}
             name="town"
@@ -371,11 +366,9 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
               <FormItem>
                 <FormLabel>Town (Optional)</FormLabel>
                 <Select
-                  onValueChange={(value) => {
-                    field.onChange(value === NO_TOWN_VALUE ? undefined : value);
-                  }}
-                  value={field.value ?? NO_TOWN_VALUE}
-                  disabled={!watchedRegion || watchedRegion === NO_REGION_VALUE || availableTowns.length === 0}
+                  onValueChange={field.onChange}
+                  value={field.value || ""}
+                  disabled={!watchedRegion || availableTowns.length === 0}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -383,7 +376,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={NO_TOWN_VALUE}>Select a town (Optional)</SelectItem>
+                    <SelectItem value="">Select a town (Optional)</SelectItem>
                     {availableTowns.map((town) => (
                       <SelectItem key={town} value={town}>
                         {town}
