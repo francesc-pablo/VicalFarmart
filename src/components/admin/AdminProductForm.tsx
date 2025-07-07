@@ -66,6 +66,8 @@ const productFormSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
+const NO_SELECTION_VALUE = "--NONE--";
+
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,7 +94,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
   const watchedRegion = form.watch("region");
   
   useEffect(() => {
-    if (watchedRegion) {
+    if (watchedRegion && watchedRegion !== NO_SELECTION_VALUE) {
       setAvailableTowns(GHANA_REGIONS_AND_TOWNS[watchedRegion] || []);
       if(product?.region !== watchedRegion) {
          form.setValue("town", "");
@@ -156,8 +158,8 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       imageUrl: imageUrl || "https://placehold.co/400x300.png",
       sellerId: values.sellerId,
       sellerName: selectedSeller?.name || "Unknown Seller",
-      region: values.region || undefined,
-      town: values.town || undefined,
+      region: values.region === NO_SELECTION_VALUE ? undefined : values.region,
+      town: values.town === NO_SELECTION_VALUE ? undefined : values.town,
     };
     
     onSubmit(completeProductData);
@@ -337,7 +339,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
                 <FormLabel>Region</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value || ""}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -345,7 +347,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">No Specific Region</SelectItem>
+                    <SelectItem value={NO_SELECTION_VALUE}>No Specific Region</SelectItem>
                     {PRODUCT_REGIONS.map((region) => (
                       <SelectItem key={region} value={region}>
                         {region}
@@ -358,7 +360,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
             )}
           />
 
-        {watchedRegion && availableTowns.length > 0 && (
+        {watchedRegion && (
           <FormField
             control={form.control}
             name="town"
@@ -367,8 +369,8 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
                 <FormLabel>Town (Optional)</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value || ""}
-                  disabled={!watchedRegion || availableTowns.length === 0}
+                  value={field.value}
+                  disabled={!watchedRegion || watchedRegion === NO_SELECTION_VALUE || availableTowns.length === 0}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -376,7 +378,7 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Select a town (Optional)</SelectItem>
+                    <SelectItem value={NO_SELECTION_VALUE}>Select a town (Optional)</SelectItem>
                     {availableTowns.map((town) => (
                       <SelectItem key={town} value={town}>
                         {town}
