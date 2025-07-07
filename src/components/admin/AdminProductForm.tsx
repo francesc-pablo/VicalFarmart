@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -215,11 +215,10 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
                           variant: "destructive"
                       });
                   }}
-              >
-                  <Button type="button" variant="outline">
-                    <UploadCloud className="mr-2 h-4 w-4" />
-                    Upload Image
-                  </Button>
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  <UploadCloud className="mr-2 h-4 w-4" />
+                  Upload Image
               </CldUploadButton>
           </div>
           <FormDescription>
