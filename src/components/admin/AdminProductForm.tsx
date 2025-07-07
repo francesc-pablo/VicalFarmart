@@ -74,6 +74,15 @@ const NO_TOWN_VALUE = "--NONE--";
 
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
   const { toast } = useToast();
+  const [isCloudinaryReady, setIsCloudinaryReady] = useState(false);
+
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY && process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
+      setIsCloudinaryReady(true);
+    } else {
+      console.warn("Cloudinary environment variables are not set. Upload will be disabled.");
+    }
+  }, []);
   
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -216,11 +225,17 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
                       });
                   }}
                   className={buttonVariants({ variant: "outline" })}
+                  disabled={!isCloudinaryReady}
                 >
                   <UploadCloud className="mr-2 h-4 w-4" />
                   Upload Image
               </CldUploadButton>
           </div>
+           {!isCloudinaryReady && (
+            <p className="text-sm text-destructive">
+              Image upload is disabled. Please configure Cloudinary environment variables.
+            </p>
+          )}
           <FormDescription>
             Upload an image for your product. Click save when finished.
           </FormDescription>
