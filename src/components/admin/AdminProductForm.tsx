@@ -217,26 +217,28 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
         )}
 
         <FormField
-            control={form.control}
-            name="imageFile"
-            render={({ field: { onChange, ...fieldProps } }) => (
-                <FormItem>
-                    <FormLabel>Product Image</FormLabel>
-                    <FormControl>
-                        <Input 
-                            {...fieldProps}
-                            type="file" 
-                            accept="image/*"
-                            onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
-                            className="h-auto p-2"
-                        />
-                    </FormControl>
-                    <FormDescription>
-                    {product?.imageUrl ? 'Upload a new image to replace the existing one.' : 'Upload an image for the product.'}
-                    </FormDescription>
-                    <FormMessage />
-                </FormItem>
-            )}
+          control={form.control}
+          name="imageFile"
+          render={({ field: { onChange, onBlur, name, ref } }) => (
+            <FormItem>
+              <FormLabel>Product Image</FormLabel>
+              <FormControl>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  name={name}
+                  onBlur={onBlur}
+                  ref={ref}
+                  onChange={(e) => onChange(e.target.files?.[0] || null)}
+                  className="h-auto p-2"
+                />
+              </FormControl>
+              <FormDescription>
+                {product?.imageUrl ? 'Upload a new image to replace the existing one.' : 'Upload an image for the product.'}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
         />
         
         <FormField
