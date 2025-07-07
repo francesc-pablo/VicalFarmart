@@ -2,37 +2,51 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
 
-// Configure Cloudinary with credentials from environment variables
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
   api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-/**
- * API route to handle signing of Cloudinary upload parameters.
- * This is used for secure, direct client-side uploads.
- */
+// Helper function to upload a stream to Cloudinary
+const uploadStream = (buffer: Buffer, options: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+            if (result) {
+                resolve(result);
+            } else {
+                reject(error);
+            }
+        });
+        stream.end(buffer);
+    });
+};
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { paramsToSign } = body;
+    const formData = await request.formData();
+    const file = formData.get('file') as File | null;
 
-    if (!process.env.CLOUDINARY_API_SECRET) {
-      throw new Error("Cloudinary API secret is not configured.");
+    if (!file) {
+      return new NextResponse(JSON.stringify({ success: false, message: "No file provided." }), { status: 400 });
     }
-    
-    const signature = cloudinary.utils.api_sign_request(paramsToSign, process.env.CLOUDINARY_API_SECRET);
 
-    return NextResponse.json({ signature });
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Upload to Cloudinary
+    const results = await uploadStream(buffer, { folder: 'vical_farmart_products' });
+    
+    return NextResponse.json({ success: true, url: results.secure_url });
 
   } catch (error) {
-    console.error("Error signing Cloudinary request: ", error);
+    console.error("Error uploading to Cloudinary: ", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
     return new NextResponse(
       JSON.stringify({
         success: false,
-        message: "Error signing upload request.",
+        message: "Error uploading file.",
         error: errorMessage,
       }),
       { status: 500 }

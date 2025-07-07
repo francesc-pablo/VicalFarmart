@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -29,9 +29,6 @@ import { PRODUCT_CATEGORIES, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import { CldUploadButton } from "next-cloudinary";
-import { UploadCloud } from "lucide-react";
-
 
 interface AdminProductFormProps {
   product?: Product | null;
@@ -61,10 +58,10 @@ const productFormSchema = z.object({
   currency: z.string().default("GHS"),
   category: z.string().min(1, { message: "Please select a category." }),
   stock: z.coerce.number().int().min(0, { message: "Stock cannot be negative." }),
-  imageUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
   sellerId: z.string().min(1, { message: "Please select a seller." }),
   region: z.string().optional(),
   town: z.string().optional(),
+  imageFile: z.any().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -74,15 +71,7 @@ const NO_TOWN_VALUE = "--NONE--";
 
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
   const { toast } = useToast();
-  const [isCloudinaryReady, setIsCloudinaryReady] = useState(false);
-
-  useEffect(() => {
-    if (process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY && process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
-      setIsCloudinaryReady(true);
-    } else {
-      console.warn("Cloudinary environment variables are not set. Upload will be disabled.");
-    }
-  }, []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -93,26 +82,18 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       currency: product?.currency || "GHS",
       category: product?.category || "",
       stock: product?.stock || 0,
-      imageUrl: product?.imageUrl || "",
       sellerId: product?.sellerId || "",
       region: product?.region || undefined,
       town: product?.town || undefined,
+      imageFile: undefined,
     },
   });
   
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
-  const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
   
   const watchedCurrency = form.watch("currency");
   const watchedRegion = form.watch("region");
   
-  useEffect(() => {
-    if (product?.imageUrl) {
-      setImageUrl(product.imageUrl);
-      form.setValue('imageUrl', product.imageUrl);
-    }
-  }, [product, form]);
-
   useEffect(() => {
     if (watchedRegion && watchedRegion !== NO_REGION_VALUE) {
       setAvailableTowns(GHANA_REGIONS_AND_TOWNS[watchedRegion] || []);
@@ -137,18 +118,53 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
     return "$";
   };
 
-  const handleSubmit = (values: ProductFormValues) => {
+  const handleSubmit = async (values: ProductFormValues) => {
+    setIsSubmitting(true);
+    let imageUrl = product?.imageUrl || "";
+
+    if (values.imageFile) {
+        const file = values.imageFile;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Image upload failed");
+            }
+            imageUrl = result.url;
+        } catch (error) {
+            toast({
+                title: "Upload Failed",
+                description: error instanceof Error ? error.message : "Could not upload image.",
+                variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+        }
+    }
+
     const selectedSeller = sellers.find(s => s.id === values.sellerId);
     const completeProductData: Product = {
       id: product?.id || String(Date.now()),
-      ...values,
+      name: values.name,
+      description: values.description,
+      price: values.price,
+      currency: values.currency,
+      category: values.category,
+      stock: values.stock,
+      imageUrl: imageUrl || "https://placehold.co/400x300.png",
+      sellerId: values.sellerId,
       sellerName: selectedSeller?.name || "Unknown Seller",
-      imageUrl: values.imageUrl || "https://placehold.co/400x300.png",
       region: values.region === NO_REGION_VALUE ? undefined : values.region,
       town: values.town === NO_TOWN_VALUE || !values.town ? undefined : values.town,
-      currency: values.currency,
     };
+    
     onSubmit(completeProductData);
+    setIsSubmitting(false);
   };
 
   return (
@@ -192,67 +208,38 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
           )}
         />
 
-        <FormItem>
-          <FormLabel>Product Image</FormLabel>
-          <div className="flex items-center gap-4">
-              <div className="w-24 h-24 rounded-md border flex items-center justify-center bg-muted flex-shrink-0">
-                  {imageUrl ? (
-                      <Image src={imageUrl} alt="Product preview" width={96} height={96} className="rounded-md object-cover w-full h-full" />
-                  ) : (
-                      <span className="text-xs text-muted-foreground text-center p-2">Image Preview</span>
-                  )}
-              </div>
-              <CldUploadButton
-                  options={{ sources: ['local', 'url', 'camera'], multiple: false }}
-                  signatureEndpoint="/api/upload"
-                  onSuccess={(result: any) => {
-                      const url = result?.info?.secure_url;
-                      if (url) {
-                          setImageUrl(url);
-                          form.setValue('imageUrl', url, { shouldValidate: true });
-                          toast({
-                              title: "Image Uploaded",
-                              description: "The image is ready to be saved.",
-                          });
-                      }
-                  }}
-                  onError={(error) => {
-                      console.error("Cloudinary upload error:", error);
-                      toast({
-                          title: "Upload Failed",
-                          description: "Could not upload the image. Please check credentials and console.",
-                          variant: "destructive"
-                      });
-                  }}
-                  className={buttonVariants({ variant: "outline" })}
-                  disabled={!isCloudinaryReady}
-                >
-                  <UploadCloud className="mr-2 h-4 w-4" />
-                  Upload Image
-              </CldUploadButton>
-          </div>
-           {!isCloudinaryReady && (
-            <p className="text-sm text-destructive">
-              Image upload is disabled. Please configure Cloudinary environment variables.
-            </p>
-          )}
-          <FormDescription>
-            Upload an image for your product. Click save when finished.
-          </FormDescription>
-          <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                  <FormItem className="hidden">
-                  <FormControl>
-                      <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                  </FormItem>
-              )}
-          />
-        </FormItem>
+        {product?.imageUrl && (
+            <FormItem>
+                <FormLabel>Current Image</FormLabel>
+                <div className="w-24 h-24 rounded-md border flex items-center justify-center bg-muted flex-shrink-0">
+                    <Image src={product.imageUrl} alt="Current product image" width={96} height={96} className="rounded-md object-cover w-full h-full" />
+                </div>
+            </FormItem>
+        )}
 
+        <FormField
+            control={form.control}
+            name="imageFile"
+            render={({ field: { onChange, ...fieldProps } }) => (
+                <FormItem>
+                    <FormLabel>Product Image</FormLabel>
+                    <FormControl>
+                        <Input 
+                            {...fieldProps}
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                            className="h-auto p-2"
+                        />
+                    </FormControl>
+                    <FormDescription>
+                    {product?.imageUrl ? 'Upload a new image to replace the existing one.' : 'Upload an image for the product.'}
+                    </FormDescription>
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
+        
         <FormField
           control={form.control}
           name="description"
@@ -412,11 +399,11 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
         
         <DialogFooter className="pt-6 sticky bottom-0 bg-background py-4">
           <DialogClose asChild>
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                 Cancel
             </Button>
           </DialogClose>
-          <Button type="submit">{product ? "Save Changes" : "Add Product"}</Button>
+          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Saving..." : (product ? "Save Changes" : "Add Product")}</Button>
         </DialogFooter>
       </form>
     </Form>
