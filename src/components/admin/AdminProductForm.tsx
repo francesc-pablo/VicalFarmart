@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -27,6 +28,10 @@ import type { Product, User } from "@/types";
 import { PRODUCT_CATEGORIES, PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/lib/constants";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
+import { CldUploadButton } from "next-cloudinary";
+import { UploadCloud } from "lucide-react";
+
 
 interface AdminProductFormProps {
   product?: Product | null;
@@ -68,9 +73,8 @@ const NO_REGION_VALUE = "--NONE--";
 const NO_TOWN_VALUE = "--NONE--";
 
 export function AdminProductForm({ product, sellers, onSubmit, onCancel }: AdminProductFormProps) {
-  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
   const { toast } = useToast();
-
+  
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -86,9 +90,19 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
       town: product?.town || undefined,
     },
   });
-
+  
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
+  const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
+  
   const watchedCurrency = form.watch("currency");
   const watchedRegion = form.watch("region");
+  
+  useEffect(() => {
+    if (product?.imageUrl) {
+      setImageUrl(product.imageUrl);
+      form.setValue('imageUrl', product.imageUrl);
+    }
+  }, [product, form]);
 
   useEffect(() => {
     if (watchedRegion && watchedRegion !== NO_REGION_VALUE) {
@@ -168,6 +182,63 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
             </FormItem>
           )}
         />
+
+        <FormItem>
+          <FormLabel>Product Image</FormLabel>
+          <div className="flex items-center gap-4">
+              <div className="w-24 h-24 rounded-md border flex items-center justify-center bg-muted flex-shrink-0">
+                  {imageUrl ? (
+                      <Image src={imageUrl} alt="Product preview" width={96} height={96} className="rounded-md object-cover w-full h-full" />
+                  ) : (
+                      <span className="text-xs text-muted-foreground text-center p-2">Image Preview</span>
+                  )}
+              </div>
+              <CldUploadButton
+                  options={{ sources: ['local', 'url', 'camera'], multiple: false }}
+                  signatureEndpoint="/api/upload"
+                  onSuccess={(result: any) => {
+                      const url = result?.info?.secure_url;
+                      if (url) {
+                          setImageUrl(url);
+                          form.setValue('imageUrl', url, { shouldValidate: true });
+                          toast({
+                              title: "Image Uploaded",
+                              description: "The image is ready to be saved.",
+                          });
+                      }
+                  }}
+                  onError={(error) => {
+                      console.error("Cloudinary upload error:", error);
+                      toast({
+                          title: "Upload Failed",
+                          description: "Could not upload the image. Please check credentials and console.",
+                          variant: "destructive"
+                      });
+                  }}
+              >
+                  <Button type="button" variant="outline">
+                    <UploadCloud className="mr-2 h-4 w-4" />
+                    Upload Image
+                  </Button>
+              </CldUploadButton>
+          </div>
+          <FormDescription>
+            Upload an image for your product. Click save when finished.
+          </FormDescription>
+          <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                  <FormItem className="hidden">
+                  <FormControl>
+                      <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                  </FormItem>
+              )}
+          />
+        </FormItem>
+
         <FormField
           control={form.control}
           name="description"
@@ -324,20 +395,6 @@ export function AdminProductForm({ product, sellers, onSubmit, onCancel }: Admin
             )}
           />
         )}
-
-        <FormField
-          control={form.control}
-          name="imageUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Image URL (Optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/image.png" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         
         <DialogFooter className="pt-6 sticky bottom-0 bg-background py-4">
           <DialogClose asChild>
