@@ -344,7 +344,7 @@ export function AuthForm({ type }: AuthFormProps) {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {!isLogin && (
                 <FormField
                   control={form.control}
@@ -466,6 +466,16 @@ export function AuthForm({ type }: AuthFormProps) {
                   </FormItem>
                 )}
               />
+               {isLogin && (
+                <div className="text-right text-sm -mt-2">
+                  <Link
+                    href="/forgot-password"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+              )}
               {!isLogin && (
                 <>
                   <FormField
@@ -532,5 +542,3 @@ export function AuthForm({ type }: AuthFormProps) {
     </div>
   );
 }
-
-    
