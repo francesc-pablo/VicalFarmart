@@ -1,11 +1,6 @@
 'use server';
 
-/**
- * @fileOverview A mock email sending service for development.
- *
- * In a production environment, this file should be replaced with a real email
- * service implementation (e.g., using SendGrid, Resend, or Nodemailer).
- */
+import nodemailer from 'nodemailer';
 
 interface EmailOptions {
   to: string;
@@ -13,30 +8,45 @@ interface EmailOptions {
   htmlBody: string;
 }
 
+// Create a Nodemailer transporter using SMTP
+// These details should be stored in environment variables
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: Number(process.env.EMAIL_PORT || 587),
+  secure: Number(process.env.EMAIL_PORT || 587) === 465, // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 /**
- * Sends an email. In this mock implementation, it logs the email details
- * to the server console instead of sending a real email.
+ * Sends an email using Nodemailer.
  * @param {EmailOptions} options - The email options.
  * @returns {Promise<void>}
  */
 export async function sendEmail({ to, subject, htmlBody }: EmailOptions): Promise<void> {
-  console.log('--- MOCK EMAIL SENT ---');
-  console.log(`To: ${to}`);
-  console.log(`Subject: ${subject}`);
-  console.log('Body:');
-  console.log(htmlBody);
-  console.log('-----------------------');
-  // In a real implementation, you would integrate with your email provider here.
-  // For example, using Resend:
-  //
-  // import { Resend } from 'resend';
-  // const resend = new Resend(process.env.RESEND_API_KEY);
-  // await resend.emails.send({
-  //   from: 'Vical Farmart <noreply@yourdomain.com>',
-  //   to,
-  //   subject,
-  //   html: htmlBody,
-  // });
+    // Basic check for required env vars
+    if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.error("Email service is not configured. Please check your .env.local file.");
+        // In a real app, you might want to throw an error or handle this differently
+        // For development, we can log this and prevent a crash.
+        return;
+    }
+    
+    const mailOptions = {
+        from: process.env.EMAIL_FROM || `"Vical Farmart" <noreply@yourdomain.com>`,
+        to: to,
+        subject: subject,
+        html: htmlBody,
+    };
 
-  return Promise.resolve();
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Email sent successfully:', info.messageId);
+    } catch (error) {
+        console.error('Error sending email:', error);
+        // Optionally, re-throw the error to be handled by the caller
+        throw new Error('Failed to send email.');
+    }
 }
