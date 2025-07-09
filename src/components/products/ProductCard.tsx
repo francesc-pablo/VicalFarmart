@@ -1,4 +1,6 @@
 
+"use client";
+
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Product } from '@/types';
@@ -6,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ShoppingCart, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useCart } from '@/context/CartContext';
 
 interface ProductCardProps {
   product: Product;
@@ -18,8 +21,15 @@ const getCurrencySymbol = (currencyCode?: string) => {
 };
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { addToCart } = useCart();
   const imageHint = product.category.split(/[&\s]+/g).slice(0, 2).join(" ");
   const currencySymbol = getCurrencySymbol(product.currency);
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent parent Link from navigating
+    e.stopPropagation();
+    addToCart(product, 1);
+  };
 
   return (
     <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
@@ -51,11 +61,21 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
         {product.sellerName && <p className="text-xs text-muted-foreground mt-1">Sold by: {product.sellerName}</p>}
       </CardContent>
-      <CardFooter className="p-4 border-t">
+      <CardFooter className="p-4 border-t flex items-center gap-2">
         <Button asChild className="w-full shadow-md">
           <Link href={`/market/${product.id}`}>
-            <ShoppingCart className="mr-2 h-4 w-4" /> View Product
+            View Product
           </Link>
+        </Button>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={handleAddToCart} 
+          disabled={product.stock === 0}
+          aria-label="Add to cart"
+          title="Add to cart"
+        >
+            <ShoppingCart className="h-4 w-4" />
         </Button>
       </CardFooter>
     </Card>
