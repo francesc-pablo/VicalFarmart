@@ -532,3 +532,5 @@ export function AuthForm({ type }: AuthFormProps) {
     </div>
   );
 }
+
+    
