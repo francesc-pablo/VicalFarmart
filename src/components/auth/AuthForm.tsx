@@ -27,7 +27,8 @@ import {
   FirebaseError,
   GoogleAuthProvider,
   signInWithPopup,
-  signOut
+  signOut,
+  fetchSignInMethodsForEmail
 } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
@@ -269,6 +270,17 @@ export function AuthForm({ type }: AuthFormProps) {
       const role: UserRole = "customer"; // All self-registrations are customers
 
       try {
+        // Proactively check if the email is already in use
+        const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+        if (signInMethods.length > 0) {
+          toast({
+            title: "Registration Failed",
+            description: "This email address is already registered.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
