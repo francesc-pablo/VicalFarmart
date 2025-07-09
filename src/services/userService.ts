@@ -113,14 +113,3 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
         console.error("Error updating user: ", error);
     }
 }
-
-// Function to delete a user from Firestore
-// Note: This only deletes the Firestore record. A production app would need a Cloud Function to delete the Auth user too.
-export async function deleteUser(userId: string): Promise<void> {
-  try {
-    const userDocRef = doc(db, "users", userId);
-    await deleteDoc(userDocRef);
-  } catch (error) {
-    console.error("Error deleting user: ", error);
-  }
-}
