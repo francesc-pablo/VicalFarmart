@@ -34,6 +34,12 @@ import type { Order, User, OrderItem } from '@/types';
 import { onAuthStateChanged } from 'firebase/auth';
 
 
+const getCurrencySymbol = (currencyCode?: string) => {
+  if (currencyCode === "GHS") return "₵";
+  if (currencyCode === "USD") return "$";
+  return "$"; // Default symbol
+};
+
 const checkoutSchema = z.object({
   fullName: z.string().min(2, { message: "Full name is required." }),
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -67,6 +73,7 @@ export default function CheckoutPage() {
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shippingFee = subtotal > 0 ? 5.00 : 0; // No shipping fee for empty cart
   const total = subtotal + shippingFee;
+  const mainCurrencySymbol = cartItems.length > 0 ? getCurrencySymbol(cartItems[0].currency) : '$';
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -354,7 +361,7 @@ export default function CheckoutPage() {
                     <Image src={item.imageUrl} alt={item.name} width={60} height={60} className="rounded-md object-cover" data-ai-hint={`${item.category} item`} />
                     <div>
                       <p className="font-medium text-sm line-clamp-2">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">${item.price.toFixed(2)} each</p>
+                      <p className="text-xs text-muted-foreground">{getCurrencySymbol(item.currency)}{item.price.toFixed(2)} each</p>
                       <div className="flex items-center gap-2 mt-2">
                          <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}>
                             <Minus className="h-3 w-3" />
@@ -367,7 +374,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end h-full">
-                    <p className="text-sm font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-sm font-semibold">{getCurrencySymbol(item.currency)}{(item.price * item.quantity).toFixed(2)}</p>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive mt-auto" onClick={() => removeFromCart(item.id)} title="Remove item">
                         <Trash2 className="h-4 w-4" />
                     </Button>
@@ -377,16 +384,16 @@ export default function CheckoutPage() {
               <Separator />
               <div className="flex justify-between text-sm">
                 <p className="text-muted-foreground">Subtotal</p>
-                <p className="font-medium">${subtotal.toFixed(2)}</p>
+                <p className="font-medium">{mainCurrencySymbol}{subtotal.toFixed(2)}</p>
               </div>
               <div className="flex justify-between text-sm">
                 <p className="text-muted-foreground">Shipping</p>
-                <p className="font-medium">${shippingFee.toFixed(2)}</p>
+                <p className="font-medium">{mainCurrencySymbol}{shippingFee.toFixed(2)}</p>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-semibold">
                 <p>Total</p>
-                <p>${total.toFixed(2)}</p>
+                <p>{mainCurrencySymbol}{total.toFixed(2)}</p>
               </div>
             </CardContent>
             <CardFooter>
