@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PlusCircle, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from '@/hooks/use-toast';
-import { getUsers, updateUser, addUser } from '@/services/userService'; 
+import { getUsers, updateUser, addUser, deleteUser } from '@/services/userService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +19,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { UserForm } from '@/components/admin/UserForm';
-import { auth } from '@/lib/firebase';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -47,35 +46,9 @@ export default function AdminUsersPage() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        toast({ title: "Authentication Error", description: "You must be logged in to perform this action.", variant: "destructive" });
-        return;
-    }
-
-    try {
-        const token = await currentUser.getIdToken();
-        const response = await fetch('/api/admin/delete-user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ userIdToDelete: userId })
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            toast({ title: "User Deleted", description: result.message, variant: "default" });
-            fetchUsers();
-        } else {
-            throw new Error(result.message || 'Failed to delete user.');
-        }
-
-    } catch (error: any) {
-        toast({ title: "Deletion Failed", description: error.message, variant: "destructive" });
-    }
+    await deleteUser(userId);
+    toast({ title: "User Deleted", description: "The user's data has been removed from the database.", variant: "destructive" });
+    fetchUsers();
   };
   
   const handleEditUser = (user: User) => {

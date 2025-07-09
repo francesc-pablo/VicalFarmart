@@ -113,3 +113,13 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
         console.error("Error updating user: ", error);
     }
 }
+
+// Function to delete a user's Firestore document
+export async function deleteUser(userId: string): Promise<void> {
+  try {
+    const userDocRef = doc(db, "users", userId);
+    await deleteDoc(userDocRef);
+  } catch (error) {
+    console.error("Error deleting user document: ", error);
+  }
+}
