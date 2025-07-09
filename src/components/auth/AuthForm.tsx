@@ -269,15 +269,6 @@ export function AuthForm({ type }: AuthFormProps) {
       const role: UserRole = "customer"; // All self-registrations are customers
 
       try {
-        // Check if user already exists
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("email", "==", email), limit(1));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            toast({ title: "Registration Failed", description: "This email address is already registered.", variant: "destructive" });
-            return;
-        }
-
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
