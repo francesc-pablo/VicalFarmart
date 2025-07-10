@@ -4,6 +4,7 @@
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, orderBy } from "firebase/firestore";
+import { createUserWithEmailAndPassword, updateProfile, fetchSignInMethodsForEmail, FirebaseError } from "firebase/auth";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
 // Helper to convert Firestore Timestamps to ISO strings
@@ -70,39 +71,56 @@ export async function getUserById(userId: string): Promise<User | null> {
 }
 
 
-// Function to add a new user (via API)
-export async function addUser(userData: Partial<User> & { password?: string; idToken?: string }): Promise<User | null> {
-  if (!userData.idToken) {
-     throw new Error("Admin user is not authenticated.");
-  }
-
-  const { idToken, ...userPayload } = userData;
-
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/create-user`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify(userPayload)
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-        throw new Error(result.error || 'Failed to create user via API.');
+// Function to add a new user (via client SDK, will log out admin)
+export async function addUser(userData: Partial<User>): Promise<User | null> {
+    if (!userData.email || !userData.password) {
+        throw new Error("Email and password are required for user creation.");
     }
 
-    // Send welcome email after successful creation
-    await sendWelcomeEmail({ name: userData.name!, email: userData.email! });
+    try {
+        const signInMethods = await fetchSignInMethodsForEmail(auth, userData.email);
+        if (signInMethods.length > 0) {
+            throw new Error("This email is already in use by another account.");
+        }
 
-    return result.user as User;
+        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+        const user = userCredential.user;
 
-  } catch (error: any) {
-    console.error("Error adding user via API:", error);
-    throw error;
-  }
+        await updateProfile(user, { displayName: userData.name });
+
+        const newUser: Omit<User, 'id' | 'password'> = {
+            name: userData.name || "New User",
+            email: user.email!,
+            role: userData.role || 'customer',
+            isActive: true,
+            createdAt: serverTimestamp(),
+            phone: userData.phone || "",
+            address: userData.address || "",
+            region: userData.region || "",
+            town: userData.town || "",
+            businessName: userData.businessName || "",
+            businessOwnerName: userData.businessOwnerName || "",
+            businessAddress: userData.businessAddress || "",
+            contactNumber: userData.contactNumber || "",
+            businessLocationRegion: userData.businessLocationRegion || "",
+            businessLocationTown: userData.businessLocationTown || "",
+            geoCoordinatesLat: userData.geoCoordinatesLat || "",
+            geoCoordinatesLng: userData.geoCoordinatesLng || "",
+            businessType: userData.businessType || "",
+            failedLoginAttempts: 0,
+            lockoutUntil: null,
+        };
+
+        await setDoc(doc(db, "users", user.uid), newUser);
+
+        await sendWelcomeEmail({ name: newUser.name, email: newUser.email });
+
+        return { id: user.uid, ...newUser };
+    } catch (error) {
+        const firebaseError = error as FirebaseError;
+        console.error("Error adding user:", firebaseError);
+        throw new Error(firebaseError.message || "An unexpected error occurred during user creation.");
+    }
 }
 
 
