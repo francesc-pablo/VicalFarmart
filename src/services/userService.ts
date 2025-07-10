@@ -5,8 +5,7 @@ import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
-import { initializeApp, getApp, deleteApp, type FirebaseApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
 
 // Helper to convert Firestore Timestamps to a plain, serializable format
 const convertTimestamp = (data: any) => {

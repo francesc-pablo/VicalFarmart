@@ -25,11 +25,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { auth } from "@/lib/firebase";
 
 
 interface UserTableProps {
   users: User[];
-  onDeleteUser?: (userId: string) => void;
+  onDeleteUser: (userId: string) => void;
   onToggleUserStatus?: (userId: string, currentStatus: boolean) => void;
   onEditUser?: (user: User) => void;
 }
@@ -104,7 +105,7 @@ export function UserTable({ users, onDeleteUser, onToggleUserStatus, onEditUser 
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
                           This action cannot be undone. This will permanently delete the user's
-                          account data from Firestore. Note: This does not delete them from Firebase Authentication.
+                          account from authentication and their data from Firestore.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
