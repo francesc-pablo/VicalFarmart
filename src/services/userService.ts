@@ -3,8 +3,8 @@
 
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, serverTimestamp, orderBy, writeBatch } from "firebase/firestore";
-import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, orderBy } from "firebase/firestore";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
 const usersCollectionRef = collection(db, "users");
@@ -26,7 +26,7 @@ const convertTimestamp = (data: any) => {
 // Function to get all users, sorted by most recently created
 export async function getUsers(): Promise<User[]> {
   try {
-    const querySnapshot = await getDocs(usersCollectionRef);
+    const querySnapshot = await getDocs(collection(db, "users"));
     const users = querySnapshot.docs.map((doc) => {
       const data = doc.data();
       const convertedData = convertTimestamp(data);
@@ -73,31 +73,16 @@ export async function getUserById(userId: string): Promise<User | null> {
 }
 
 // Function to add a new user (Auth + Firestore)
-export async function addUser(userData: Partial<User> & { adminPassword?: string }): Promise<User | null> {
-  const admin = auth.currentUser;
-  
-  if (!admin || !admin.email) {
-    throw new Error("Admin user is not authenticated. Please log in again.");
-  }
+// Note: This will log the admin out and log the new user in. This is a known side effect of using the client SDK for this.
+export async function addUser(userData: Partial<User>): Promise<User | null> {
   if (!userData.email || !userData.password) {
       throw new Error("Email and password are required to create a new user.");
   }
-  if (!userData.adminPassword) {
-      throw new Error("Admin password is required to create a user.");
-  }
   
-  const adminEmail = admin.email;
-  const adminPassword = userData.adminPassword;
-
-  // This property is not part of the User type and should be removed before database insertion
-  delete userData.adminPassword;
-
   try {
-    // 1. Create the new user. This will log the admin out and log the new user in.
     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
     const user = userCredential.user;
 
-    // 2. Set up the new user's profile and database entry.
     await updateProfile(user, { displayName: userData.name });
 
     const newUser: Omit<User, 'id'> = {
@@ -126,21 +111,10 @@ export async function addUser(userData: Partial<User> & { adminPassword?: string
     
     await sendWelcomeEmail({ name: newUser.name, email: newUser.email });
     
-    // 3. Re-authenticate the admin to keep them logged in.
-    await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-
     return { id: user.uid, ...newUser } as User;
 
   } catch (error: any) {
-    // If something went wrong, try to log the admin back in as a fallback.
-    await signInWithEmailAndPassword(auth, adminEmail, adminPassword).catch(reauthError => {
-      console.error("Failed to re-authenticate admin after error:", reauthError);
-    });
-
     console.error("Error adding new user:", error);
-    if (error.code === 'auth/wrong-password') {
-       throw new Error("Admin password was incorrect. User not created.");
-    }
     throw error; // Re-throw the original error to be caught by the form
   }
 }
@@ -169,5 +143,3 @@ export async function deleteUser(userId: string): Promise<void> {
         console.error("Error deleting user document: ", error);
     }
 }
-
-    
