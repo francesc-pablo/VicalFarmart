@@ -28,11 +28,12 @@ import {
 } from "@/components/ui/form";
 import { createOrder } from '@/services/orderService';
 import { getUsers, getUserById } from '@/services/userService';
-import { sendNewOrderEmail } from '@/ai/flows/emailFlows';
+import { sendNewOrderEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { auth } from '@/lib/firebase';
 import type { Order, User, OrderItem } from '@/types';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
+import { v4 as uuidv4 } from 'uuid';
 
 
 const getCurrencyForFlutterwave = (currencyCode?: string) => {
@@ -70,9 +71,21 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        getUserById(user.uid).then(setCurrentUser);
+        const userProfile = await getUserById(user.uid);
+        setCurrentUser(userProfile);
+        if (userProfile) {
+          form.reset({
+            fullName: userProfile.name || "",
+            email: userProfile.email || "",
+            phone: userProfile.phone || "",
+            address: userProfile.address || "",
+            city: "",
+            zipCode: "",
+            idCardNumber: "",
+          });
+        }
       } else {
         setCurrentUser(null);
       }
@@ -145,6 +158,25 @@ export default function CheckoutPage() {
         });
 
         try {
+            // Send receipt to customer if paid
+            if (status === 'Paid') {
+              await sendOrderConfirmationEmail({
+                customerEmail: data.email,
+                customerName: data.fullName,
+                orderId: newOrderId,
+                totalAmount: total,
+                paymentMethod: 'Mobile Payment',
+                transactionId: String(paymentDetails?.transactionId || 'N/A'),
+                items: orderItems,
+                shippingAddress: {
+                  address: data.address,
+                  city: data.city,
+                  zipCode: data.zipCode,
+                },
+              });
+            }
+
+            // Send notification to admin
             const allUsers = await getUsers();
             const adminUser = allUsers.find(u => u.role === 'admin');
             if (adminUser?.email) {
@@ -159,6 +191,7 @@ export default function CheckoutPage() {
                 });
             }
 
+            // Send notification to seller
             if (sellerId) {
                 const seller = await getUserById(sellerId);
                 if (seller?.email) {
@@ -175,6 +208,11 @@ export default function CheckoutPage() {
             }
         } catch (emailError) {
             console.error("Failed to send notification emails:", emailError);
+            toast({
+                title: "Email Error",
+                description: "Your order was placed, but we couldn't send the notification emails.",
+                variant: "destructive"
+            });
         }
 
         clearCart();
@@ -192,7 +230,7 @@ export default function CheckoutPage() {
   
   const flutterwaveConfig = {
       public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '',
-      tx_ref: `vicalfarmart-${Date.now()}`,
+      tx_ref: `vicalfarmart-${uuidv4()}`,
       amount: total,
       currency: mainCurrency,
       payment_options: 'card,mobilemoney,ussd',
@@ -211,22 +249,25 @@ export default function CheckoutPage() {
   const handleFlutterwavePayment = useFlutterwave(flutterwaveConfig);
 
   async function handleFormSubmit(data: CheckoutFormValues) {
+    setIsProcessing(true);
     if (!currentUser) {
         toast({ title: "Please log in", description: "You must be logged in to place an order.", variant: "destructive" });
         router.push('/login');
+        setIsProcessing(false);
         return;
     }
     if (cartItems.length === 0) {
         toast({ title: "Empty Cart", description: "Cannot place an order with an empty cart.", variant: "destructive" });
+        setIsProcessing(false);
         return;
     }
 
     if (paymentMethod === 'cod') {
-        handleCreateOrderInDB(data, 'Pending');
+        await handleCreateOrderInDB(data, 'Pending');
     } else {
         handleFlutterwavePayment({
             callback: async (response) => {
-                console.log(response);
+                console.log("Flutterwave Response:", response);
                 if (response.status === 'successful') {
                     await handleCreateOrderInDB(data, 'Paid', {
                         transactionId: response.transaction_id,
@@ -239,6 +280,7 @@ export default function CheckoutPage() {
                         description: "Your payment was not completed successfully. Please try again.",
                         variant: "destructive"
                     });
+                     setIsProcessing(false);
                 }
                 closePaymentModal();
             },
@@ -248,12 +290,13 @@ export default function CheckoutPage() {
                     description: "You closed the payment window.",
                     variant: "destructive"
                 });
+                setIsProcessing(false);
             },
         });
     }
   };
   
-  if (cartItems.length === 0) {
+  if (cartItems.length === 0 && !isProcessing) {
     return (
         <div className="max-w-4xl mx-auto text-center py-10">
             <PageHeader

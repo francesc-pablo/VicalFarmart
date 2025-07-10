@@ -50,7 +50,6 @@ const sendWelcomeEmailFlow = ai.defineFlow(
     const { output } = await welcomePrompt(input);
     if (!output) {
       console.error('Failed to generate welcome email content.');
-      // Optional: throw an error to indicate failure
       throw new Error('Email content generation failed.');
     }
     
@@ -213,4 +212,92 @@ const sendOrderStatusUpdateEmailFlow = ai.defineFlow({
 
 export async function sendOrderStatusUpdateEmail(input: OrderStatusUpdateInput): Promise<void> {
     return sendOrderStatusUpdateEmailFlow(input);
+}
+
+
+// == 4. Order Confirmation/Receipt Email Flow ==
+
+const OrderConfirmationEmailInputSchema = z.object({
+  customerEmail: z.string().email(),
+  customerName: z.string(),
+  orderId: z.string(),
+  totalAmount: z.number(),
+  paymentMethod: z.string(),
+  transactionId: z.string().optional(),
+  items: z.array(z.object({
+    productName: z.string(),
+    quantity: z.number(),
+    price: z.number(),
+  })),
+  shippingAddress: z.object({
+    address: z.string(),
+    city: z.string(),
+    zipCode: z.string(),
+  }),
+});
+type OrderConfirmationEmailInput = z.infer<typeof OrderConfirmationEmailInputSchema>;
+
+
+const orderConfirmationPrompt = ai.definePrompt({
+    name: 'orderConfirmationPrompt',
+    input: { schema: OrderConfirmationEmailInputSchema },
+    output: { schema: EmailOutputSchema },
+    prompt: `
+      You are the friendly automated receipt system for Vical Farmart.
+      Generate a detailed order confirmation and receipt email.
+
+      Customer: {{{customerName}}}
+      Order ID: #{{{orderId}}}
+
+      The subject line must be "Your Vical Farmart Order Confirmation (#{{{orderId}}})".
+
+      Generate a well-formatted HTML email body.
+      - Start with a warm thank you message for the order.
+      - Clearly list all items with quantity, price per item, and subtotal for the line item.
+      - Show the grand total amount.
+      - Display the payment method used. If a transaction ID is provided, show it.
+      - Display the shipping address.
+      - End with a friendly closing note, telling the customer they will be notified when the order ships.
+      
+      Order Details:
+      - Grand Total: \${{{totalAmount}}}
+      - Payment Method: {{{paymentMethod}}}
+      {{#if transactionId}}- Transaction ID: {{{transactionId}}}{{/if}}
+
+      Items Ordered:
+      {{#each items}}
+      - {{this.quantity}}x "{{this.productName}}" @ \${{this.price}} each = \${{multiply this.quantity this.price}}
+      {{/each}}
+
+      Shipping To:
+      {{{shippingAddress.address}}}
+      {{{shippingAddress.city}}}, {{{shippingAddress.zipCode}}}
+    `,
+    helpers: {
+      multiply: (a: number, b: number) => (a * b).toFixed(2),
+    }
+});
+
+
+const sendOrderConfirmationEmailFlow = ai.defineFlow({
+    name: 'sendOrderConfirmationEmailFlow',
+    inputSchema: OrderConfirmationEmailInputSchema,
+    outputSchema: z.void(),
+}, async (input) => {
+    console.log(`Generating order confirmation email for ${input.customerEmail}`);
+    const { output } = await orderConfirmationPrompt(input);
+    if (!output) {
+        console.error('Failed to generate order confirmation email content for order ' + input.orderId);
+        throw new Error('Order confirmation email content generation failed.');
+    }
+    await sendEmail({
+        to: input.customerEmail,
+        subject: output.subject,
+        htmlBody: output.body,
+    });
+    console.log(`Order confirmation email sent to ${input.customerEmail}`);
+});
+
+export async function sendOrderConfirmationEmail(input: OrderConfirmationEmailInput): Promise<void> {
+    return sendOrderConfirmationEmailFlow(input);
 }
