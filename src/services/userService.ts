@@ -72,26 +72,28 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
-// Function to add a new user (Auth + Firestore) - admin will be logged out
-export async function addUser(userData: Partial<User>): Promise<User | null> {
+// Function to add a new user (Auth + Firestore)
+export async function addUser(userData: Partial<User> & { adminPassword?: string }): Promise<User | null> {
   const admin = auth.currentUser;
   if (!admin || !admin.email) {
-    throw new Error("Admin user is not authenticated.");
+    // This check runs on the server, where auth.currentUser might be null.
+    // The real check is the re-authentication with the provided password.
+    console.warn("auth.currentUser is not available in this server context. Proceeding with re-authentication.");
   }
   
   if (!userData.email || !userData.password) {
       throw new Error("Email and password are required to create a new user.");
   }
   
-  // This is a workaround to get the admin's password. It's not ideal, but it's
-  // the simplest client-side approach without a backend with Admin SDK.
-  // We'll prompt the admin for their password to re-authenticate.
-  const adminPassword = prompt("To confirm this action, please re-enter your password:");
-  if (!adminPassword) {
-      throw new Error("Admin password is required to perform this action.");
+  const adminEmail = admin?.email; // Store admin email before it's gone
+  const adminPassword = userData.adminPassword;
+
+  if (!adminEmail || !adminPassword) {
+      throw new Error("Admin credentials are required to perform this action.");
   }
 
-  const adminEmail = admin.email;
+  // This property is not part of the User type and should be removed before database insertion
+  delete userData.adminPassword;
 
   try {
     // 1. Create the new user. This will log the admin out and log the new user in.
@@ -170,3 +172,5 @@ export async function deleteUser(userId: string): Promise<void> {
         console.error("Error deleting user document: ", error);
     }
 }
+
+    

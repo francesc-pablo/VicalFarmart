@@ -126,7 +126,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
   }, [watchedBusinessRegion, watchedRole, form, user?.businessLocationRegion]);
 
   const handleSubmit = (values: UserFormValues) => {
-    const dataToSubmit: Partial<User> = {
+    let dataToSubmit: Partial<User> = {
         ...values,
         region: values.region === NO_REGION_VALUE ? undefined : values.region,
         town: values.town === NO_TOWN_VALUE || !values.town ? undefined : values.town,
@@ -140,6 +140,14 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
       }
     } else {
       dataToSubmit.isActive = true;
+       const adminPassword = prompt("To confirm this action, please re-enter your admin password:");
+      if (!adminPassword) {
+        alert("Admin password is required to perform this action.");
+        return; 
+      }
+      // This is a special property that won't be saved in the database
+      // but will be used by the service function to re-authenticate the admin.
+      (dataToSubmit as any).adminPassword = adminPassword;
     }
     onSubmit(dataToSubmit);
   };
@@ -483,3 +491,5 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     </Form>
   );
 }
+
+    
