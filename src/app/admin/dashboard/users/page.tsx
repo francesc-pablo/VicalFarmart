@@ -67,6 +67,7 @@ export default function AdminUsersPage() {
           await updateUser(editingUser.id, data);
           toast({ title: "User Updated", description: "The user's details have been saved." });
         } else {
+          // The addUser function now handles getting the token.
           const newUser = await addUser(data);
           if (newUser) {
             toast({ title: "User Created", description: `An account for ${newUser.name} has been created.` });

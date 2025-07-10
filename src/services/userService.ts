@@ -71,22 +71,21 @@ export async function getUserById(userId: string): Promise<User | null> {
 
 
 // Function to add a new user (via API)
-export async function addUser(userData: Partial<User> & { password?: string }): Promise<User | null> {
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    throw new Error("Admin user is not authenticated.");
+export async function addUser(userData: Partial<User> & { password?: string; idToken?: string }): Promise<User | null> {
+  if (!userData.idToken) {
+     throw new Error("Admin user is not authenticated.");
   }
-  
+
+  const { idToken, ...userPayload } = userData;
+
   try {
-    const idToken = await currentUser.getIdToken(true);
-    
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/create-user`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${idToken}`
         },
-        body: JSON.stringify(userData)
+        body: JSON.stringify(userPayload)
     });
 
     const result = await response.json();

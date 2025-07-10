@@ -26,10 +26,11 @@ import type { User, UserRole } from "@/types";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
+import { auth } from "@/lib/firebase";
 
 interface UserFormProps {
   user?: User | null;
-  onSubmit: (data: Partial<User>) => void;
+  onSubmit: (data: Partial<User> & { idToken?: string }) => void;
   onCancel: () => void;
 }
 
@@ -127,20 +128,31 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     }
   }, [watchedBusinessRegion, watchedRole, form, user?.businessLocationRegion]);
 
-  const handleSubmit = (values: UserFormValues) => {
-    let dataToSubmit: Partial<User> = {
+  const handleSubmit = async (values: UserFormValues) => {
+    let dataToSubmit: Partial<User> & { idToken?: string } = {
         ...values,
         region: values.region === NO_REGION_VALUE ? undefined : values.region,
         town: values.town === NO_TOWN_VALUE || !values.town ? undefined : values.town,
         businessLocationRegion: values.businessLocationRegion === NO_REGION_VALUE ? undefined : values.businessLocationRegion,
         businessLocationTown: values.businessLocationTown === NO_TOWN_VALUE || !values.town ? undefined : values.businessLocationTown,
     };
+    
     if (isEditing) {
       dataToSubmit.id = user.id;
       if (!values.password) {
         delete dataToSubmit.password;
       }
+    } else {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const idToken = await currentUser.getIdToken(true);
+        dataToSubmit.idToken = idToken;
+      } else {
+        // Handle case where admin is not logged in on the client, though this is unlikely
+        // in the admin dashboard. The service will throw the final error.
+      }
     }
+    
     onSubmit(dataToSubmit);
   };
 
