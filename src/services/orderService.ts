@@ -67,6 +67,30 @@ export async function getAllOrders(): Promise<Order[]> {
   }
 }
 
+export async function getOrdersByCustomerId(customerId: string): Promise<Order[]> {
+  try {
+    const q = query(
+      ordersCollectionRef,
+      where("customerId", "==", customerId),
+      orderBy("orderDate", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+    const orders = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const convertedData = convertTimestamp(data);
+      return {
+        id: doc.id,
+        ...convertedData,
+      } as Order;
+    });
+    return orders;
+  } catch (error) {
+    console.error(`Error fetching orders for customer ${customerId}: `, error);
+    return [];
+  }
+}
+
+
 export async function getOrdersBySellerId(sellerId: string): Promise<Order[]> {
   try {
     const q = query(

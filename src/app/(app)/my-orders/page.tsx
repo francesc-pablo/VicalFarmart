@@ -4,33 +4,33 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { OrderTable } from "@/components/shared/OrderTable";
-import type { Order, OrderStatus, UserRole, User } from "@/types";
+import type { Order, OrderStatus, User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Package, History, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Package, History, ShoppingCart, Mail, User as UserIcon, MapPin, CreditCard, Box, Hash, CalendarIcon } from "lucide-react";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { getOrdersByCustomerId } from '@/services/orderService';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
 
-
-// Mock orders - in a real app, these would be fetched based on the logged-in user
-const allMockOrders: Order[] = [
-  { id: "ORD701", customerId: "customer_user_id", customerName: "Customer User", items: [{ productId: "1", productName: "Organic Fuji Apples", quantity: 2, price: 3.99 }], totalAmount: 7.98, status: "Pending", paymentMethod: "Mobile Payment", shippingAddress: "123 Customer Lane", orderDate: new Date(Date.now() - 86400000 * 1).toISOString(), sellerId: "seller1" },
-  { id: "ORD702", customerId: "customer_user_id", customerName: "Customer User", items: [{ productId: "2", productName: "Vine-Ripened Tomatoes", quantity: 3, price: 2.50 }, { productId: "5", productName: "Organic Spinach Bunch", quantity: 1, price: 2.99 }], totalAmount: 10.49, status: "Processing", paymentMethod: "Pay on Delivery", shippingAddress: "123 Customer Lane", orderDate: new Date(Date.now() - 86400000 * 2).toISOString(), sellerId: "seller2" },
-  { id: "ORD703", customerId: "customer_user_id", customerName: "Customer User", items: [{ productId: "3", productName: "Artisanal Sourdough Bread", quantity: 1, price: 6.00 }], totalAmount: 6.00, status: "Shipped", paymentMethod: "Mobile Payment", shippingAddress: "123 Customer Lane", orderDate: new Date(Date.now() - 86400000 * 3).toISOString(), sellerId: "seller3" },
-  { id: "ORD704", customerId: "customer_user_id", customerName: "Customer User", items: [{ productId: "4", productName: "Free-Range Chicken Eggs", quantity: 1, price: 5.50 }], totalAmount: 5.50, status: "Delivered", paymentMethod: "Mobile Payment", shippingAddress: "123 Customer Lane", orderDate: new Date(Date.now() - 86400000 * 7).toISOString(), sellerId: "seller1" },
-  { id: "ORD705", customerId: "customer_user_id", customerName: "Customer User", items: [{ productId: "6", productName: "Raw Honey Jar", quantity: 1, price: 8.75 }], totalAmount: 8.75, status: "Cancelled", paymentMethod: "Pay on Delivery", shippingAddress: "123 Customer Lane", orderDate: new Date(Date.now() - 86400000 * 10).toISOString(), sellerId: "seller3" },
-  // Orders for other customers to ensure filtering works
-  { id: "ORD801", customerId: "other_cust_id", customerName: "Another Shopper", items: [{ productId: "1", productName: "Organic Fuji Apples", quantity: 1, price: 3.99 }], totalAmount: 3.99, status: "Delivered", paymentMethod: "Mobile Payment", shippingAddress: "456 Other St", orderDate: new Date(Date.now() - 86400000 * 5).toISOString(), sellerId: "seller1" },
-];
 
 export default function MyOrdersPage() {
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const router = useRouter();
   
   useEffect(() => {
@@ -42,13 +42,10 @@ export default function MyOrdersPage() {
           const userData = { id: docSnap.id, ...docSnap.data() } as User;
           setCurrentUser(userData);
           if (userData.role === 'customer') {
-            // In a real app, you'd fetch orders where customerId === user.uid
-            // For now, we continue to mock and filter by name.
-             const ordersForCustomer = allMockOrders.filter(order => order.customerName === userData.name);
-             setCustomerOrders(ordersForCustomer);
+            const ordersForCustomer = await getOrdersByCustomerId(user.uid);
+            setCustomerOrders(ordersForCustomer);
           }
         } else {
-           // No user doc, treat as not logged in for this page's purpose
            setCurrentUser(null);
         }
       } else {
@@ -66,6 +63,11 @@ export default function MyOrdersPage() {
 
   const ongoingOrders = customerOrders.filter(order => ongoingStatuses.includes(order.status));
   const pastOrders = customerOrders.filter(order => pastStatuses.includes(order.status));
+  
+  const getCurrencySymbol = (currencyCode?: string) => {
+    if (currencyCode === "GHS") return "₵";
+    return "$"; // Default
+  };
 
   if (isLoading) {
     return (
@@ -85,58 +87,119 @@ export default function MyOrdersPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <PageHeader
-        title="My Orders"
-        description={`Manage and track your orders, ${currentUser.name}.`}
-        actions={
-          <Button variant="outline" asChild>
-            <Link href="/market"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Market</Link>
-          </Button>
-        }
-      />
+    <>
+      <div className="max-w-4xl mx-auto">
+        <PageHeader
+          title="My Orders"
+          description={`Manage and track your orders, ${currentUser.name}.`}
+          actions={
+            <Button variant="outline" asChild>
+              <Link href="/market"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Market</Link>
+            </Button>
+          }
+        />
 
-      <Tabs defaultValue="ongoing" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6 shadow-sm">
-          <TabsTrigger value="ongoing" className="py-3 text-base">
-            <Package className="mr-2 h-5 w-5" /> Ongoing Orders ({ongoingOrders.length})
-          </TabsTrigger>
-          <TabsTrigger value="past" className="py-3 text-base">
-            <History className="mr-2 h-5 w-5" /> Order History ({pastOrders.length})
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="ongoing">
-          <Card className="shadow-lg">
-            <CardContent className="p-0">
-              {ongoingOrders.length > 0 ? (
-                <OrderTable orders={ongoingOrders} onViewDetails={(id) => alert(`Viewing order ${id}`)} showSellerColumn={false} />
-              ) : (
-                <div className="p-10 text-center text-muted-foreground">
-                  <ShoppingCart className="mx-auto h-12 w-12 mb-4" />
-                  <p className="text-lg">You have no ongoing orders.</p>
-                  <p>Ready to shop? <Link href="/market" className="text-primary hover:underline">Go to Market</Link></p>
+        <Tabs defaultValue="ongoing" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6 shadow-sm">
+            <TabsTrigger value="ongoing" className="py-3 text-base">
+              <Package className="mr-2 h-5 w-5" /> Ongoing Orders ({ongoingOrders.length})
+            </TabsTrigger>
+            <TabsTrigger value="past" className="py-3 text-base">
+              <History className="mr-2 h-5 w-5" /> Order History ({pastOrders.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="ongoing">
+            <Card className="shadow-lg">
+              <CardContent className="p-0">
+                {ongoingOrders.length > 0 ? (
+                  <OrderTable orders={ongoingOrders} onViewDetails={(id) => setSelectedOrder(customerOrders.find(o => o.id === id) || null)} showSellerColumn={false} />
+                ) : (
+                  <div className="p-10 text-center text-muted-foreground">
+                    <ShoppingCart className="mx-auto h-12 w-12 mb-4" />
+                    <p className="text-lg">You have no ongoing orders.</p>
+                    <p>Ready to shop? <Link href="/market" className="text-primary hover:underline">Go to Market</Link></p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="past">
+            <Card className="shadow-lg">
+              <CardContent className="p-0">
+                 {pastOrders.length > 0 ? (
+                  <OrderTable orders={pastOrders} onViewDetails={(id) => setSelectedOrder(customerOrders.find(o => o.id === id) || null)} showSellerColumn={false} />
+                ) : (
+                   <div className="p-10 text-center text-muted-foreground">
+                    <History className="mx-auto h-12 w-12 mb-4" />
+                    <p className="text-lg">No past orders found in your history.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+      
+      {/* Order Details Dialog */}
+      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {selectedOrder && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Order Details</DialogTitle>
+                <DialogDescription>
+                  Detailed information for your order #{selectedOrder.id.substring(0, 6)}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2"><Hash className="h-4 w-4 text-primary"/> <span><strong>Order ID:</strong> #{selectedOrder.id.substring(0, 6)}</span></div>
+                  <div className="flex items-center gap-2"><CalendarIcon className="h-4 w-4 text-primary"/> <span><strong>Date:</strong> {format(new Date(selectedOrder.orderDate), 'PPP')}</span></div>
+                  <div className="flex items-center gap-2"><Box className="h-4 w-4 text-primary"/> <span><strong>Status:</strong> {selectedOrder.status}</span></div>
+                  <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-primary"/> <span><strong>Payment:</strong> {selectedOrder.paymentMethod}</span></div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="past">
-          <Card className="shadow-lg">
-            <CardContent className="p-0">
-               {pastOrders.length > 0 ? (
-                <OrderTable orders={pastOrders} onViewDetails={(id) => alert(`Viewing order ${id}`)} showSellerColumn={false} />
-              ) : (
-                 <div className="p-10 text-center text-muted-foreground">
-                  <History className="mx-auto h-12 w-12 mb-4" />
-                  <p className="text-lg">No past orders found in your history.</p>
+                
+                <Separator />
+
+                <div>
+                    <h4 className="font-semibold mb-2">Items Ordered</h4>
+                    <div className="space-y-2">
+                        {selectedOrder.items.map(item => (
+                            <div key={item.productId} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
+                                <div>
+                                    <p className="font-medium">{item.productName}</p>
+                                    <p className="text-muted-foreground">{item.quantity} x {getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{item.price.toFixed(2)}</p>
+                                </div>
+                                <p className="font-semibold">{getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{(item.quantity * item.price).toFixed(2)}</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+
+                <Separator />
+
+                <div className="flex justify-between items-center font-bold text-lg">
+                    <span>Total Amount:</span>
+                    <span>{getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{selectedOrder.totalAmount.toFixed(2)}</span>
+                </div>
+                
+                <Separator />
+
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2"><MapPin className="h-4 w-4 text-primary"/> Shipping Details</h4>
+                  <div className="text-sm p-3 bg-muted/50 rounded-md">
+                    <p><strong>{selectedOrder.customerName}</strong></p>
+                    <p className="text-muted-foreground">{selectedOrder.shippingAddress}</p>
+                  </div>
+                </div>
+
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
