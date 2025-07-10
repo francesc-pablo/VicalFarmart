@@ -58,7 +58,7 @@ export default function MyOrdersPage() {
     return () => unsubscribe();
   }, [router]);
 
-  const ongoingStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped"];
+  const ongoingStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped", "Paid"];
   const pastStatuses: OrderStatus[] = ["Delivered", "Cancelled"];
 
   const ongoingOrders = customerOrders.filter(order => ongoingStatuses.includes(order.status));
@@ -221,3 +221,5 @@ export default function MyOrdersPage() {
     </>
   );
 }
+
+    
