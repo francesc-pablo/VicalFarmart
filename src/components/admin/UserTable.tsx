@@ -26,11 +26,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 
 interface UserTableProps {
   users: User[];
-  onDeleteUser: (userId: string) => void;
+  onDeleteUser: (userId: string, adminToken: string) => Promise<{success: boolean, message: string}>;
   onToggleUserStatus?: (userId: string, currentStatus: boolean) => void;
   onEditUser?: (user: User) => void;
 }
@@ -49,6 +50,32 @@ const getRoleBadgeVariant = (role: UserRole): "default" | "secondary" | "outline
 };
 
 export function UserTable({ users, onDeleteUser, onToggleUserStatus, onEditUser }: UserTableProps) {
+  const { toast } = useToast();
+
+  const handleDelete = async (userId: string) => {
+    const admin = auth.currentUser;
+    if (!admin) {
+      toast({
+        title: "Authentication Error",
+        description: "Admin not logged in. Please log in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const adminToken = await admin.getIdToken(true);
+      await onDeleteUser(userId, adminToken);
+    } catch (error: any) {
+        toast({
+          title: "Deletion Failed",
+          description: error.message || "An unexpected error occurred.",
+          variant: "destructive",
+      });
+    }
+  };
+
+
   return (
     <Table>
       <TableHeader>
@@ -110,7 +137,7 @@ export function UserTable({ users, onDeleteUser, onToggleUserStatus, onEditUser 
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDeleteUser(user.id)}>Continue</AlertDialogAction>
+                        <AlertDialogAction onClick={() => handleDelete(user.id)}>Continue</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

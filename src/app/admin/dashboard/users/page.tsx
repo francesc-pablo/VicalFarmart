@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import { UserForm } from '@/components/admin/UserForm';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -48,15 +47,8 @@ export default function AdminUsersPage() {
     fetchUsers(); // Refresh data
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    const admin = auth.currentUser;
-    if (!admin) {
-        toast({ title: "Authentication Error", description: "Admin not logged in. Please refresh and try again.", variant: "destructive" });
-        return;
-    }
-
+  const handleDeleteUser = async (userId: string, adminToken: string) => {
     try {
-        const adminToken = await admin.getIdToken(true);
         const result = await deleteUser(userId, adminToken);
 
         if (result.success) {
