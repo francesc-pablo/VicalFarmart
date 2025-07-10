@@ -156,7 +156,13 @@ export function AuthForm({ type }: AuthFormProps) {
           geoCoordinatesLng: "",
           businessType: "",
         });
-        await sendWelcomeEmail({ name: user.displayName || 'Google User', email: user.email! });
+        
+        try {
+          await sendWelcomeEmail({ name: user.displayName || 'Google User', email: user.email! });
+        } catch (emailError) {
+          console.warn("Welcome email failed to send for Google user:", emailError);
+        }
+
         toast({
           title: "Registration Successful",
           description: "Your account has been created via Google.",
@@ -310,7 +316,17 @@ export function AuthForm({ type }: AuthFormProps) {
             businessType: "",
         });
 
-        await sendWelcomeEmail({ name, email });
+        try {
+            await sendWelcomeEmail({ name, email });
+        } catch (emailError) {
+            console.warn("Welcome email could not be sent. This will not affect your registration.", emailError);
+            // Optionally inform the user, but don't block the flow
+            toast({
+                title: "Registration Complete",
+                description: "Your account is ready, but we couldn't send the welcome email just now.",
+                variant: "default",
+            });
+        }
 
         toast({
           title: "Registration Successful",

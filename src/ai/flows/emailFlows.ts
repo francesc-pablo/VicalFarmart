@@ -39,17 +39,33 @@ const welcomePrompt = ai.definePrompt({
   `,
 });
 
-export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> {
-  const { output } = await welcomePrompt(input);
-  if (!output) {
-    console.error('Failed to generate welcome email content.');
-    return;
+const sendWelcomeEmailFlow = ai.defineFlow(
+  {
+    name: 'sendWelcomeEmailFlow',
+    inputSchema: WelcomeEmailInputSchema,
+    outputSchema: z.void(),
+  },
+  async (input) => {
+    console.log(`Generating welcome email for ${input.email}`);
+    const { output } = await welcomePrompt(input);
+    if (!output) {
+      console.error('Failed to generate welcome email content.');
+      // Optional: throw an error to indicate failure
+      throw new Error('Email content generation failed.');
+    }
+    
+    console.log(`Sending welcome email to ${input.email}`);
+    await sendEmail({
+      to: input.email,
+      subject: output.subject,
+      htmlBody: output.body,
+    });
+    console.log('Welcome email sent successfully.');
   }
-  await sendEmail({
-    to: input.email,
-    subject: output.subject,
-    htmlBody: output.body,
-  });
+);
+
+export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> {
+  return sendWelcomeEmailFlow(input);
 }
 
 
@@ -100,17 +116,30 @@ const newOrderPrompt = ai.definePrompt({
     `,
 });
 
-export async function sendNewOrderEmail(input: NewOrderEmailInput): Promise<void> {
-    const { output } = await newOrderPrompt(input);
-    if (!output) {
-        console.error('Failed to generate new order email content.');
-        return;
+const sendNewOrderEmailFlow = ai.defineFlow(
+    {
+        name: 'sendNewOrderEmailFlow',
+        inputSchema: NewOrderEmailInputSchema,
+        outputSchema: z.void(),
+    },
+    async (input) => {
+        console.log(`Generating new order email for ${input.recipientEmail}`);
+        const { output } = await newOrderPrompt(input);
+        if (!output) {
+            console.error('Failed to generate new order email content for order ' + input.orderId);
+            throw new Error('New order email content generation failed.');
+        }
+        await sendEmail({
+            to: input.recipientEmail,
+            subject: output.subject,
+            htmlBody: output.body,
+        });
+        console.log(`New order email sent to ${input.recipientEmail}`);
     }
-    await sendEmail({
-        to: input.recipientEmail,
-        subject: output.subject,
-        htmlBody: output.body,
-    });
+);
+
+export async function sendNewOrderEmail(input: NewOrderEmailInput): Promise<void> {
+    return sendNewOrderEmailFlow(input);
 }
 
 
@@ -162,15 +191,26 @@ const orderStatusUpdatePrompt = ai.definePrompt({
     `,
 });
 
-export async function sendOrderStatusUpdateEmail(input: OrderStatusUpdateInput): Promise<void> {
+const sendOrderStatusUpdateEmailFlow = ai.defineFlow({
+    name: 'sendOrderStatusUpdateEmailFlow',
+    inputSchema: OrderStatusUpdateInputSchema,
+    outputSchema: z.void(),
+}, async (input) => {
+    console.log(`Generating order status update email for ${input.recipientEmail}`);
     const { output } = await orderStatusUpdatePrompt(input);
     if (!output) {
-        console.error('Failed to generate order status update email content.');
-        return;
+        console.error('Failed to generate order status update email content for order ' + input.orderId);
+        throw new Error('Order status update email content generation failed.');
     }
     await sendEmail({
         to: input.recipientEmail,
         subject: output.subject,
         htmlBody: output.body,
     });
+    console.log(`Order status update email sent to ${input.recipientEmail}`);
+});
+
+
+export async function sendOrderStatusUpdateEmail(input: OrderStatusUpdateInput): Promise<void> {
+    return sendOrderStatusUpdateEmailFlow(input);
 }
