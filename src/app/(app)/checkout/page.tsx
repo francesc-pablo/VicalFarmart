@@ -65,7 +65,7 @@ type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 export default function CheckoutPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const [paymentMethod, setPaymentMethod] = useState<"mobile" | "cod">("mobile");
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
   const { cartItems, updateCartItemQuantity, removeFromCart, clearCart } = useCart();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -138,7 +138,7 @@ export default function CheckoutPage() {
         items: orderItems,
         totalAmount: total,
         status: status,
-        paymentMethod: paymentMethod === 'mobile' ? 'Mobile Payment' : 'Pay on Delivery',
+        paymentMethod: paymentMethod === 'online' ? 'Online Payment' : 'Pay on Delivery',
         shippingAddress: {
             address: data.address,
             city: data.city,
@@ -165,7 +165,7 @@ export default function CheckoutPage() {
                 customerName: data.fullName,
                 orderId: newOrderId,
                 totalAmount: total,
-                paymentMethod: 'Mobile Payment',
+                paymentMethod: 'Online Payment',
                 transactionId: String(paymentDetails?.transactionId || 'N/A'),
                 items: orderItems,
                 shippingAddress: {
@@ -438,16 +438,16 @@ export default function CheckoutPage() {
               <CardTitle className="text-xl">Payment Method</CardTitle>
             </CardHeader>
             <CardContent>
-              <RadioGroup defaultValue="mobile" value={paymentMethod} onValueChange={(value: "mobile" | "cod") => setPaymentMethod(value)}>
+              <RadioGroup defaultValue="online" value={paymentMethod} onValueChange={(value: "online" | "cod") => setPaymentMethod(value)}>
                 <Label
-                  htmlFor="mobilePayment"
+                  htmlFor="onlinePayment"
                   className="flex items-center space-x-3 rounded-md border p-4 hover:bg-accent/50 [&:has([data-state=checked])]:border-primary"
                 >
-                  <RadioGroupItem value="mobile" id="mobilePayment" />
+                  <RadioGroupItem value="online" id="onlinePayment" />
                   <CreditCard className="h-6 w-6 text-primary" />
                   <div>
-                    <span className="block text-sm font-medium">Mobile Payment</span>
-                    <span className="block text-xs text-muted-foreground">Pay securely with Flutterwave.</span>
+                    <span className="block text-sm font-medium">Online Payment</span>
+                    <span className="block text-xs text-muted-foreground">Pay securely with Card, Mobile Money, etc. via Flutterwave.</span>
                   </div>
                 </Label>
                 <Label
