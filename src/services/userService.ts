@@ -53,41 +53,49 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
-// Function to add a new user (Auth + Firestore) via secure API route
+// Function to add a new user (Auth + Firestore) - admin will be logged out
 export async function addUser(userData: Partial<User>): Promise<User | null> {
     if (!userData.email || !userData.password) {
         throw new Error("Email and password are required to create a new user.");
     }
-    const currentAdmin = auth.currentUser;
-    if (!currentAdmin) {
-        throw new Error("Admin not authenticated. Please log in again.");
-    }
     
-    // Get the ID token of the currently signed-in admin
-    const idToken = await currentAdmin.getIdToken();
-
     try {
-        const response = await fetch('/api/admin/create-user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${idToken}`,
-            },
-            body: JSON.stringify(userData),
-        });
+        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+        const user = userCredential.user;
 
-        const result = await response.json();
+        await updateProfile(user, { displayName: userData.name });
 
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to create user.');
-        }
+        const newUser: Omit<User, 'id'> = {
+            name: userData.name || "New User",
+            email: user.email!,
+            phone: userData.phone || "",
+            address: userData.address || "",
+            region: userData.region || "",
+            town: userData.town || "",
+            role: userData.role || 'customer',
+            isActive: true,
+            createdAt: serverTimestamp(),
+            businessName: userData.businessName || "",
+            businessOwnerName: userData.businessOwnerName || "",
+            businessAddress: userData.businessAddress || "",
+            contactNumber: userData.contactNumber || "",
+            businessLocationRegion: userData.businessLocationRegion || "",
+            businessLocationTown: userData.businessLocationTown || "",
+            geoCoordinatesLat: userData.geoCoordinatesLat || "",
+            geoCoordinatesLng: userData.geoCoordinatesLng || "",
+            businessType: userData.businessType || "",
+            failedLoginAttempts: 0,
+            lockoutUntil: null,
+        };
 
-        // Send welcome email on success
-        await sendWelcomeEmail({ name: userData.name || "New User", email: userData.email });
+        await setDoc(doc(db, "users", user.uid), newUser);
+        
+        await sendWelcomeEmail({ name: newUser.name, email: newUser.email });
 
-        return result.user;
+        return { id: user.uid, ...newUser };
+
     } catch (error) {
-        console.error("Error adding new user via API:", error);
+        console.error("Error adding new user:", error);
         throw error; // Re-throw the error to be caught by the form
     }
 }
