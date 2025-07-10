@@ -9,26 +9,41 @@ import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
 const usersCollectionRef = collection(db, "users");
 
+// Helper to convert Firestore Timestamps to ISO strings
+const convertTimestamp = (data: any) => {
+  const convertedData = { ...data };
+  if (convertedData.createdAt?.toDate) {
+    convertedData.createdAt = convertedData.createdAt.toDate().toISOString();
+  }
+  if (convertedData.lockoutUntil?.toDate) {
+    convertedData.lockoutUntil = convertedData.lockoutUntil.toDate().getTime();
+  } else if (convertedData.lockoutUntil instanceof Date) {
+    convertedData.lockoutUntil = convertedData.lockoutUntil.getTime();
+  }
+  return convertedData;
+};
+
 // Function to get all users, sorted by most recently created
 export async function getUsers(): Promise<User[]> {
   try {
-    // Fetch all users without server-side sorting to avoid indexing issues.
     const querySnapshot = await getDocs(usersCollectionRef);
-    const users = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    } as User));
+    const users = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const convertedData = convertTimestamp(data);
+      return {
+        id: doc.id,
+        ...convertedData,
+      } as User;
+    });
 
     // Sort client-side. Users without a createdAt date will be at the end.
     return users.sort((a, b) => {
-      const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0;
-      const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0;
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       
-      // If timestamps are the same or one is missing, fall back to sorting by name
-      if (timeB - timeA === 0) {
+      if (timeB === timeA) {
         return (a.name || "").localeCompare(b.name || "");
       }
-
       return timeB - timeA; // Sort descending (newest first)
     });
   } catch (error) {
@@ -44,7 +59,9 @@ export async function getUserById(userId: string): Promise<User | null> {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as User;
+      const data = docSnap.data();
+      const convertedData = convertTimestamp(data);
+      return { id: docSnap.id, ...convertedData } as User;
     } else {
       console.log("No such user found!");
       return null;
