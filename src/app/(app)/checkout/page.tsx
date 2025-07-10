@@ -13,9 +13,9 @@ import { ArrowLeft, CreditCard, Minus, Package, Plus, ShoppingCart, Trash2, Truc
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useCart } from "@/context/CartContext";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -32,7 +32,16 @@ import { sendNewOrderEmail } from '@/ai/flows/emailFlows';
 import { auth } from '@/lib/firebase';
 import type { Order, User, OrderItem } from '@/types';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 
+
+const getCurrencyForFlutterwave = (currencyCode?: string) => {
+    const supportedCurrencies = ["GHS", "USD", "NGN", "XOF", "SLL", "LRD", "GMD", "GNF", "CVE", "EUR", "GBP"];
+    if (currencyCode && supportedCurrencies.includes(currencyCode)) {
+        return currencyCode;
+    }
+    return "GHS"; // Default to GHS if not supported
+};
 
 const getCurrencySymbol = (currencyCode?: string) => {
   if (currencyCode === "GHS") return "₵";
@@ -58,6 +67,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"mobile" | "cod">("mobile");
   const { cartItems, updateCartItemQuantity, removeFromCart, clearCart } = useCart();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -73,7 +83,8 @@ export default function CheckoutPage() {
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shippingFee = subtotal > 0 ? 5.00 : 0; // No shipping fee for empty cart
   const total = subtotal + shippingFee;
-  const mainCurrencySymbol = cartItems.length > 0 ? getCurrencySymbol(cartItems[0].currency) : '$';
+  const mainCurrency = useMemo(() => getCurrencyForFlutterwave(cartItems[0]?.currency), [cartItems]);
+  const mainCurrencySymbol = getCurrencySymbol(mainCurrency);
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -88,25 +99,22 @@ export default function CheckoutPage() {
     },
   });
 
-  async function handlePlaceOrder(data: CheckoutFormValues) {
-    if (!currentUser) {
-        toast({ title: "Please log in", description: "You must be logged in to place an order.", variant: "destructive" });
-        router.push('/login');
-        return;
-    }
-    if (cartItems.length === 0) {
-        toast({ title: "Empty Cart", description: "Cannot place an order with an empty cart.", variant: "destructive" });
-        return;
-    }
+  const formValues = useWatch({ control: form.control });
 
+  const handleCreateOrderInDB = async (
+    data: CheckoutFormValues, 
+    status: Order['status'], 
+    paymentDetails?: Order['paymentDetails']
+  ) => {
+    if (!currentUser || cartItems.length === 0) return null;
+
+    setIsProcessing(true);
     const orderItems: OrderItem[] = cartItems.map(item => ({
         productId: item.id,
         productName: item.name,
         quantity: item.quantity,
         price: item.price,
     }));
-
-    // For simplicity, this example assumes all items in the cart belong to one seller.
     const sellerId = cartItems[0]?.sellerId;
 
     const orderData: Omit<Order, 'id' | 'orderDate'> = {
@@ -116,7 +124,7 @@ export default function CheckoutPage() {
         customerPhone: data.phone,
         items: orderItems,
         totalAmount: total,
-        status: 'Pending',
+        status: status,
         paymentMethod: paymentMethod === 'mobile' ? 'Mobile Payment' : 'Pay on Delivery',
         shippingAddress: {
             address: data.address,
@@ -125,6 +133,7 @@ export default function CheckoutPage() {
             idCardNumber: data.idCardNumber,
         },
         sellerId: sellerId,
+        ...(paymentDetails && { paymentDetails }),
     };
 
     const newOrderId = await createOrder(orderData);
@@ -135,9 +144,7 @@ export default function CheckoutPage() {
             description: `Your order #${newOrderId.substring(0, 6)} will be processed.`,
         });
 
-        // Send notification emails
         try {
-            // 1. Notify Admin
             const allUsers = await getUsers();
             const adminUser = allUsers.find(u => u.role === 'admin');
             if (adminUser?.email) {
@@ -152,7 +159,6 @@ export default function CheckoutPage() {
                 });
             }
 
-            // 2. Notify Seller
             if (sellerId) {
                 const seller = await getUserById(sellerId);
                 if (seller?.email) {
@@ -169,7 +175,6 @@ export default function CheckoutPage() {
             }
         } catch (emailError) {
             console.error("Failed to send notification emails:", emailError);
-            // Don't block the user flow for this, just log it.
         }
 
         clearCart();
@@ -177,8 +182,73 @@ export default function CheckoutPage() {
     } else {
         toast({
             title: "Order Failed",
-            description: "There was a problem placing your order. Please try again.",
+            description: "There was a problem saving your order. Please try again.",
             variant: "destructive",
+        });
+    }
+    setIsProcessing(false);
+    return newOrderId;
+  };
+  
+  const flutterwaveConfig = {
+      public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '',
+      tx_ref: `vicalfarmart-${Date.now()}`,
+      amount: total,
+      currency: mainCurrency,
+      payment_options: 'card,mobilemoney,ussd',
+      customer: {
+        email: formValues.email,
+        phone_number: formValues.phone,
+        name: formValues.fullName,
+      },
+      customizations: {
+        title: 'Vical Farmart',
+        description: 'Payment for items in cart',
+        logo: 'https://res.cloudinary.com/ddvlexmvj/image/upload/v1751434079/VF_logo-removebg-preview_kgzusq.png',
+      },
+  };
+  
+  const handleFlutterwavePayment = useFlutterwave(flutterwaveConfig);
+
+  async function handleFormSubmit(data: CheckoutFormValues) {
+    if (!currentUser) {
+        toast({ title: "Please log in", description: "You must be logged in to place an order.", variant: "destructive" });
+        router.push('/login');
+        return;
+    }
+    if (cartItems.length === 0) {
+        toast({ title: "Empty Cart", description: "Cannot place an order with an empty cart.", variant: "destructive" });
+        return;
+    }
+
+    if (paymentMethod === 'cod') {
+        handleCreateOrderInDB(data, 'Pending');
+    } else {
+        handleFlutterwavePayment({
+            callback: async (response) => {
+                console.log(response);
+                if (response.status === 'successful') {
+                    await handleCreateOrderInDB(data, 'Paid', {
+                        transactionId: response.transaction_id,
+                        status: response.status,
+                        gateway: 'Flutterwave',
+                    });
+                } else {
+                    toast({
+                        title: "Payment Not Completed",
+                        description: "Your payment was not completed successfully. Please try again.",
+                        variant: "destructive"
+                    });
+                }
+                closePaymentModal();
+            },
+            onClose: () => {
+                toast({
+                    title: "Payment Canceled",
+                    description: "You closed the payment window.",
+                    variant: "destructive"
+                });
+            },
         });
     }
   };
@@ -221,7 +291,7 @@ export default function CheckoutPage() {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handlePlaceOrder)} className="space-y-4" id="shipping-form">
+                <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4" id="shipping-form">
                    <FormField
                       control={form.control}
                       name="fullName"
@@ -334,7 +404,7 @@ export default function CheckoutPage() {
                   <CreditCard className="h-6 w-6 text-primary" />
                   <div>
                     <span className="block text-sm font-medium">Mobile Payment</span>
-                    <span className="block text-xs text-muted-foreground">Pay securely with your mobile wallet.</span>
+                    <span className="block text-xs text-muted-foreground">Pay securely with Flutterwave.</span>
                   </div>
                 </Label>
                 <Label
@@ -404,8 +474,8 @@ export default function CheckoutPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button size="lg" className="w-full shadow-md" type="submit" form="shipping-form" disabled={form.formState.isSubmitting}>
-                <Package className="mr-2 h-5 w-5" /> {form.formState.isSubmitting ? 'Placing Order...' : 'Place Order'}
+              <Button size="lg" className="w-full shadow-md" type="submit" form="shipping-form" disabled={isProcessing || form.formState.isSubmitting}>
+                <Package className="mr-2 h-5 w-5" /> {isProcessing ? 'Processing...' : 'Place Order'}
               </Button>
             </CardFooter>
           </Card>

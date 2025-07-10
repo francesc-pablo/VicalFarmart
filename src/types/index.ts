@@ -1,6 +1,7 @@
 
 
 
+
 export interface Product {
   id: string;
   name: string;
@@ -45,6 +46,11 @@ export interface Order {
   };
   orderDate: string;
   sellerId?: string;
+  paymentDetails?: {
+    transactionId?: string | number;
+    status?: string;
+    gateway?: string;
+  };
 }
 
 export type UserRole = 'seller' | 'admin' | 'customer';
