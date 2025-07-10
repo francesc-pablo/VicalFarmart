@@ -4,10 +4,7 @@
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, orderBy } from "firebase/firestore";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
-
-const usersCollectionRef = collection(db, "users");
 
 // Helper to convert Firestore Timestamps to ISO strings
 const convertTimestamp = (data: any) => {
@@ -72,50 +69,40 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
-// Function to add a new user (Auth + Firestore)
-// Note: This will log the admin out and log the new user in. This is a known side effect of using the client SDK for this.
-export async function addUser(userData: Partial<User>): Promise<User | null> {
-  if (!userData.email || !userData.password) {
-      throw new Error("Email and password are required to create a new user.");
+
+// Function to add a new user (via API)
+export async function addUser(userData: Partial<User> & { password?: string }): Promise<User | null> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error("Admin user is not authenticated.");
   }
   
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-    const user = userCredential.user;
-
-    await updateProfile(user, { displayName: userData.name });
-
-    const newUser: Omit<User, 'id'> = {
-        name: userData.name || "New User",
-        email: user.email!,
-        phone: userData.phone || "",
-        address: userData.address || "",
-        region: userData.region || "",
-        town: userData.town || "",
-        role: userData.role || 'customer',
-        isActive: true,
-        createdAt: serverTimestamp(),
-        businessName: userData.businessName || "",
-        businessOwnerName: userData.businessOwnerName || "",
-        businessAddress: userData.businessAddress || "",
-        contactNumber: userData.contactNumber || "",
-        businessLocationRegion: userData.businessLocationRegion || "",
-        businessLocationTown: userData.businessLocationTown || "",
-        geoCoordinatesLat: userData.geoCoordinatesLat || "",
-        geoCoordinatesLng: userData.geoCoordinatesLng || "",
-        businessType: userData.businessType || "",
-        failedLoginAttempts: 0,
-        lockoutUntil: null,
-    };
-    await setDoc(doc(db, "users", user.uid), newUser);
+    const idToken = await currentUser.getIdToken(true);
     
-    await sendWelcomeEmail({ name: newUser.name, email: newUser.email });
-    
-    return { id: user.uid, ...newUser } as User;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/create-user`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify(userData)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.error || 'Failed to create user via API.');
+    }
+
+    // Send welcome email after successful creation
+    await sendWelcomeEmail({ name: userData.name!, email: userData.email! });
+
+    return result.user as User;
 
   } catch (error: any) {
-    console.error("Error adding new user:", error);
-    throw error; // Re-throw the original error to be caught by the form
+    console.error("Error adding user via API:", error);
+    throw error;
   }
 }
 

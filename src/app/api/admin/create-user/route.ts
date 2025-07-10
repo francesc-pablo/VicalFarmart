@@ -18,12 +18,13 @@ export async function POST(request: NextRequest) {
 
     // Verify the ID token to ensure the request is from an authenticated admin
     const decodedToken = await getAuth().verifyIdToken(idToken);
-    if (decodedToken.role !== 'admin') {
+    const claims = decodedToken.claims || {};
+    if (claims.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions.' }, { status: 403 });
     }
 
     // Now that we're authenticated as an admin, proceed with user creation
-    const userData: Partial<User> = await request.json();
+    const userData: Partial<User> & { password?: string } = await request.json();
 
     if (!userData.email || !userData.password) {
       return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
 
 
     // 2. Create user document in Firestore
-    const newUser: Omit<User, 'id'> = {
+    const newUser: Omit<User, 'id' | 'password'> = {
       name: userData.name || "New User",
       email: userRecord.email!,
       phone: userData.phone || "",

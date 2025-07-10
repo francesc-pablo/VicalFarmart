@@ -97,6 +97,8 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     },
   });
 
+  const { formState: { isSubmitting } } = form;
+
   const watchedRole = form.watch("role");
   const watchedRegion = form.watch("region");
   const watchedBusinessRegion = form.watch("businessLocationRegion");
@@ -138,8 +140,6 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
       if (!values.password) {
         delete dataToSubmit.password;
       }
-    } else {
-      dataToSubmit.isActive = true;
     }
     onSubmit(dataToSubmit);
   };
@@ -473,11 +473,11 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
 
         <DialogFooter className="pt-6 sticky bottom-0 bg-background py-4 border-t">
           <DialogClose asChild>
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                 Cancel
             </Button>
           </DialogClose>
-          <Button type="submit">{isEditing ? "Save Changes" : "Create User"}</Button>
+          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : (isEditing ? "Save Changes" : "Create User")}</Button>
         </DialogFooter>
       </form>
     </Form>

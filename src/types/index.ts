@@ -45,6 +45,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  password?: string; // Only used for creation/update, not stored
   avatarUrl?: string;
   isActive: boolean;
   createdAt?: any;
