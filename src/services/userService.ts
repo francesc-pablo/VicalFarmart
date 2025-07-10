@@ -146,26 +146,13 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
     }
 }
 
-// Function to delete a user's Firestore document AND Auth record via API
-export async function deleteUser(userId: string, adminToken: string): Promise<{success: boolean, message: string}> {
-    try {
-        const response = await fetch('/api/admin/delete-user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId, adminToken }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to delete user.');
-        }
-
-        return { success: true, message: result.message };
-    } catch (error: any) {
-        console.error("Error deleting user through API: ", error);
-        return { success: false, message: error.message || "An unknown error occurred." };
-    }
+// Function to delete a user's Firestore document
+export async function deleteUser(userId: string): Promise<void> {
+  try {
+    const userDocRef = doc(db, "users", userId);
+    await deleteDoc(userDocRef);
+  } catch (error) {
+    console.error("Error deleting user document: ", error);
+    throw error; // Re-throw to be handled by the caller
+  }
 }

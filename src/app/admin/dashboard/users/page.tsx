@@ -47,16 +47,11 @@ export default function AdminUsersPage() {
     fetchUsers(); // Refresh data
   };
 
-  const handleDeleteUser = async (userId: string, adminToken: string) => {
+  const handleDeleteUser = async (userId: string) => {
     try {
-        const result = await deleteUser(userId, adminToken);
-
-        if (result.success) {
-            toast({ title: "User Deleted", description: "The user has been completely removed from the system." });
-            fetchUsers();
-        } else {
-            toast({ title: "Deletion Failed", description: result.message, variant: "destructive" });
-        }
+        await deleteUser(userId);
+        toast({ title: "User Deleted", description: "The user has been removed from the database." });
+        fetchUsers();
     } catch (error: any) {
         toast({ title: "Error", description: error.message || "An unexpected error occurred during deletion.", variant: "destructive" });
     }
