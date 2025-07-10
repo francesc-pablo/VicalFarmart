@@ -122,7 +122,7 @@ export default function CheckoutPage() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [form]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shippingFee = subtotal > 0 ? 5.00 : 0; // No shipping fee for empty cart
