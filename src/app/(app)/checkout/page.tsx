@@ -50,15 +50,30 @@ const getCurrencySymbol = (currencyCode?: string) => {
   return "$"; // Default symbol
 };
 
-const checkoutSchema = z.object({
+const checkoutSchemaBase = z.object({
   fullName: z.string().min(2, { message: "Full name is required." }),
   email: z.string().email({ message: "Please enter a valid email." }),
-  address: z.string().min(5, { message: "Address is required." }),
-  city: z.string().min(2, { message: "City is required." }),
+  address: z.string().min(5, { message: "Delivery address is required." }),
+  city: z.string().min(2, { message: "City or town is required." }),
   zipCode: z.string().min(3, { message: "ZIP code is required." }),
   phone: z.string().min(10, { message: "A valid phone number is required." }),
-  idCardNumber: z.string().min(5, { message: "ID card number is required." }),
+  idCardNumber: z.string(),
+  paymentMethod: z.enum(["online", "cod"]),
 });
+
+const checkoutSchema = checkoutSchemaBase.refine(
+  (data) => {
+    if (data.paymentMethod === 'cod') {
+      return data.idCardNumber.length >= 5;
+    }
+    return true;
+  },
+  {
+    message: "ID card number is required for Pay on Delivery.",
+    path: ["idCardNumber"],
+  }
+);
+
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
@@ -69,6 +84,20 @@ export default function CheckoutPage() {
   const { cartItems, updateCartItemQuantity, removeFromCart, clearCart } = useCart();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const form = useForm<CheckoutFormValues>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      address: "",
+      city: "",
+      zipCode: "",
+      phone: "",
+      idCardNumber: "",
+      paymentMethod: "online",
+    },
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -81,9 +110,10 @@ export default function CheckoutPage() {
             email: userProfile.email || "",
             phone: userProfile.phone || "",
             address: userProfile.address || "",
-            city: "",
+            city: userProfile.town || "",
             zipCode: "",
             idCardNumber: "",
+            paymentMethod: "online",
           });
         }
       } else {
@@ -99,20 +129,16 @@ export default function CheckoutPage() {
   const mainCurrency = useMemo(() => getCurrencyForFlutterwave(cartItems[0]?.currency), [cartItems]);
   const mainCurrencySymbol = getCurrencySymbol(mainCurrency);
 
-  const form = useForm<CheckoutFormValues>({
-    resolver: zodResolver(checkoutSchema),
-    defaultValues: {
-      fullName: "",
-      email: "",
-      address: "",
-      city: "",
-      zipCode: "",
-      phone: "",
-      idCardNumber: "",
-    },
-  });
 
-  const formValues = useWatch({ control: form.control });
+  const watchedPaymentMethod = form.watch("paymentMethod");
+
+  useEffect(() => {
+    setPaymentMethod(watchedPaymentMethod);
+    if(watchedPaymentMethod === 'online') {
+        form.clearErrors('idCardNumber');
+    }
+  }, [watchedPaymentMethod, form]);
+
 
   const handleCreateOrderInDB = async (
     data: CheckoutFormValues, 
@@ -138,7 +164,7 @@ export default function CheckoutPage() {
         items: orderItems,
         totalAmount: total,
         status: status,
-        paymentMethod: paymentMethod === 'online' ? 'Online Payment' : 'Pay on Delivery',
+        paymentMethod: data.paymentMethod === 'online' ? 'Online Payment' : 'Pay on Delivery',
         shippingAddress: {
             address: data.address,
             city: data.city,
@@ -158,7 +184,7 @@ export default function CheckoutPage() {
         });
 
         try {
-            // Send receipt to customer if paid
+            // Send receipt to customer if paid online
             if (status === 'Paid') {
               await sendOrderConfirmationEmail({
                 customerEmail: data.email,
@@ -235,9 +261,9 @@ export default function CheckoutPage() {
       currency: mainCurrency,
       payment_options: 'card,mobilemoney,ussd',
       customer: {
-        email: formValues.email,
-        phone_number: formValues.phone,
-        name: formValues.fullName,
+        email: form.getValues('email'),
+        phone_number: form.getValues('phone'),
+        name: form.getValues('fullName'),
       },
       customizations: {
         title: 'Vical Farmart',
@@ -262,7 +288,7 @@ export default function CheckoutPage() {
         return;
     }
 
-    if (paymentMethod === 'cod') {
+    if (data.paymentMethod === 'cod') {
         await handleCreateOrderInDB(data, 'Pending');
     } else {
         handleFlutterwavePayment({
@@ -328,142 +354,170 @@ export default function CheckoutPage() {
       <div className="grid md:grid-cols-3 gap-8">
         {/* Order Summary & Payment */}
         <div className="md:col-span-2 space-y-8">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl">Shipping Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4" id="shipping-form">
-                   <FormField
-                      control={form.control}
-                      name="fullName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="you@example.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleFormSubmit)} id="shipping-form" className="space-y-8">
+                <Card className="shadow-lg">
+                    <CardHeader>
+                    <CardTitle className="text-xl">Shipping Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="fullName"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Full Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="John Doe" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                    <Input type="email" placeholder="you@example.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        <FormField
+                            control={form.control}
+                            name="address"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Delivery Address</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="123 Main St" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="city"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>City or Town</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Anytown" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                            <FormField
+                            control={form.control}
+                            name="zipCode"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>ZIP Code</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="12345" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Phone Number</FormLabel>
+                                <FormControl>
+                                <Input type="tel" placeholder="(555) 123-4567" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="idCardNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>ID Card Number (GH Card/Passport)</FormLabel>
+                                <FormControl>
+                                    <Input 
+                                        placeholder="GHA-123456789-0 / P01234567" 
+                                        {...field} 
+                                        disabled={paymentMethod !== 'cod'}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-lg">
+                    <CardHeader>
+                    <CardTitle className="text-xl">Payment Method</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                     <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Address</FormLabel>
-                          <FormControl>
-                             <Input placeholder="123 Main St" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                       <FormField
-                          control={form.control}
-                          name="city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>City</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Anytown" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                         <FormField
-                          control={form.control}
-                          name="zipCode"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>ZIP Code</FormLabel>
-                              <FormControl>
-                                <Input placeholder="12345" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                    </div>
-                     <FormField
                         control={form.control}
-                        name="phone"
+                        name="paymentMethod"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone Number</FormLabel>
+                        <FormItem>
                             <FormControl>
-                              <Input type="tel" placeholder="(555) 123-4567" {...field} />
+                            <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="space-y-3"
+                            >
+                                <FormItem>
+                                <FormControl>
+                                    <Label
+                                    htmlFor="onlinePayment"
+                                    className="flex items-center space-x-3 rounded-md border p-4 hover:bg-accent/50 [&:has([data-state=checked])]:border-primary"
+                                    >
+                                    <RadioGroupItem value="online" id="onlinePayment" />
+                                    <CreditCard className="h-6 w-6 text-primary" />
+                                    <div>
+                                        <span className="block text-sm font-medium">Online Payment</span>
+                                        <span className="block text-xs text-muted-foreground">Pay securely with Card, Mobile Money, etc. via Flutterwave.</span>
+                                    </div>
+                                    </Label>
+                                </FormControl>
+                                </FormItem>
+
+                                <FormItem>
+                                <FormControl>
+                                    <Label
+                                    htmlFor="codPayment"
+                                    className="flex items-center space-x-3 rounded-md border p-4 hover:bg-accent/50 [&:has([data-state=checked])]:border-primary"
+                                    >
+                                    <RadioGroupItem value="cod" id="codPayment" />
+                                    <Truck className="h-6 w-6 text-primary" />
+                                    <div>
+                                        <span className="block text-sm font-medium">Pay on Delivery</span>
+                                        <span className="block text-xs text-muted-foreground">Pay with cash when your order arrives.</span>
+                                    </div>
+                                    </Label>
+                                </FormControl>
+                                </FormItem>
+                            </RadioGroup>
                             </FormControl>
                             <FormMessage />
-                          </FormItem>
+                        </FormItem>
                         )}
-                      />
-                      <FormField
-                          control={form.control}
-                          name="idCardNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>ID Card Number (GH Card/Passport)</FormLabel>
-                              <FormControl>
-                                <Input placeholder="GHA-123456789-0 / P01234567" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl">Payment Method</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup defaultValue="online" value={paymentMethod} onValueChange={(value: "online" | "cod") => setPaymentMethod(value)}>
-                <Label
-                  htmlFor="onlinePayment"
-                  className="flex items-center space-x-3 rounded-md border p-4 hover:bg-accent/50 [&:has([data-state=checked])]:border-primary"
-                >
-                  <RadioGroupItem value="online" id="onlinePayment" />
-                  <CreditCard className="h-6 w-6 text-primary" />
-                  <div>
-                    <span className="block text-sm font-medium">Online Payment</span>
-                    <span className="block text-xs text-muted-foreground">Pay securely with Card, Mobile Money, etc. via Flutterwave.</span>
-                  </div>
-                </Label>
-                <Label
-                  htmlFor="codPayment"
-                  className="flex items-center space-x-3 rounded-md border p-4 hover:bg-accent/50 [&:has([data-state=checked])]:border-primary"
-                >
-                  <RadioGroupItem value="cod" id="codPayment" />
-                  <Truck className="h-6 w-6 text-primary" />
-                  <div>
-                    <span className="block text-sm font-medium">Pay on Delivery</span>
-                    <span className="block text-xs text-muted-foreground">Pay with cash when your order arrives.</span>
-                  </div>
-                </Label>
-              </RadioGroup>
-            </CardContent>
-          </Card>
+                    />
+                    </CardContent>
+                </Card>
+              </form>
+            </Form>
         </div>
 
         {/* Cart Summary */}
@@ -527,3 +581,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
