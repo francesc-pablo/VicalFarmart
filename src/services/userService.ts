@@ -35,9 +35,10 @@ export async function getUsers(): Promise<User[]> {
     });
     return users;
   } catch (error) {
-    console.error("Error fetching users: ", error);
+    console.error("Error fetching users with sorting (index might be missing): ", error);
     // Fallback if sorting query fails (e.g., no composite index)
     try {
+        console.log("Attempting to fetch users without sorting as a fallback.");
         const fallbackSnapshot = await getDocs(collection(db, "users"));
         const fallbackUsers = fallbackSnapshot.docs.map((doc) => {
             const data = doc.data();
