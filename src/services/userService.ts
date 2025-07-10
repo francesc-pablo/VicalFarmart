@@ -53,74 +53,45 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
-// Function to add a new user (Auth + Firestore)
+// Function to add a new user (Auth + Firestore) via secure API route
 export async function addUser(userData: Partial<User>): Promise<User | null> {
-  if (!userData.email || !userData.password) {
-    throw new Error("Email and password are required to create a new user.");
-  }
-  
-  // Store current user to sign back in later
-  const currentAdmin = auth.currentUser;
-  if (!currentAdmin) {
-    throw new Error("Admin not authenticated. Please log in again.");
-  }
-  
-  // Temporarily disable auth state persistence to prevent auto-login of new user
-  const previousPersistence = auth.getPersistence();
-  auth.setPersistence("none");
-
-  try {
-    // 1. Create user in Firebase Auth without logging them in
-    const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-    const user = userCredential.user;
-    
-    // 2. Set the display name for the new user
-    await updateProfile(user, { displayName: userData.name });
-
-    // 3. Create user document in Firestore
-    const newUser: Omit<User, 'id'> = {
-      name: userData.name || "New User",
-      email: user.email!,
-      phone: userData.phone || "",
-      address: userData.address || "",
-      region: userData.region || "",
-      town: userData.town || "",
-      role: userData.role || 'customer',
-      isActive: true,
-      createdAt: serverTimestamp(),
-      businessName: userData.businessName || "",
-      businessOwnerName: userData.businessOwnerName || "",
-      businessAddress: userData.businessAddress || "",
-      contactNumber: userData.contactNumber || "",
-      businessLocationRegion: userData.businessLocationRegion || "",
-      businessLocationTown: userData.businessLocationTown || "",
-      geoCoordinatesLat: userData.geoCoordinatesLat || "",
-      geoCoordinatesLng: userData.geoCoordinatesLng || "",
-      businessType: userData.businessType || "",
-      failedLoginAttempts: 0,
-      lockoutUntil: null,
-    };
-    
-    await setDoc(doc(db, "users", user.uid), newUser);
-
-    // Send welcome email
-    await sendWelcomeEmail({ name: newUser.name, email: newUser.email });
-    
-    return { id: user.uid, ...newUser } as User;
-
-  } catch (error) {
-    console.error("Error adding new user:", error);
-    throw error;
-  } finally {
-     // Restore previous persistence setting and ensure admin is signed back in
-    auth.setPersistence(previousPersistence);
-    if (auth.currentUser?.uid !== currentAdmin.uid) {
-        // This is a failsafe. Re-authenticating would be complex.
-        // The persistence change should prevent the session swap.
-        console.warn("Auth state changed unexpectedly. Admin might need to refresh.");
+    if (!userData.email || !userData.password) {
+        throw new Error("Email and password are required to create a new user.");
     }
-  }
+    const currentAdmin = auth.currentUser;
+    if (!currentAdmin) {
+        throw new Error("Admin not authenticated. Please log in again.");
+    }
+    
+    // Get the ID token of the currently signed-in admin
+    const idToken = await currentAdmin.getIdToken();
+
+    try {
+        const response = await fetch('/api/admin/create-user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`,
+            },
+            body: JSON.stringify(userData),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to create user.');
+        }
+
+        // Send welcome email on success
+        await sendWelcomeEmail({ name: userData.name || "New User", email: userData.email });
+
+        return result.user;
+    } catch (error) {
+        console.error("Error adding new user via API:", error);
+        throw error; // Re-throw the error to be caught by the form
+    }
 }
+
 
 // Function to update a user's details
 export async function updateUser(userId: string, data: Partial<User>): Promise<void> {
@@ -138,10 +109,10 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
 
 // Function to delete a user's Firestore document
 export async function deleteUser(userId: string): Promise<void> {
-  try {
-    const userDocRef = doc(db, "users", userId);
-    await deleteDoc(userDocRef);
-  } catch (error) {
-    console.error("Error deleting user document: ", error);
-  }
+    try {
+        const userDocRef = doc(db, "users", userId);
+        await deleteDoc(userDocRef);
+    } catch (error) {
+        console.error("Error deleting user document: ", error);
+    }
 }
