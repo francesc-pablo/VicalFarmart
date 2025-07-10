@@ -26,12 +26,12 @@ import type { User, UserRole } from "@/types";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
-import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface UserFormProps {
   user?: User | null;
-  onSubmit: (data: Partial<User>, adminToken?: string) => void;
+  onSubmit: (data: Partial<User>) => void;
   onCancel: () => void;
 }
 
@@ -72,6 +72,7 @@ const NO_TOWN_VALUE = "--NONE--";
 
 export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const isEditing = !!user;
   const formSchema = isEditing ? userFormSchemaUpdate : userFormSchemaCreate;
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
@@ -144,27 +145,24 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
       if (!values.password) {
         delete dataToSubmit.password;
       }
-      onSubmit(dataToSubmit); // No token needed for update
+      onSubmit(dataToSubmit);
     } else {
-      // For creation, get the admin's token
-      const adminUser = auth.currentUser;
-      if (!adminUser) {
-        toast({
-          title: "Admin Not Authenticated",
-          description: "Please log in again to create a user.",
-          variant: "destructive",
-        });
-        return;
-      }
       try {
-        const adminToken = await adminUser.getIdToken(true);
-        onSubmit(dataToSubmit, adminToken);
-      } catch (error) {
+        await onSubmit(dataToSubmit);
         toast({
-          title: "Authentication Error",
-          description: "Could not verify admin credentials. Please log in again.",
+          title: "User Created",
+          description: "Admin will be logged out. Please log back in."
+        });
+        // The service now handles the logout, so we just redirect.
+        router.push('/login');
+      } catch (error: any) {
+        toast({
+          title: "Creation Failed",
+          description: error.message || "An unexpected error occurred.",
           variant: "destructive",
         });
+        // If creation fails, the admin is likely already logged out by the service.
+        router.push('/login');
       }
     }
   };

@@ -5,6 +5,8 @@ import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
+import { initializeApp, getApp, deleteApp, type FirebaseApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
 
 // Helper to convert Firestore Timestamps to a plain, serializable format
 const convertTimestamp = (data: any) => {
@@ -71,31 +73,61 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
-// Function to add a new user by calling the secure API route
-export async function addUser(userData: Partial<User>, adminToken?: string): Promise<User | null> {
-    if (!adminToken) {
-        throw new Error("Admin authentication token is required.");
+// Function to add a new user. This will log the admin out.
+export async function addUser(userData: Partial<User>): Promise<User | null> {
+    const { email, password, name, role } = userData;
+    if (!email || !password || !name || !role) {
+        throw new Error("Missing required fields for user creation.");
+    }
+    
+    // Temporarily sign out the admin to avoid auth state conflicts
+    const adminUser = auth.currentUser;
+    if (adminUser) {
+        await signOut(auth);
     }
 
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/create-user`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userData, adminToken }),
-        });
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        await updateProfile(user, { displayName: name });
+        
+        const newUserProfile: Omit<User, 'id' | 'password'> = {
+            name: name,
+            email: email,
+            role: role,
+            isActive: true,
+            createdAt: serverTimestamp(),
+            phone: userData.phone || "",
+            address: userData.address || "",
+            region: userData.region || "",
+            town: userData.town || "",
+            businessName: userData.businessName || "",
+            businessOwnerName: userData.businessOwnerName || "",
+            businessAddress: userData.businessAddress || "",
+            contactNumber: userData.contactNumber || "",
+            businessLocationRegion: userData.businessLocationRegion || "",
+            businessLocationTown: userData.businessLocationTown || "",
+            geoCoordinatesLat: userData.geoCoordinatesLat || "",
+            geoCoordinatesLng: userData.geoCoordinatesLng || "",
+            businessType: userData.businessType || "",
+            failedLoginAttempts: 0,
+            lockoutUntil: null,
+        };
 
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-            throw new Error(result.message || 'Failed to create user via API.');
+        await setDoc(doc(db, "users", user.uid), newUserProfile);
+        
+        try {
+            await sendWelcomeEmail({ name, email });
+        } catch (emailError) {
+            console.error("Failed to send welcome email, but user was created:", emailError);
         }
 
-        return result.user as User;
+        const finalUser = { id: user.uid, ...newUserProfile };
+        return finalUser as User;
 
     } catch (error) {
-        console.error("Error adding user via API:", error);
+        console.error("Error creating user:", error);
+        // The admin is already logged out, so just re-throw the error
         throw error;
     }
 }

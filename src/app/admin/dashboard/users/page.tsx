@@ -19,7 +19,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { UserForm } from '@/components/admin/UserForm';
-import { getAuth } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -28,6 +28,7 @@ export default function AdminUsersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
@@ -64,29 +65,36 @@ export default function AdminUsersPage() {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = async (data: Partial<User>, adminToken?: string) => {
+  const handleFormSubmit = async (data: Partial<User>) => {
     try {
         if (editingUser) {
           await updateUser(editingUser.id, data);
           toast({ title: "User Updated", description: "The user's details have been saved." });
         } else {
-          // Pass the admin token to the service.
-          const newUser = await addUser(data, adminToken);
-          if (newUser) {
-            toast({ title: "User Created", description: `An account for ${newUser.name} has been created.` });
-          } else {
-            throw new Error("User creation failed. The email might already be in use.");
-          }
+          // The addUser service will now cause a logout
+          await addUser(data);
+          // This part might not be reached if the page redirects immediately
         }
         setIsFormOpen(false);
         setEditingUser(null);
         fetchUsers();
     } catch (error: any) {
-        toast({
-            title: editingUser ? "Update Failed" : "Creation Failed",
+        if (!editingUser) {
+          // This path is for creation failure. The admin is already logged out.
+          toast({
+            title: "Creation Failed",
+            description: "The admin session was ended. Please log in again.",
+            variant: "destructive",
+          });
+          router.push('/login');
+        } else {
+          // This path is for update failure.
+           toast({
+            title: "Update Failed",
             description: error.message || "An unexpected error occurred.",
             variant: "destructive",
         });
+        }
     }
   };
 
@@ -157,7 +165,7 @@ export default function AdminUsersPage() {
           <DialogHeader>
             <DialogTitle>{editingUser ? 'Edit User' : 'Add New User'}</DialogTitle>
             <DialogDescription>
-              {editingUser ? "Update the user's details." : "Create a new user account with a specific role. The admin will not be logged out."}
+              {editingUser ? "Update the user's details." : "Create a new user account with a specific role. The admin will be logged out."}
             </DialogDescription>
           </DialogHeader>
           <UserForm
