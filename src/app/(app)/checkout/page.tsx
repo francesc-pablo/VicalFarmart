@@ -41,12 +41,13 @@ const getCurrencyForFlutterwave = (currencyCode?: string) => {
     if (currencyCode && supportedCurrencies.includes(currencyCode)) {
         return currencyCode;
     }
-    return "GHS"; // Default to GHS if not supported
+    return "GHS"; // Default to GHS if not supported or undefined
 };
 
 const getCurrencySymbol = (currencyCode?: string) => {
-  if (currencyCode === "GHS") return "₵";
-  if (currencyCode === "USD") return "$";
+  const code = currencyCode || "GHS";
+  if (code === "GHS") return "₵";
+  if (code === "USD") return "$";
   return "$"; // Default symbol
 };
 
