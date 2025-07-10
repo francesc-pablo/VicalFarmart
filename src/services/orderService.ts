@@ -5,6 +5,15 @@ import { collection, getDocs, doc, updateDoc, query, orderBy, where, addDoc, ser
 
 const ordersCollectionRef = collection(db, "orders");
 
+// Helper to convert Firestore Timestamps to ISO strings
+const convertTimestamp = (data: any) => {
+  const convertedData = { ...data };
+  if (convertedData.orderDate?.toDate) {
+    convertedData.orderDate = convertedData.orderDate.toDate().toISOString();
+  }
+  return convertedData;
+};
+
 export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): Promise<string | null> {
   try {
     const docRef = await addDoc(ordersCollectionRef, {
@@ -24,10 +33,10 @@ export async function getOrderById(orderId: string): Promise<Order | null> {
     const docSnap = await getDoc(orderDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
+      const convertedData = convertTimestamp(data);
       return { 
           id: docSnap.id, 
-          ...data,
-          orderDate: data.orderDate?.toDate ? data.orderDate.toDate().toISOString() : new Date().toISOString(),
+          ...convertedData
       } as Order;
     }
     return null;
@@ -43,10 +52,10 @@ export async function getAllOrders(): Promise<Order[]> {
     const querySnapshot = await getDocs(q);
     const orders = querySnapshot.docs.map((doc) => {
       const data = doc.data();
+      const convertedData = convertTimestamp(data);
       return {
         id: doc.id,
-        ...data,
-        orderDate: data.orderDate?.toDate ? data.orderDate.toDate().toISOString() : new Date().toISOString(),
+        ...convertedData,
       } as Order;
     });
     return orders;
@@ -66,10 +75,10 @@ export async function getOrdersBySellerId(sellerId: string): Promise<Order[]> {
     const querySnapshot = await getDocs(q);
     const orders = querySnapshot.docs.map((doc) => {
       const data = doc.data();
+      const convertedData = convertTimestamp(data);
       return {
         id: doc.id,
-        ...data,
-        orderDate: data.orderDate?.toDate ? data.orderDate.toDate().toISOString() : new Date().toISOString(),
+        ...convertedData,
       } as Order;
     });
     return orders;

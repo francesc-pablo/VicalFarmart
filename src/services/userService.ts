@@ -3,7 +3,7 @@
 
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, orderBy } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { createUserWithEmailAndPassword, updateProfile, fetchSignInMethodsForEmail, FirebaseError } from "firebase/auth";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
@@ -24,7 +24,8 @@ const convertTimestamp = (data: any) => {
 // Function to get all users, sorted by most recently created
 export async function getUsers(): Promise<User[]> {
   try {
-    const querySnapshot = await getDocs(collection(db, "users"));
+    const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
     const users = querySnapshot.docs.map((doc) => {
       const data = doc.data();
       const convertedData = convertTimestamp(data);
@@ -33,20 +34,22 @@ export async function getUsers(): Promise<User[]> {
         ...convertedData,
       } as User;
     });
-
-    // Sort client-side. Users without a createdAt date will be at the end.
-    return users.sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      
-      if (timeB === timeA) {
-        return (a.name || "").localeCompare(b.name || "");
-      }
-      return timeB - timeA; // Sort descending (newest first)
-    });
+    return users;
   } catch (error) {
     console.error("Error fetching users: ", error);
-    return [];
+    // Fallback if sorting query fails (e.g., no composite index)
+    try {
+        const fallbackSnapshot = await getDocs(collection(db, "users"));
+        const fallbackUsers = fallbackSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            const convertedData = convertTimestamp(data);
+            return { id: doc.id, ...convertedData } as User;
+        });
+        return fallbackUsers;
+    } catch (fallbackError) {
+        console.error("Error fetching users with fallback: ", fallbackError);
+        return [];
+    }
   }
 }
 
