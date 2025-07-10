@@ -8,6 +8,26 @@ import { ai } from '@/ai/genkit';
 import { sendEmail } from '@/services/emailService';
 import { z } from 'zod';
 
+// == Schemas & Types ==
+
+const EmailOutputSchema = z.object({
+  subject: z.string(),
+  body: z.string().describe('The HTML body of the email.'),
+});
+
+const ShippingAddressSchema = z.object({
+    address: z.string(),
+    city: z.string(),
+    zipCode: z.string(),
+});
+
+const ItemSchema = z.object({
+    productName: z.string(),
+    quantity: z.number(),
+    price: z.number(),
+});
+
+
 // == 1. Welcome Email Flow ==
 
 const WelcomeEmailInputSchema = z.object({
@@ -16,10 +36,6 @@ const WelcomeEmailInputSchema = z.object({
 });
 type WelcomeEmailInput = z.infer<typeof WelcomeEmailInputSchema>;
 
-const EmailOutputSchema = z.object({
-  subject: z.string(),
-  body: z.string().describe('The HTML body of the email.'),
-});
 
 const welcomePrompt = ai.definePrompt({
   name: 'welcomeEmailPrompt',
@@ -224,16 +240,8 @@ const OrderConfirmationEmailInputSchema = z.object({
   totalAmount: z.number(),
   paymentMethod: z.string(),
   transactionId: z.string().optional(),
-  items: z.array(z.object({
-    productName: z.string(),
-    quantity: z.number(),
-    price: z.number(),
-  })),
-  shippingAddress: z.object({
-    address: z.string(),
-    city: z.string(),
-    zipCode: z.string(),
-  }),
+  items: z.array(ItemSchema),
+  shippingAddress: ShippingAddressSchema,
 });
 type OrderConfirmationEmailInput = z.infer<typeof OrderConfirmationEmailInputSchema>;
 
@@ -244,7 +252,7 @@ const orderConfirmationPrompt = ai.definePrompt({
     output: { schema: EmailOutputSchema },
     prompt: `
       You are the friendly automated receipt system for Vical Farmart.
-      Generate a detailed order confirmation and receipt email.
+      Generate a detailed order confirmation and receipt email. This confirms a SUCCESSFUL PAYMENT.
 
       Customer: {{{customerName}}}
       Order ID: #{{{orderId}}}
@@ -300,4 +308,82 @@ const sendOrderConfirmationEmailFlow = ai.defineFlow({
 
 export async function sendOrderConfirmationEmail(input: OrderConfirmationEmailInput): Promise<void> {
     return sendOrderConfirmationEmailFlow(input);
+}
+
+
+// == 5. Pay on Delivery Invoice Email Flow ==
+
+const PayOnDeliveryInvoiceEmailInputSchema = z.object({
+  customerEmail: z.string().email(),
+  customerName: z.string(),
+  orderId: z.string(),
+  totalAmount: z.number(),
+  items: z.array(ItemSchema),
+  shippingAddress: ShippingAddressSchema,
+});
+type PayOnDeliveryInvoiceEmailInput = z.infer<typeof PayOnDeliveryInvoiceEmailInputSchema>;
+
+
+const payOnDeliveryInvoicePrompt = ai.definePrompt({
+    name: 'payOnDeliveryInvoicePrompt',
+    input: { schema: PayOnDeliveryInvoiceEmailInputSchema },
+    output: { schema: EmailOutputSchema },
+    prompt: `
+      You are the order processing system for Vical Farmart.
+      Generate an INVOICE for a "Pay on Delivery" order. This is NOT a receipt.
+
+      Customer: {{{customerName}}}
+      Order ID: #{{{orderId}}}
+
+      The subject line must be "Your Vical Farmart Order Invoice (#{{{orderId}}})".
+
+      Generate a well-formatted HTML email body.
+      - Start with a thank you message for placing the order.
+      - Clearly state this is an invoice for a Pay on Delivery order.
+      - Explain that payment is due in cash upon delivery.
+      - Clearly list all items with quantity, price per item, and subtotal.
+      - Show the grand total amount to be paid.
+      - Display the shipping address.
+      - End with a friendly closing note, telling the customer they will be notified when the order ships.
+      
+      Order Details:
+      - Grand Total: \${{{totalAmount}}} (To be paid on delivery)
+      - Payment Method: Pay on Delivery
+
+      Items in your Order:
+      {{#each items}}
+      - {{this.quantity}}x "{{this.productName}}" @ \${{this.price}} each = \${{multiply this.quantity this.price}}
+      {{/each}}
+
+      Shipping To:
+      {{{shippingAddress.address}}}
+      {{{shippingAddress.city}}}, {{{shippingAddress.zipCode}}}
+    `,
+    helpers: {
+      multiply: (a: number, b: number) => (a * b).toFixed(2),
+    }
+});
+
+
+const sendPayOnDeliveryInvoiceEmailFlow = ai.defineFlow({
+    name: 'sendPayOnDeliveryInvoiceEmailFlow',
+    inputSchema: PayOnDeliveryInvoiceEmailInputSchema,
+    outputSchema: z.void(),
+}, async (input) => {
+    console.log(`Generating 'Pay on Delivery' invoice for ${input.customerEmail}`);
+    const { output } = await payOnDeliveryInvoicePrompt(input);
+    if (!output) {
+        console.error('Failed to generate Pay on Delivery invoice for order ' + input.orderId);
+        throw new Error('Pay on Delivery invoice generation failed.');
+    }
+    await sendEmail({
+        to: input.customerEmail,
+        subject: output.subject,
+        htmlBody: output.body,
+    });
+    console.log(`'Pay on Delivery' invoice sent to ${input.customerEmail}`);
+});
+
+export async function sendPayOnDeliveryInvoiceEmail(input: PayOnDeliveryInvoiceEmailInput): Promise<void> {
+    return sendPayOnDeliveryInvoiceEmailFlow(input);
 }

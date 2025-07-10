@@ -17,7 +17,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getAllOrders, updateOrderStatus, getOrderById } from '@/services/orderService';
 import { getUserById } from '@/services/userService';
-import { sendOrderStatusUpdateEmail } from '@/ai/flows/emailFlows';
+import { sendOrderStatusUpdateEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -60,19 +60,36 @@ export default function AdminOrdersPage() {
         // Send notification emails
         const order = await getOrderById(orderId); // Fetch the most up-to-date order
         if (order) {
-            // 1. Notify Customer
-            if (order.customerEmail) {
-                await sendOrderStatusUpdateEmail({
-                    recipientEmail: order.customerEmail,
-                    recipientRole: 'customer',
+            // Send receipt if order is delivered
+             if (newStatus === 'Delivered') {
+                await sendOrderConfirmationEmail({
+                    customerEmail: order.customerEmail,
                     customerName: order.customerName,
                     orderId: order.id,
-                    newStatus: newStatus,
-                    items: order.items.map(i => ({ productName: i.productName, quantity: i.quantity })),
+                    totalAmount: order.totalAmount,
+                    paymentMethod: order.paymentMethod,
+                    items: order.items,
+                    shippingAddress: {
+                        address: order.shippingAddress.address,
+                        city: order.shippingAddress.city,
+                        zipCode: order.shippingAddress.zipCode,
+                    },
                 });
+            } else {
+                // Otherwise, send a standard status update
+                if (order.customerEmail) {
+                    await sendOrderStatusUpdateEmail({
+                        recipientEmail: order.customerEmail,
+                        recipientRole: 'customer',
+                        customerName: order.customerName,
+                        orderId: order.id,
+                        newStatus: newStatus,
+                        items: order.items.map(i => ({ productName: i.productName, quantity: i.quantity })),
+                    });
+                }
             }
 
-            // 2. Notify Seller
+            // 2. Notify Seller (in all cases except when admin is also the seller or no seller exists)
             if (order.sellerId) {
                 const seller = await getUserById(order.sellerId);
                 if (seller?.email) {

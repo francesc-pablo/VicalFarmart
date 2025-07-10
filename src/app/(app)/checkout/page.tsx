@@ -28,9 +28,9 @@ import {
 } from "@/components/ui/form";
 import { createOrder } from '@/services/orderService';
 import { getUsers, getUserById } from '@/services/userService';
-import { sendNewOrderEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
+import { sendNewOrderEmail, sendOrderConfirmationEmail, sendPayOnDeliveryInvoiceEmail } from '@/ai/flows/emailFlows';
 import { auth } from '@/lib/firebase';
-import type { Order, User, OrderItem } from '@/types';
+import type { Order, User, OrderItem, PaymentMethod as PaymentMethodType } from '@/types';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { v4 as uuidv4 } from 'uuid';
@@ -144,6 +144,7 @@ export default function CheckoutPage() {
   const handleCreateOrderInDB = async (
     data: CheckoutFormValues, 
     status: Order['status'], 
+    paymentMethod: PaymentMethodType,
     paymentDetails?: Order['paymentDetails']
   ) => {
     if (!currentUser || cartItems.length === 0) return null;
@@ -165,7 +166,7 @@ export default function CheckoutPage() {
         items: orderItems,
         totalAmount: total,
         status: status,
-        paymentMethod: data.paymentMethod === 'online' ? 'Online Payment' : 'Pay on Delivery',
+        paymentMethod: paymentMethod,
         shippingAddress: {
             address: data.address,
             city: data.city,
@@ -186,7 +187,7 @@ export default function CheckoutPage() {
 
         try {
             // Send receipt to customer if paid online
-            if (status === 'Paid') {
+            if (paymentMethod === 'Online Payment') {
               await sendOrderConfirmationEmail({
                 customerEmail: data.email,
                 customerName: data.fullName,
@@ -201,6 +202,19 @@ export default function CheckoutPage() {
                   zipCode: data.zipCode,
                 },
               });
+            } else if (paymentMethod === 'Pay on Delivery') {
+                await sendPayOnDeliveryInvoiceEmail({
+                    customerEmail: data.email,
+                    customerName: data.fullName,
+                    orderId: newOrderId,
+                    totalAmount: total,
+                    items: orderItems,
+                    shippingAddress: {
+                        address: data.address,
+                        city: data.city,
+                        zipCode: data.zipCode,
+                    },
+                });
             }
 
             // Send notification to admin
@@ -290,13 +304,12 @@ export default function CheckoutPage() {
     }
 
     if (data.paymentMethod === 'cod') {
-        await handleCreateOrderInDB(data, 'Pending');
+        await handleCreateOrderInDB(data, 'Pending', 'Pay on Delivery');
     } else {
         handleFlutterwavePayment({
             callback: async (response) => {
-                console.log("Flutterwave Response:", response);
                 if (response.status === 'successful') {
-                    await handleCreateOrderInDB(data, 'Paid', {
+                    await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {
                         transactionId: response.transaction_id,
                         status: response.status,
                         gateway: 'Flutterwave',
