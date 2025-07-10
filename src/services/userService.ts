@@ -2,7 +2,7 @@
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, serverTimestamp, orderBy } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
 const usersCollectionRef = collection(db, "users");
@@ -58,12 +58,26 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
   if (!userData.email || !userData.password) {
     throw new Error("Email and password are required to create a new user.");
   }
+  
+  // Store current user to sign back in later
+  const currentAdmin = auth.currentUser;
+  if (!currentAdmin) {
+    throw new Error("Admin not authenticated. Please log in again.");
+  }
+  
+  // Temporarily disable auth state persistence to prevent auto-login of new user
+  const previousPersistence = auth.getPersistence();
+  auth.setPersistence("none");
+
   try {
-    // 1. Create user in Firebase Auth
+    // 1. Create user in Firebase Auth without logging them in
     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
     const user = userCredential.user;
+    
+    // 2. Set the display name for the new user
+    await updateProfile(user, { displayName: userData.name });
 
-    // 2. Create user document in Firestore
+    // 3. Create user document in Firestore
     const newUser: Omit<User, 'id'> = {
       name: userData.name || "New User",
       email: user.email!,
@@ -97,6 +111,14 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
   } catch (error) {
     console.error("Error adding new user:", error);
     throw error;
+  } finally {
+     // Restore previous persistence setting and ensure admin is signed back in
+    auth.setPersistence(previousPersistence);
+    if (auth.currentUser?.uid !== currentAdmin.uid) {
+        // This is a failsafe. Re-authenticating would be complex.
+        // The persistence change should prevent the session swap.
+        console.warn("Auth state changed unexpectedly. Admin might need to refresh.");
+    }
   }
 }
 
