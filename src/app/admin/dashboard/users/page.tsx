@@ -19,6 +19,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { UserForm } from '@/components/admin/UserForm';
+import { getAuth } from 'firebase/auth';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -46,6 +47,8 @@ export default function AdminUsersPage() {
   };
 
   const handleDeleteUser = async (userId: string) => {
+    // Note: This only deletes from Firestore, not Firebase Auth.
+    // A more robust solution would use a Cloud Function to delete the auth user too.
     await deleteUser(userId);
     toast({ title: "User Deleted", description: "The user's data has been removed from the database.", variant: "destructive" });
     fetchUsers();
@@ -61,14 +64,14 @@ export default function AdminUsersPage() {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = async (data: Partial<User>) => {
+  const handleFormSubmit = async (data: Partial<User>, adminToken?: string) => {
     try {
         if (editingUser) {
           await updateUser(editingUser.id, data);
           toast({ title: "User Updated", description: "The user's details have been saved." });
         } else {
-          // The addUser function now handles getting the token.
-          const newUser = await addUser(data);
+          // Pass the admin token to the service.
+          const newUser = await addUser(data, adminToken);
           if (newUser) {
             toast({ title: "User Created", description: `An account for ${newUser.name} has been created.` });
           } else {
@@ -154,7 +157,7 @@ export default function AdminUsersPage() {
           <DialogHeader>
             <DialogTitle>{editingUser ? 'Edit User' : 'Add New User'}</DialogTitle>
             <DialogDescription>
-              {editingUser ? "Update the user's details. Leave password blank to keep it unchanged." : "Create a new user account with a specific role."}
+              {editingUser ? "Update the user's details." : "Create a new user account with a specific role. The admin will not be logged out."}
             </DialogDescription>
           </DialogHeader>
           <UserForm

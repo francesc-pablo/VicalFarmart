@@ -4,7 +4,6 @@
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
-import { createUserWithEmailAndPassword, updateProfile, fetchSignInMethodsForEmail, FirebaseError } from "firebase/auth";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
 // Helper to convert Firestore Timestamps to a plain, serializable format
@@ -72,56 +71,32 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
-
-// Function to add a new user (via client SDK, will log out admin)
-export async function addUser(userData: Partial<User>): Promise<User | null> {
-    if (!userData.email || !userData.password) {
-        throw new Error("Email and password are required for user creation.");
+// Function to add a new user by calling the secure API route
+export async function addUser(userData: Partial<User>, adminToken?: string): Promise<User | null> {
+    if (!adminToken) {
+        throw new Error("Admin authentication token is required.");
     }
 
     try {
-        const signInMethods = await fetchSignInMethodsForEmail(auth, userData.email);
-        if (signInMethods.length > 0) {
-            throw new Error("This email is already in use by another account.");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/create-user`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userData, adminToken }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to create user via API.');
         }
 
-        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-        const user = userCredential.user;
+        return result.user as User;
 
-        await updateProfile(user, { displayName: userData.name });
-
-        const newUser: Omit<User, 'id' | 'password'> = {
-            name: userData.name || "New User",
-            email: user.email!,
-            role: userData.role || 'customer',
-            isActive: true,
-            createdAt: serverTimestamp(),
-            phone: userData.phone || "",
-            address: userData.address || "",
-            region: userData.region || "",
-            town: userData.town || "",
-            businessName: userData.businessName || "",
-            businessOwnerName: userData.businessOwnerName || "",
-            businessAddress: userData.businessAddress || "",
-            contactNumber: userData.contactNumber || "",
-            businessLocationRegion: userData.businessLocationRegion || "",
-            businessLocationTown: userData.businessLocationTown || "",
-            geoCoordinatesLat: userData.geoCoordinatesLat || "",
-            geoCoordinatesLng: userData.geoCoordinatesLng || "",
-            businessType: userData.businessType || "",
-            failedLoginAttempts: 0,
-            lockoutUntil: null,
-        };
-
-        await setDoc(doc(db, "users", user.uid), newUser);
-
-        await sendWelcomeEmail({ name: newUser.name, email: newUser.email });
-
-        return { id: user.uid, ...newUser };
     } catch (error) {
-        const firebaseError = error as FirebaseError;
-        console.error("Error adding user:", firebaseError);
-        throw new Error(firebaseError.message || "An unexpected error occurred during user creation.");
+        console.error("Error adding user via API:", error);
+        throw error;
     }
 }
 
@@ -141,6 +116,8 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
 }
 
 // Function to delete a user's Firestore document
+// Note: This does not delete the user from Firebase Auth.
+// A Cloud Function would be required for that.
 export async function deleteUser(userId: string): Promise<void> {
     try {
         const userDocRef = doc(db, "users", userId);

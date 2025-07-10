@@ -26,10 +26,12 @@ import type { User, UserRole } from "@/types";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
+import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserFormProps {
   user?: User | null;
-  onSubmit: (data: Partial<User>) => void;
+  onSubmit: (data: Partial<User>, adminToken?: string) => void;
   onCancel: () => void;
 }
 
@@ -69,6 +71,7 @@ const NO_REGION_VALUE = "--NONE--";
 const NO_TOWN_VALUE = "--NONE--";
 
 export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
+  const { toast } = useToast();
   const isEditing = !!user;
   const formSchema = isEditing ? userFormSchemaUpdate : userFormSchemaCreate;
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
@@ -141,9 +144,29 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
       if (!values.password) {
         delete dataToSubmit.password;
       }
+      onSubmit(dataToSubmit); // No token needed for update
+    } else {
+      // For creation, get the admin's token
+      const adminUser = auth.currentUser;
+      if (!adminUser) {
+        toast({
+          title: "Admin Not Authenticated",
+          description: "Please log in again to create a user.",
+          variant: "destructive",
+        });
+        return;
+      }
+      try {
+        const adminToken = await adminUser.getIdToken(true);
+        onSubmit(dataToSubmit, adminToken);
+      } catch (error) {
+        toast({
+          title: "Authentication Error",
+          description: "Could not verify admin credentials. Please log in again.",
+          variant: "destructive",
+        });
+      }
     }
-    
-    onSubmit(dataToSubmit);
   };
 
   return (
