@@ -6,7 +6,7 @@ import { OrderTable } from "@/components/shared/OrderTable";
 import type { Order, OrderStatus, User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Box, CalendarIcon, CreditCard, Hash, MapPin, User as UserIcon, Mail, Phone } from "lucide-react";
+import { Search, Box, CalendarIcon, CreditCard, Hash, MapPin, User as UserIcon, Mail, Phone, FileText } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -53,16 +53,17 @@ export default function AdminOrdersPage() {
     try {
         await updateOrderStatus(orderId, newStatus);
         toast({ title: "Order Status Updated", description: `Order #${orderId.substring(0,6)} marked as ${newStatus}.` });
-        fetchOrders(); // Re-fetch to get the latest state
+        
+        // Optimistically update local state
+        setAllOrders(prevOrders => prevOrders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
 
         // Send notification emails
-        const order = await getOrderById(orderId);
+        const order = await getOrderById(orderId); // Fetch the most up-to-date order
         if (order) {
             // 1. Notify Customer
-            const customer = await getUserById(order.customerId);
-            if (customer?.email) {
+            if (order.customerEmail) {
                 await sendOrderStatusUpdateEmail({
-                    recipientEmail: customer.email,
+                    recipientEmail: order.customerEmail,
                     recipientRole: 'customer',
                     customerName: order.customerName,
                     orderId: order.id,
@@ -88,6 +89,7 @@ export default function AdminOrdersPage() {
         }
     } catch (error) {
         toast({ title: "Update Failed", description: "Could not update the order status.", variant: "destructive" });
+        fetchOrders(); // Re-fetch all on error to ensure consistency
     }
   };
 
@@ -221,7 +223,13 @@ export default function AdminOrdersPage() {
                     </div>
                     <div className="flex items-start gap-2 text-muted-foreground pt-1">
                         <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        <span className="break-all">{selectedOrder.shippingAddress}</span>
+                         <span>
+                            {selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.zipCode}
+                        </span>
+                    </div>
+                     <div className="flex items-center gap-2 text-muted-foreground">
+                        <FileText className="h-4 w-4" />
+                        <span><strong>ID Card:</strong> {selectedOrder.shippingAddress.idCardNumber}</span>
                     </div>
                   </div>
                 </div>

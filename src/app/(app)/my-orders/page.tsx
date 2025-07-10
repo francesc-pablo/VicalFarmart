@@ -7,7 +7,7 @@ import { OrderTable } from "@/components/shared/OrderTable";
 import type { Order, OrderStatus, User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Package, History, ShoppingCart, Mail, User as UserIcon, MapPin, CreditCard, Box, Hash, CalendarIcon, Phone } from "lucide-react";
+import { ArrowLeft, Package, History, ShoppingCart, Mail, User as UserIcon, MapPin, CreditCard, Box, Hash, CalendarIcon, Phone, FileText } from "lucide-react";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -201,7 +201,13 @@ export default function MyOrdersPage() {
                     </div>
                     <div className="flex items-start gap-2 text-muted-foreground pt-1">
                         <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        <span className="break-all">{selectedOrder.shippingAddress}</span>
+                        <span>
+                            {selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.zipCode}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <FileText className="h-4 w-4" />
+                        <span><strong>ID Card:</strong> {selectedOrder.shippingAddress.idCardNumber}</span>
                     </div>
                   </div>
                 </div>

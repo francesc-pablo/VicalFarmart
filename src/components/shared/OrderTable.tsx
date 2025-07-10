@@ -75,9 +75,32 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
               <TableCell className="hidden sm:table-cell">{format(new Date(order.orderDate), "MMM d, yyyy")}</TableCell>
               <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
               <TableCell>
-                <Badge variant={getStatusBadgeVariant(order.status)} className="text-xs">
-                  {order.status}
-                </Badge>
+                {onUpdateStatus ? (
+                  <Select
+                    value={order.status}
+                    onValueChange={(newStatus: string) => onUpdateStatus(order.id, newStatus as OrderStatus)}
+                    disabled={['Delivered', 'Cancelled'].includes(order.status)}
+                  >
+                    <SelectTrigger className={`h-8 w-auto text-xs inline-flex focus:ring-primary border-none focus:ring-0 shadow-none bg-transparent ${['Delivered', 'Cancelled'].includes(order.status) ? "pointer-events-none" : ""}`}>
+                       <SelectValue asChild>
+                         <Badge variant={getStatusBadgeVariant(order.status)} className="text-xs">
+                           {order.status}
+                         </Badge>
+                       </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableOrderStatuses.map(s => (
+                        <SelectItem key={s} value={s} className="text-xs">
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge variant={getStatusBadgeVariant(order.status)} className="text-xs">
+                    {order.status}
+                  </Badge>
+                )}
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 <Badge variant={order.paymentMethod === 'Mobile Payment' ? 'default' : 'secondary'} className="text-xs">
@@ -89,29 +112,6 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
                   <Button variant="ghost" size="icon" onClick={() => onViewDetails(order.id)} title="View Details">
                     <Eye className="h-4 w-4" />
                   </Button>
-                )}
-                {onUpdateStatus && !['Delivered', 'Cancelled'].includes(order.status) && (
-                  <Select
-                    defaultValue={order.status}
-                    onValueChange={(newStatus: string) => onUpdateStatus(order.id, newStatus as OrderStatus)}
-                  >
-                    <SelectTrigger className="h-8 w-[120px] text-xs inline-flex focus:ring-primary">
-                      <SelectValue placeholder="Update status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableOrderStatuses.map(s => (
-                        <SelectItem key={s} value={s} className="text-xs">
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                 {/* Show status if final and no update possible */}
-                {onUpdateStatus && ['Delivered', 'Cancelled'].includes(order.status) && (
-                   <span className="text-xs text-muted-foreground italic pr-2">
-                     {order.status}
-                   </span>
                 )}
               </TableCell>
             </TableRow>

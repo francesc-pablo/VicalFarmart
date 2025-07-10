@@ -1,5 +1,6 @@
 
 
+
 export interface Product {
   id: string;
   name: string;
@@ -36,7 +37,12 @@ export interface Order {
   totalAmount: number;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
-  shippingAddress: string;
+  shippingAddress: {
+    address: string;
+    city: string;
+    zipCode: string;
+    idCardNumber: string;
+  };
   orderDate: string;
   sellerId?: string;
 }

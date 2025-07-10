@@ -184,9 +184,11 @@ export default function SellerOrdersPage() {
                 <Separator />
 
                 <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2"><UserIcon className="h-4 w-4 text-primary"/> Customer Name</h4>
-                   <div className="text-sm p-3 bg-muted/50 rounded-md">
-                    <p><strong>{selectedOrder.customerName}</strong></p>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2"><UserIcon className="h-4 w-4 text-primary"/> Customer Details</h4>
+                   <div className="text-sm p-3 bg-muted/50 rounded-md space-y-2">
+                    <p><strong>Name:</strong> {selectedOrder.customerName}</p>
+                    <p><strong>Email:</strong> {selectedOrder.customerEmail}</p>
+                    <p><strong>Phone:</strong> {selectedOrder.customerPhone}</p>
                   </div>
                 </div>
 

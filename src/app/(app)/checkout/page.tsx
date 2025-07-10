@@ -111,14 +111,19 @@ export default function CheckoutPage() {
 
     const orderData: Omit<Order, 'id' | 'orderDate'> = {
         customerId: currentUser.id,
-        customerName: data.fullName, // Use name from form
-        customerEmail: data.email, // Save email with order
-        customerPhone: data.phone, // Save phone with order
+        customerName: data.fullName,
+        customerEmail: data.email,
+        customerPhone: data.phone,
         items: orderItems,
         totalAmount: total,
         status: 'Pending',
         paymentMethod: paymentMethod === 'mobile' ? 'Mobile Payment' : 'Pay on Delivery',
-        shippingAddress: `${data.address}, ${data.city}, ${data.zipCode}`,
+        shippingAddress: {
+            address: data.address,
+            city: data.city,
+            zipCode: data.zipCode,
+            idCardNumber: data.idCardNumber,
+        },
         sellerId: sellerId,
     };
 
@@ -141,7 +146,7 @@ export default function CheckoutPage() {
                     recipientName: adminUser.name,
                     recipientRole: 'admin',
                     orderId: newOrderId,
-                    customerName: currentUser.name,
+                    customerName: data.fullName,
                     totalAmount: total,
                     items: orderItems,
                 });
@@ -156,7 +161,7 @@ export default function CheckoutPage() {
                         recipientName: seller.name,
                         recipientRole: 'seller',
                         orderId: newOrderId,
-                        customerName: currentUser.name,
+                        customerName: data.fullName,
                         totalAmount: total,
                         items: orderItems,
                     });
