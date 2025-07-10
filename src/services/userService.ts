@@ -7,19 +7,18 @@ import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverT
 import { createUserWithEmailAndPassword, updateProfile, fetchSignInMethodsForEmail, FirebaseError } from "firebase/auth";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
-// Helper to convert Firestore Timestamps to ISO strings
+// Helper to convert Firestore Timestamps to a plain, serializable format
 const convertTimestamp = (data: any) => {
+  if (!data) return data;
   const convertedData = { ...data };
-  if (convertedData.createdAt?.toDate) {
-    convertedData.createdAt = convertedData.createdAt.toDate().toISOString();
-  }
-  if (convertedData.lockoutUntil?.toDate) {
-    convertedData.lockoutUntil = convertedData.lockoutUntil.toDate().getTime();
-  } else if (convertedData.lockoutUntil instanceof Date) {
-    convertedData.lockoutUntil = convertedData.lockoutUntil.getTime();
+  for (const key in convertedData) {
+    if (convertedData[key] && typeof convertedData[key].toDate === 'function') {
+      convertedData[key] = convertedData[key].toDate().toISOString();
+    }
   }
   return convertedData;
 };
+
 
 // Function to get all users, sorted by most recently created
 export async function getUsers(): Promise<User[]> {

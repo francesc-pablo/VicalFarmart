@@ -5,11 +5,13 @@ import { collection, getDocs, doc, updateDoc, query, orderBy, where, addDoc, ser
 
 const ordersCollectionRef = collection(db, "orders");
 
-// Helper to convert Firestore Timestamps to ISO strings
+// Helper to convert Firestore Timestamps to a plain, serializable format
 const convertTimestamp = (data: any) => {
   const convertedData = { ...data };
-  if (convertedData.orderDate?.toDate) {
-    convertedData.orderDate = convertedData.orderDate.toDate().toISOString();
+  for (const key in convertedData) {
+    if (convertedData[key]?.toDate) {
+      convertedData[key] = convertedData[key].toDate().toISOString();
+    }
   }
   return convertedData;
 };
