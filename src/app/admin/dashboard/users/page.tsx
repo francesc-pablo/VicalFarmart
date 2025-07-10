@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { UserForm } from '@/components/admin/UserForm';
 import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -48,11 +49,25 @@ export default function AdminUsersPage() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    // Note: This only deletes from Firestore, not Firebase Auth.
-    // A more robust solution would use a Cloud Function to delete the auth user too.
-    await deleteUser(userId);
-    toast({ title: "User Deleted", description: "The user's data has been removed from the database.", variant: "destructive" });
-    fetchUsers();
+    const admin = auth.currentUser;
+    if (!admin) {
+        toast({ title: "Authentication Error", description: "Admin not logged in. Please refresh and try again.", variant: "destructive" });
+        return;
+    }
+
+    try {
+        const adminToken = await admin.getIdToken(true);
+        const result = await deleteUser(userId, adminToken);
+
+        if (result.success) {
+            toast({ title: "User Deleted", description: "The user has been completely removed from the system." });
+            fetchUsers();
+        } else {
+            toast({ title: "Deletion Failed", description: result.message, variant: "destructive" });
+        }
+    } catch (error: any) {
+        toast({ title: "Error", description: error.message || "An unexpected error occurred during deletion.", variant: "destructive" });
+    }
   };
   
   const handleEditUser = (user: User) => {
