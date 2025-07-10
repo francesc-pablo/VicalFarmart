@@ -26,10 +26,20 @@ const firebaseConfig = {
 
 // Initialize Firebase
 // This check prevents re-initializing the app on every hot-reload in development.
-// If the config keys are missing, the Firebase SDK will now log its own console
-// errors without crashing the entire application.
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const auth = getAuth(app);
+let app;
+if (firebaseConfig.apiKey) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+} else {
+    console.warn("Firebase configuration is missing. Firebase services will not be available.");
+    // Create a dummy app object to avoid crashing the app if firebaseConfig is not available
+    app = {
+      name: "dummy",
+      options: {},
+      automaticDataCollectionEnabled: false,
+    };
+}
 
-export { app, db, auth };
+const db = app.name !== 'dummy' ? getFirestore(app) : ({} as any);
+const auth = app.name !== 'dummy' ? getAuth(app) : ({} as any);
+
+export { db, auth };

@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -49,6 +48,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
+  // This check is for the client-side Firebase SDK. The app can't function without it.
+  // Other variables like GOOGLE_API_KEY are used server-side, and will have their own errors if missing.
   if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
     return <MissingEnvError />;
   }
