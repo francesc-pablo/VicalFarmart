@@ -7,7 +7,7 @@ import { OrderTable } from "@/components/shared/OrderTable";
 import type { Order, OrderStatus, User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Package, History, ShoppingCart, Mail, User as UserIcon, MapPin, CreditCard, Box, Hash, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Package, History, ShoppingCart, Mail, User as UserIcon, MapPin, CreditCard, Box, Hash, CalendarIcon, Phone } from "lucide-react";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -153,7 +153,7 @@ export default function MyOrdersPage() {
                   Detailed information for your order #{selectedOrder.id.substring(0, 6)}.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2"><Hash className="h-4 w-4 text-primary"/> <span><strong>Order ID:</strong> #{selectedOrder.id.substring(0, 6)}</span></div>
                   <div className="flex items-center gap-2"><CalendarIcon className="h-4 w-4 text-primary"/> <span><strong>Date:</strong> {format(new Date(selectedOrder.orderDate), 'PPP')}</span></div>
@@ -188,10 +188,21 @@ export default function MyOrdersPage() {
                 <Separator />
 
                 <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2"><MapPin className="h-4 w-4 text-primary"/> Shipping Details</h4>
-                  <div className="text-sm p-3 bg-muted/50 rounded-md">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2"><UserIcon className="h-4 w-4 text-primary"/> Shipping Details</h4>
+                  <div className="text-sm p-3 bg-muted/50 rounded-md space-y-2">
                     <p><strong>{selectedOrder.customerName}</strong></p>
-                    <p className="text-muted-foreground">{selectedOrder.shippingAddress}</p>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <span>{selectedOrder.customerEmail}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="h-4 w-4" />
+                        <span>{selectedOrder.customerPhone}</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-muted-foreground pt-1">
+                        <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <span className="break-all">{selectedOrder.shippingAddress}</span>
+                    </div>
                   </div>
                 </div>
 

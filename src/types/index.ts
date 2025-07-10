@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -29,6 +30,8 @@ export interface Order {
   id: string;
   customerId: string;
   customerName: string;
+  customerEmail: string;
+  customerPhone: string;
   items: OrderItem[];
   totalAmount: number;
   status: OrderStatus;

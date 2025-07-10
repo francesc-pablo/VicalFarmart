@@ -6,7 +6,7 @@ import { OrderTable } from "@/components/shared/OrderTable";
 import type { Order, OrderStatus, User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Box, CalendarIcon, CreditCard, Hash, MapPin, User as UserIcon } from "lucide-react";
+import { Search, Box, CalendarIcon, CreditCard, Hash, MapPin, User as UserIcon, Mail, Phone } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -208,16 +208,21 @@ export default function AdminOrdersPage() {
                 <Separator />
 
                 <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2"><UserIcon className="h-4 w-4 text-primary"/> Customer Details</h4>
-                   <div className="text-sm p-3 bg-muted/50 rounded-md">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2"><UserIcon className="h-4 w-4 text-primary"/> Shipping Details</h4>
+                  <div className="text-sm p-3 bg-muted/50 rounded-md space-y-2">
                     <p><strong>{selectedOrder.customerName}</strong></p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2"><MapPin className="h-4 w-4 text-primary"/> Shipping Details</h4>
-                  <div className="text-sm p-3 bg-muted/50 rounded-md">
-                    <p className="text-muted-foreground">{selectedOrder.shippingAddress}</p>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <span>{selectedOrder.customerEmail}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="h-4 w-4" />
+                        <span>{selectedOrder.customerPhone}</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-muted-foreground pt-1">
+                        <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <span className="break-all">{selectedOrder.shippingAddress}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -228,4 +233,3 @@ export default function AdminOrdersPage() {
     </>
   );
 }
-

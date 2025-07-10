@@ -112,6 +112,8 @@ export default function CheckoutPage() {
     const orderData: Omit<Order, 'id' | 'orderDate'> = {
         customerId: currentUser.id,
         customerName: data.fullName, // Use name from form
+        customerEmail: data.email, // Save email with order
+        customerPhone: data.phone, // Save phone with order
         items: orderItems,
         totalAmount: total,
         status: 'Pending',
