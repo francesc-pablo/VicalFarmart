@@ -4,7 +4,7 @@
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, serverTimestamp, orderBy, writeBatch } from "firebase/firestore";
-import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 
 const usersCollectionRef = collection(db, "users");
@@ -75,22 +75,19 @@ export async function getUserById(userId: string): Promise<User | null> {
 // Function to add a new user (Auth + Firestore)
 export async function addUser(userData: Partial<User> & { adminPassword?: string }): Promise<User | null> {
   const admin = auth.currentUser;
-  if (!admin || !admin.email) {
-    // This check runs on the server, where auth.currentUser might be null.
-    // The real check is the re-authentication with the provided password.
-    console.warn("auth.currentUser is not available in this server context. Proceeding with re-authentication.");
-  }
   
+  if (!admin || !admin.email) {
+    throw new Error("Admin user is not authenticated. Please log in again.");
+  }
   if (!userData.email || !userData.password) {
       throw new Error("Email and password are required to create a new user.");
   }
-  
-  const adminEmail = admin?.email; // Store admin email before it's gone
-  const adminPassword = userData.adminPassword;
-
-  if (!adminEmail || !adminPassword) {
-      throw new Error("Admin credentials are required to perform this action.");
+  if (!userData.adminPassword) {
+      throw new Error("Admin password is required to create a user.");
   }
+  
+  const adminEmail = admin.email;
+  const adminPassword = userData.adminPassword;
 
   // This property is not part of the User type and should be removed before database insertion
   delete userData.adminPassword;
@@ -132,7 +129,7 @@ export async function addUser(userData: Partial<User> & { adminPassword?: string
     // 3. Re-authenticate the admin to keep them logged in.
     await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
 
-    return { id: user.uid, ...newUser };
+    return { id: user.uid, ...newUser } as User;
 
   } catch (error: any) {
     // If something went wrong, try to log the admin back in as a fallback.
