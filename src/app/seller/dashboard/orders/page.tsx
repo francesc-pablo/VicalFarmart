@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { OrderTable } from "@/components/shared/OrderTable";
-import type { Order, OrderStatus, User } from "@/types";
+import type { Order, OrderStatus } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Box, CalendarIcon, CreditCard, Hash, User as UserIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
+
 
 export default function SellerOrdersPage() {
   const router = useRouter();
@@ -29,6 +39,7 @@ export default function SellerOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "All">("All");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -67,6 +78,11 @@ export default function SellerOrdersPage() {
 
   const orderStatuses: (OrderStatus | "All")[] = ["All", "Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
   
+  const getCurrencySymbol = (currencyCode?: string) => {
+    if (currencyCode === "GHS") return "₵";
+    return "$"; // Default
+  };
+
   const OrderTableSkeleton = () => (
      <div className="space-y-2 p-4">
        {[...Array(8)].map((_, i) => (
@@ -83,6 +99,7 @@ export default function SellerOrdersPage() {
    );
 
   return (
+    <>
     <div>
       <PageHeader title="My Sales" description="View all customer orders for your products." />
       
@@ -113,12 +130,71 @@ export default function SellerOrdersPage() {
           {isLoading ? <OrderTableSkeleton /> : (
             <OrderTable 
               orders={filteredOrders} 
-              onViewDetails={(id) => alert(`Seller view details for order: ${id}`)} // Replace with actual detail view logic
+              onViewDetails={(id) => setSelectedOrder(orders.find(o => o.id === id) || null)}
               showSellerColumn={false}
             />
           )}
         </CardContent>
       </Card>
     </div>
+
+    {/* Order Details Dialog */}
+      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {selectedOrder && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Order Details</DialogTitle>
+                <DialogDescription>
+                  Detailed information for order #{selectedOrder.id.substring(0, 6)}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2"><Hash className="h-4 w-4 text-primary"/> <span><strong>Order ID:</strong> #{selectedOrder.id.substring(0, 6)}</span></div>
+                  <div className="flex items-center gap-2"><CalendarIcon className="h-4 w-4 text-primary"/> <span><strong>Date:</strong> {format(new Date(selectedOrder.orderDate), 'PPP')}</span></div>
+                  <div className="flex items-center gap-2"><Box className="h-4 w-4 text-primary"/> <span><strong>Status:</strong> {selectedOrder.status}</span></div>
+                  <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-primary"/> <span><strong>Payment:</strong> {selectedOrder.paymentMethod}</span></div>
+                </div>
+                
+                <Separator />
+
+                <div>
+                    <h4 className="font-semibold mb-2">Items Ordered</h4>
+                    <div className="space-y-2">
+                        {selectedOrder.items.map(item => (
+                            <div key={item.productId} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
+                                <div>
+                                    <p className="font-medium">{item.productName}</p>
+                                    <p className="text-muted-foreground">{item.quantity} x {getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{item.price.toFixed(2)}</p>
+                                </div>
+                                <p className="font-semibold">{getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{(item.quantity * item.price).toFixed(2)}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <Separator />
+
+                <div className="flex justify-between items-center font-bold text-lg">
+                    <span>Total Amount:</span>
+                    <span>{getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{selectedOrder.totalAmount.toFixed(2)}</span>
+                </div>
+                
+                <Separator />
+
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2"><UserIcon className="h-4 w-4 text-primary"/> Customer Name</h4>
+                   <div className="text-sm p-3 bg-muted/50 rounded-md">
+                    <p><strong>{selectedOrder.customerName}</strong></p>
+                  </div>
+                </div>
+
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
