@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { OrderTable } from "@/components/shared/OrderTable";
-import type { Order, OrderStatus } from "@/types";
+import type { Order, OrderStatus, User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Box, CalendarIcon, CreditCard, Hash, MapPin, User as UserIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,12 +19,23 @@ import { getAllOrders, updateOrderStatus, getOrderById } from '@/services/orderS
 import { getUserById } from '@/services/userService';
 import { sendOrderStatusUpdateEmail } from '@/ai/flows/emailFlows';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
+
 
 export default function AdminOrdersPage() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "All">("All");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { toast } = useToast();
 
   const fetchOrders = useCallback(async () => {
@@ -90,6 +101,11 @@ export default function AdminOrdersPage() {
   
   const orderStatuses: (OrderStatus | "All")[] = ["All", "Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Paid"];
   
+  const getCurrencySymbol = (currencyCode?: string) => {
+    if (currencyCode === "GHS") return "₵";
+    return "$";
+  };
+  
   const OrderTableSkeleton = () => (
      <div className="space-y-2 p-4">
        {[...Array(8)].map((_, i) => (
@@ -106,6 +122,7 @@ export default function AdminOrdersPage() {
    );
 
   return (
+    <>
     <div>
       <PageHeader title="Platform Orders" description="Monitor and manage all orders placed on Vical Farmart." />
       
@@ -137,12 +154,78 @@ export default function AdminOrdersPage() {
             <OrderTable 
               orders={filteredOrders} 
               onUpdateStatus={handleUpdateStatus}
-              onViewDetails={(id) => alert(`Admin view details for order: ${id}`)} // Replace with actual detail view logic
+              onViewDetails={(id) => setSelectedOrder(allOrders.find(o => o.id === id) || null)}
               showSellerColumn={true}
             />
           )}
         </CardContent>
       </Card>
     </div>
+
+    {/* Order Details Dialog */}
+      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {selectedOrder && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Order Details</DialogTitle>
+                <DialogDescription>
+                  Detailed information for order #{selectedOrder.id.substring(0, 6)}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2"><Hash className="h-4 w-4 text-primary"/> <span><strong>Order ID:</strong> #{selectedOrder.id.substring(0, 6)}</span></div>
+                  <div className="flex items-center gap-2"><CalendarIcon className="h-4 w-4 text-primary"/> <span><strong>Date:</strong> {format(new Date(selectedOrder.orderDate), 'PPP')}</span></div>
+                  <div className="flex items-center gap-2"><Box className="h-4 w-4 text-primary"/> <span><strong>Status:</strong> {selectedOrder.status}</span></div>
+                  <div className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-primary"/> <span><strong>Payment:</strong> {selectedOrder.paymentMethod}</span></div>
+                </div>
+                
+                <Separator />
+
+                <div>
+                    <h4 className="font-semibold mb-2">Items Ordered</h4>
+                    <div className="space-y-2">
+                        {selectedOrder.items.map(item => (
+                            <div key={item.productId} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
+                                <div>
+                                    <p className="font-medium">{item.productName}</p>
+                                    <p className="text-muted-foreground">{item.quantity} x {getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{item.price.toFixed(2)}</p>
+                                </div>
+                                <p className="font-semibold">{getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{(item.quantity * item.price).toFixed(2)}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <Separator />
+
+                <div className="flex justify-between items-center font-bold text-lg">
+                    <span>Total Amount:</span>
+                    <span>{getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{selectedOrder.totalAmount.toFixed(2)}</span>
+                </div>
+                
+                <Separator />
+
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2"><UserIcon className="h-4 w-4 text-primary"/> Customer Details</h4>
+                   <div className="text-sm p-3 bg-muted/50 rounded-md">
+                    <p><strong>{selectedOrder.customerName}</strong></p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2"><MapPin className="h-4 w-4 text-primary"/> Shipping Details</h4>
+                  <div className="text-sm p-3 bg-muted/50 rounded-md">
+                    <p className="text-muted-foreground">{selectedOrder.shippingAddress}</p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
+
