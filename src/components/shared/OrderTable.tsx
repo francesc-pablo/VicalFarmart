@@ -48,6 +48,12 @@ const getStatusBadgeVariant = (status: OrderStatus): "default" | "secondary" | "
   }
 };
 
+const getCurrencySymbol = (currencyCode?: string) => {
+    if (currencyCode === "GHS") return "₵";
+    if (currencyCode === "USD") return "$";
+    return "$"; // Default
+};
+
 const availableOrderStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
 
 export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerColumn }: OrderTableProps) {
@@ -73,7 +79,7 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
               <TableCell>{order.customerName}</TableCell>
               {showSellerColumn && <TableCell className="text-sm text-muted-foreground">{order.sellerId || 'N/A'}</TableCell>}
               <TableCell className="hidden sm:table-cell">{format(new Date(order.orderDate), "MMM d, yyyy")}</TableCell>
-              <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+              <TableCell>{getCurrencySymbol(order.currency)}{order.totalAmount.toFixed(2)}</TableCell>
               <TableCell>
                 {onUpdateStatus ? (
                   <Select
@@ -103,7 +109,7 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
                 )}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge variant={order.paymentMethod === 'Mobile Payment' ? 'default' : 'secondary'} className="text-xs">
+                <Badge variant={order.paymentMethod === 'Online Payment' ? 'default' : 'secondary'} className="text-xs">
                   {order.paymentMethod}
                 </Badge>
               </TableCell>

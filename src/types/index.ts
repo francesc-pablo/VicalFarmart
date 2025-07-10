@@ -23,7 +23,7 @@ export interface OrderItem {
 }
 
 export type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Paid';
-export type PaymentMethod = 'Mobile Payment' | 'Pay on Delivery';
+export type PaymentMethod = 'Online Payment' | 'Pay on Delivery';
 
 export interface Order {
   id: string;
@@ -33,6 +33,7 @@ export interface Order {
   customerPhone: string;
   items: OrderItem[];
   totalAmount: number;
+  currency: string;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
   shippingAddress: {

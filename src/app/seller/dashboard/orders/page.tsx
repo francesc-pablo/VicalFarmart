@@ -80,6 +80,7 @@ export default function SellerOrdersPage() {
   
   const getCurrencySymbol = (currencyCode?: string) => {
     if (currencyCode === "GHS") return "₵";
+    if (currencyCode === "USD") return "$";
     return "$"; // Default
   };
 
@@ -166,9 +167,9 @@ export default function SellerOrdersPage() {
                             <div key={item.productId} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
                                 <div>
                                     <p className="font-medium">{item.productName}</p>
-                                    <p className="text-muted-foreground">{item.quantity} x {getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{item.price.toFixed(2)}</p>
+                                    <p className="text-muted-foreground">{item.quantity} x {getCurrencySymbol(selectedOrder.currency)}{item.price.toFixed(2)}</p>
                                 </div>
-                                <p className="font-semibold">{getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{(item.quantity * item.price).toFixed(2)}</p>
+                                <p className="font-semibold">{getCurrencySymbol(selectedOrder.currency)}{(item.quantity * item.price).toFixed(2)}</p>
                             </div>
                         ))}
                     </div>
@@ -178,7 +179,7 @@ export default function SellerOrdersPage() {
 
                 <div className="flex justify-between items-center font-bold text-lg">
                     <span>Total Amount:</span>
-                    <span>{getCurrencySymbol(selectedOrder.items[0]?.price.toString())}{selectedOrder.totalAmount.toFixed(2)}</span>
+                    <span>{getCurrencySymbol(selectedOrder.currency)}{selectedOrder.totalAmount.toFixed(2)}</span>
                 </div>
                 
                 <Separator />

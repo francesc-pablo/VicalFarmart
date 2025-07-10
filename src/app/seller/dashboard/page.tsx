@@ -17,6 +17,12 @@ import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
+const getCurrencySymbol = (currencyCode?: string) => {
+    if (currencyCode === "GHS") return "₵";
+    if (currencyCode === "USD") return "$";
+    return "$"; // Default
+};
+
 export default function SellerDashboardPage() {
   const router = useRouter();
   const [sellerId, setSellerId] = useState<string | null>(null);
@@ -46,6 +52,10 @@ export default function SellerDashboardPage() {
     fetchData();
   }, [fetchData]);
 
+  // Use the currency from the first order as the primary currency for display, or default.
+  const mainCurrency = orders[0]?.currency || 'GHS';
+  const mainCurrencySymbol = getCurrencySymbol(mainCurrency);
+
   const totalRevenue = orders
     .filter(o => o.status === 'Delivered' || o.status === 'Paid')
     .reduce((sum, order) => sum + order.totalAmount, 0);
@@ -56,7 +66,7 @@ export default function SellerDashboardPage() {
   const recentOrders = orders.slice(0, 5);
 
   const statCards = [
-    { title: "Total Revenue", value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-500" },
+    { title: "Total Revenue", value: `${mainCurrencySymbol}${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-500" },
     { title: "Total Orders", value: totalOrders, icon: Package, color: "text-primary" },
     { title: "Pending Orders", value: pendingOrders, icon: Clock, color: "text-orange-500" },
   ];
@@ -126,7 +136,7 @@ export default function SellerDashboardPage() {
                     <TableCell className="font-medium">#{order.id.substring(0, 6)}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell className="hidden sm:table-cell">{format(new Date(order.orderDate), "MMM d, yyyy")}</TableCell>
-                    <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell>{getCurrencySymbol(order.currency)}{order.totalAmount.toFixed(2)}</TableCell>
                     <TableCell><Badge variant={order.status === 'Delivered' ? 'default' : 'outline'}>{order.status}</Badge></TableCell>
                   </TableRow>
                 ))}

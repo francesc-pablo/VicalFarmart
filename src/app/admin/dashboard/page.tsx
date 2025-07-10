@@ -13,12 +13,20 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
+const getCurrencySymbol = (currencyCode?: string) => {
+    if (currencyCode === "GHS") return "₵";
+    if (currencyCode === "USD") return "$";
+    return "$"; // Default
+};
+
+
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeSellers: 0,
     totalOrders: 0,
     platformRevenue: 0,
+    mainCurrencySymbol: '₵',
   });
   const [recentUsers, setRecentUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,15 +42,27 @@ export default function AdminDashboardPage() {
       const totalUsers = users.length;
       const activeSellers = users.filter(u => u.role === 'seller' && u.isActive).length;
       const totalOrders = orders.length;
-      const platformRevenue = orders
+
+      // Group revenue by currency
+      const revenueByCurrency: { [key: string]: number } = {};
+      orders
         .filter(o => o.status === 'Delivered' || o.status === 'Paid')
-        .reduce((sum, order) => sum + order.totalAmount, 0);
+        .forEach(order => {
+          const currency = order.currency || 'GHS';
+          revenueByCurrency[currency] = (revenueByCurrency[currency] || 0) + order.totalAmount;
+        });
+
+      // For simplicity, we'll just show GHS revenue on the dashboard for now.
+      // A more complex implementation could show multiple currency totals.
+      const platformRevenue = revenueByCurrency['GHS'] || 0;
+      const mainCurrencySymbol = getCurrencySymbol('GHS');
 
       setStats({
         totalUsers,
         activeSellers,
         totalOrders,
         platformRevenue,
+        mainCurrencySymbol,
       });
 
       setRecentUsers(users.slice(0, 5));
@@ -59,7 +79,7 @@ export default function AdminDashboardPage() {
     { title: "Total Users", value: stats.totalUsers, icon: Users, color: "text-blue-500" },
     { title: "Active Sellers", value: stats.activeSellers, icon: ShoppingBasket, color: "text-primary" },
     { title: "Total Orders", value: stats.totalOrders, icon: Package, color: "text-orange-500" },
-    { title: "Platform Revenue", value: `$${stats.platformRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-500" },
+    { title: "Platform Revenue (GHS)", value: `${stats.mainCurrencySymbol}${stats.platformRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-500" },
   ];
 
   return (

@@ -30,7 +30,7 @@ import { createOrder } from '@/services/orderService';
 import { getUsers, getUserById } from '@/services/userService';
 import { sendNewOrderEmail, sendOrderConfirmationEmail, sendPayOnDeliveryInvoiceEmail } from '@/ai/flows/emailFlows';
 import { auth } from '@/lib/firebase';
-import type { Order, User, OrderItem, PaymentMethod, PaymentMethod as PaymentMethodType } from '@/types';
+import type { Order, User, OrderItem, PaymentMethod as PaymentMethodType } from '@/types';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { v4 as uuidv4 } from 'uuid';
@@ -165,6 +165,7 @@ export default function CheckoutPage() {
         customerPhone: data.phone,
         items: orderItems,
         totalAmount: total,
+        currency: mainCurrency,
         status: status,
         paymentMethod: paymentMethod,
         shippingAddress: {

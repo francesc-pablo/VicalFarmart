@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -10,10 +11,16 @@ import { format } from "date-fns";
 
 // Mock data, derived from orders or a separate payments list
 const mockPayments: (Order & { paymentDate?: string; transactionId?: string })[] = [
-  { id: "PAY001", orderDate: new Date(Date.now() - 259200000).toISOString(), customerId:"cust101", customerName: "Diana Prince", totalAmount: 14.95, status: "Paid", paymentMethod: "Pay on Delivery", items: [], shippingAddress: "", paymentDate: new Date(Date.now() - 250000000).toISOString(), transactionId: "POD_DP001" },
-  { id: "PAY002", orderDate: new Date(Date.now() - 172800000).toISOString(), customerId:"cust789", customerName: "Charlie Brown", totalAmount: 5.00, status: "Paid", paymentMethod: "Mobile Payment", items: [], shippingAddress: "", paymentDate: new Date(Date.now() - 170000000).toISOString(), transactionId: "MP_CB002" },
-  { id: "PAY003", orderDate: new Date().toISOString(), customerId:"cust123", customerName: "Alice Wonderland", totalAmount: 5.98, status: "Pending", paymentMethod: "Mobile Payment", items: [], shippingAddress: "" }, // Pending payment
+  { id: "PAY001", orderDate: new Date(Date.now() - 259200000).toISOString(), customerId:"cust101", customerName: "Diana Prince", totalAmount: 14.95, currency: "GHS", status: "Paid", paymentMethod: "Online Payment", items: [], shippingAddress: { address: '', city: '', zipCode: '', idCardNumber: ''}, paymentDate: new Date(Date.now() - 250000000).toISOString(), transactionId: "FLW_DP001" },
+  { id: "PAY002", orderDate: new Date(Date.now() - 172800000).toISOString(), customerId:"cust789", customerName: "Charlie Brown", totalAmount: 5.00, currency: "GHS", status: "Paid", paymentMethod: "Online Payment", items: [], shippingAddress: { address: '', city: '', zipCode: '', idCardNumber: ''}, paymentDate: new Date(Date.now() - 170000000).toISOString(), transactionId: "FLW_CB002" },
+  { id: "PAY003", orderDate: new Date().toISOString(), customerId:"cust123", customerName: "Alice Wonderland", totalAmount: 5.98, currency: "GHS", status: "Pending", paymentMethod: "Online Payment", items: [], shippingAddress: { address: '', city: '', zipCode: '', idCardNumber: ''} }, // Pending payment
 ];
+
+const getCurrencySymbol = (currencyCode?: string) => {
+    if (currencyCode === "GHS") return "₵";
+    if (currencyCode === "USD") return "$";
+    return "$"; // Default
+};
 
 export default function SellerPaymentsPage() {
   const [payments] = useState(mockPayments);
@@ -32,7 +39,7 @@ export default function SellerPaymentsPage() {
             <DollarSign className="h-5 w-5 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">${totalPaid.toFixed(2)}</div>
+            <div className="text-3xl font-bold">{getCurrencySymbol(payments[0]?.currency)}{totalPaid.toFixed(2)}</div>
           </CardContent>
         </Card>
         <Card className="shadow-lg">
@@ -79,9 +86,9 @@ export default function SellerPaymentsPage() {
                   <TableRow key={payment.id}>
                     <TableCell className="font-medium">#{payment.id.replace("PAY", "ORD")}</TableCell>
                     <TableCell>{payment.paymentDate ? format(new Date(payment.paymentDate), "MMM d, yyyy") : 'N/A'}</TableCell>
-                    <TableCell>${payment.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell>{getCurrencySymbol(payment.currency)}{payment.totalAmount.toFixed(2)}</TableCell>
                     <TableCell>
-                      <Badge variant={payment.paymentMethod === 'Mobile Payment' ? 'default' : 'secondary'}>
+                      <Badge variant={payment.paymentMethod === 'Online Payment' ? 'default' : 'secondary'}>
                         {payment.paymentMethod}
                       </Badge>
                     </TableCell>
