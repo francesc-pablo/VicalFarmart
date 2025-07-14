@@ -20,6 +20,8 @@ export interface OrderItem {
   productName: string;
   quantity: number;
   price: number;
+  imageUrl?: string;
+  sellerName?: string;
 }
 
 export type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Paid';

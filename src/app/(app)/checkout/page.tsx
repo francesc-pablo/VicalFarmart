@@ -155,6 +155,8 @@ export default function CheckoutPage() {
         productName: item.name,
         quantity: item.quantity,
         price: item.price,
+        imageUrl: item.imageUrl,
+        sellerName: item.sellerName,
     }));
     const sellerId = cartItems[0]?.sellerId;
 

@@ -7,7 +7,7 @@ import { OrderTable } from "@/components/shared/OrderTable";
 import type { Order, OrderStatus, User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Package, History, ShoppingCart, Mail, User as UserIcon, MapPin, CreditCard, Box, Hash, CalendarIcon, Phone, FileText } from "lucide-react";
+import { ArrowLeft, Package, History, ShoppingCart, Mail, User as UserIcon, MapPin, CreditCard, Box, Hash, CalendarIcon, Phone, FileText, Briefcase } from "lucide-react";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
+import Image from "next/image";
 
 
 export default function MyOrdersPage() {
@@ -168,10 +169,17 @@ export default function MyOrdersPage() {
                     <h4 className="font-semibold mb-2">Items Ordered</h4>
                     <div className="space-y-2">
                         {selectedOrder.items.map(item => (
-                            <div key={item.productId} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
-                                <div>
-                                    <p className="font-medium">{item.productName}</p>
-                                    <p className="text-muted-foreground">{item.quantity} x {getCurrencySymbol(selectedOrder.currency)}{item.price.toFixed(2)}</p>
+                            <div key={item.productId} className="flex justify-between items-start text-sm p-2 bg-muted/50 rounded-md">
+                                <div className="flex items-start gap-3">
+                                    <Image src={item.imageUrl || "https://placehold.co/60x60.png"} alt={item.productName} width={60} height={60} className="rounded-md object-cover" />
+                                    <div>
+                                        <p className="font-medium">{item.productName}</p>
+                                        <p className="text-xs text-muted-foreground">{item.quantity} x {getCurrencySymbol(selectedOrder.currency)}{item.price.toFixed(2)}</p>
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                            <Briefcase className="h-3 w-3" />
+                                            {item.sellerName || 'N/A'}
+                                        </p>
+                                    </div>
                                 </div>
                                 <p className="font-semibold">{getCurrencySymbol(selectedOrder.currency)}{(item.quantity * item.price).toFixed(2)}</p>
                             </div>
@@ -221,5 +229,3 @@ export default function MyOrdersPage() {
     </>
   );
 }
-
-    
