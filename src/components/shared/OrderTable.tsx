@@ -20,7 +20,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Added Select components
+} from "@/components/ui/select";
 
 interface OrderTableProps {
   orders: Order[];
@@ -57,6 +57,18 @@ const getCurrencySymbol = (currencyCode?: string) => {
 const availableOrderStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
 
 export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerColumn }: OrderTableProps) {
+  
+  const getUniqueSellers = (order: Order): string[] => {
+    if (!order.items || order.items.length === 0) {
+      return order.sellerName ? [order.sellerName] : ['N/A'];
+    }
+    const sellerNames = new Set(order.items.map(item => item.sellerName).filter(Boolean) as string[]);
+    if (sellerNames.size === 0) {
+       return order.sellerName ? [order.sellerName] : ['N/A'];
+    }
+    return Array.from(sellerNames);
+  };
+  
   return (
     <div className="w-full overflow-x-auto">
     <Table>
@@ -64,7 +76,7 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
         <TableRow>
           <TableHead className="min-w-[100px]">Order ID</TableHead>
           <TableHead className="min-w-[150px]">Customer</TableHead>
-          {showSellerColumn && <TableHead className="min-w-[150px]">Seller</TableHead>}
+          {showSellerColumn && <TableHead className="min-w-[150px]">Seller(s)</TableHead>}
           <TableHead className="hidden sm:table-cell min-w-[120px]">Date</TableHead>
           <TableHead>Total</TableHead>
           <TableHead className="min-w-[120px]">Status</TableHead>
@@ -74,55 +86,64 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
       </TableHeader>
       <TableBody>
         {orders.length > 0 ? (
-          orders.map((order) => (
-            <TableRow key={order.id}>
-              <TableCell className="font-medium">#{order.id.substring(0, 6)}</TableCell>
-              <TableCell className="truncate">{order.customerName}</TableCell>
-              {showSellerColumn && <TableCell className="text-sm text-muted-foreground truncate">{order.sellerName || 'N/A'}</TableCell>}
-              <TableCell className="hidden sm:table-cell">{format(new Date(order.orderDate), "MMM d, yyyy")}</TableCell>
-              <TableCell>{getCurrencySymbol(order.currency)}{order.totalAmount.toFixed(2)}</TableCell>
-              <TableCell>
-                {onUpdateStatus ? (
-                  <Select
-                    value={order.status}
-                    onValueChange={(newStatus: string) => onUpdateStatus(order.id, newStatus as OrderStatus)}
-                    disabled={['Delivered', 'Cancelled'].includes(order.status)}
-                  >
-                    <SelectTrigger className={`h-8 w-auto text-xs inline-flex focus:ring-primary border-none focus:ring-0 shadow-none bg-transparent ${['Delivered', 'Cancelled'].includes(order.status) ? "pointer-events-none" : ""}`}>
-                       <SelectValue asChild>
-                         <Badge variant={getStatusBadgeVariant(order.status)} className="text-xs">
-                           {order.status}
-                         </Badge>
-                       </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableOrderStatuses.map(s => (
-                        <SelectItem key={s} value={s} className="text-xs">
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Badge variant={getStatusBadgeVariant(order.status)} className="text-xs">
-                    {order.status}
+          orders.map((order) => {
+            const sellers = getUniqueSellers(order);
+            return (
+              <TableRow key={order.id}>
+                <TableCell className="font-medium">#{order.id.substring(0, 6)}</TableCell>
+                <TableCell className="truncate">{order.customerName}</TableCell>
+                {showSellerColumn && (
+                  <TableCell className="text-sm text-muted-foreground">
+                    {sellers.map((seller, index) => (
+                      <div key={index} className="truncate">{seller}</div>
+                    ))}
+                  </TableCell>
+                )}
+                <TableCell className="hidden sm:table-cell">{format(new Date(order.orderDate), "MMM d, yyyy")}</TableCell>
+                <TableCell>{getCurrencySymbol(order.currency)}{order.totalAmount.toFixed(2)}</TableCell>
+                <TableCell>
+                  {onUpdateStatus ? (
+                    <Select
+                      value={order.status}
+                      onValueChange={(newStatus: string) => onUpdateStatus(order.id, newStatus as OrderStatus)}
+                      disabled={['Delivered', 'Cancelled'].includes(order.status)}
+                    >
+                      <SelectTrigger className={`h-8 w-auto text-xs inline-flex focus:ring-primary border-none focus:ring-0 shadow-none bg-transparent ${['Delivered', 'Cancelled'].includes(order.status) ? "pointer-events-none" : ""}`}>
+                         <SelectValue asChild>
+                           <Badge variant={getStatusBadgeVariant(order.status)} className="text-xs">
+                             {order.status}
+                           </Badge>
+                         </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableOrderStatuses.map(s => (
+                          <SelectItem key={s} value={s} className="text-xs">
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge variant={getStatusBadgeVariant(order.status)} className="text-xs">
+                      {order.status}
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <Badge variant={order.paymentMethod === 'Online Payment' ? 'default' : 'secondary'} className="text-xs">
+                    {order.paymentMethod}
                   </Badge>
-                )}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <Badge variant={order.paymentMethod === 'Online Payment' ? 'default' : 'secondary'} className="text-xs">
-                  {order.paymentMethod}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right space-x-1">
-                {onViewDetails && (
-                  <Button variant="ghost" size="icon" onClick={() => onViewDetails(order.id)} title="View Details">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                )}
-              </TableCell>
-            </TableRow>
-          ))
+                </TableCell>
+                <TableCell className="text-right space-x-1">
+                  {onViewDetails && (
+                    <Button variant="ghost" size="icon" onClick={() => onViewDetails(order.id)} title="View Details">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })
         ) : (
           <TableRow>
             <TableCell colSpan={showSellerColumn ? 8 : 7} className="text-center h-24">
@@ -135,4 +156,3 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
     </div>
   );
 }
-
