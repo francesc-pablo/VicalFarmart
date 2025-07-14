@@ -241,7 +241,8 @@ export default function CheckoutPage() {
             zipCode: data.zipCode,
             idCardNumber: data.idCardNumber,
         },
-        sellerId: singleSellerId, // Store sellerId for single-seller orders
+        // Only set sellerId if it's a single seller order
+        ...(isSingleSeller && { sellerId: singleSellerId }),
         sellerName: seller?.name || (isSingleSeller ? cartItems[0]?.sellerName : "Multiple Sellers"),
         ...(paymentDetails && { paymentDetails }),
     };
@@ -674,5 +675,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-
