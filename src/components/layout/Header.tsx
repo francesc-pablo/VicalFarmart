@@ -6,7 +6,7 @@ import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { User, UserRole } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,115 +40,41 @@ interface AuthStatus {
 
 const HEADER_SCROLL_THRESHOLD = 50;
 
-export function Header() {
+// Memoize the search bar to prevent re-renders on every keystroke, which causes focus loss.
+const SearchBarForm = React.memo(function SearchBarForm({
+  isMobileLayout,
+  initialSearchTerm,
+}: {
+  isMobileLayout?: boolean;
+  initialSearchTerm: string;
+}) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
-  const { cartCount } = useCart();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState("All");
-  const [selectedTown, setSelectedTown] = useState("All");
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const [selectedRegion, setSelectedRegion] = useState(searchParams.get('region') || "All");
+  const [selectedTown, setSelectedTown] = useState(searchParams.get('town') || "All");
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
-
-  const _isMobileHookValue = useIsMobile();
-  const [isMobileClient, setIsMobileClient] = useState(false);
-  const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-
-  const showSearchBar = pathname !== '/market';
-
-  useEffect(() => {
-    setIsMobileClient(_isMobileHookValue);
-  }, [_isMobileHookValue]);
-
-  useEffect(() => {
-    if (!isMobileClient) {
-      setShowHeaderOnMobile(true);
-      return;
-    }
-
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < HEADER_SCROLL_THRESHOLD) {
-        setShowHeaderOnMobile(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > HEADER_SCROLL_THRESHOLD) {
-        setShowHeaderOnMobile(false);
-      } else if (currentScrollY < lastScrollY) {
-        setShowHeaderOnMobile(true);
-      }
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      setLastScrollY(0);
-    };
-  }, [isMobileClient, lastScrollY]);
   
   useEffect(() => {
-    setSearchTerm(searchParams.get('search') || "");
-    setSelectedRegion(searchParams.get('region') || "All");
-    setSelectedTown(searchParams.get('town') || "All");
-  }, [searchParams]);
+    setSearchTerm(initialSearchTerm);
+  }, [initialSearchTerm]);
 
   useEffect(() => {
     if (selectedRegion && selectedRegion !== "All") {
       const townsForRegion = GHANA_REGIONS_AND_TOWNS[selectedRegion] || [];
       setAvailableTowns(townsForRegion);
-      if (selectedTown !== 'All' && !townsForRegion.includes(selectedTown)) {
-          setSelectedTown("All");
-      }
     } else {
       setAvailableTowns([]);
-      if (selectedTown !== 'All') {
-        setSelectedTown("All");
-      }
     }
-  }, [selectedRegion, selectedTown]);
-
-
+  }, [selectedRegion]);
+  
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setAuthStatus({ isAuthenticated: true, user: { id: docSnap.id, ...docSnap.data() } as User });
-        } else {
-          // User exists in auth, but not in firestore. Maybe an error during registration.
-          // Log them out or handle as an incomplete profile.
-          setAuthStatus({ isAuthenticated: true, user: {
-            id: user.uid,
-            name: user.displayName || 'New User',
-            email: user.email || '',
-            role: 'customer',
-            isActive: true,
-          } });
-        }
-      } else {
-        setAuthStatus({ isAuthenticated: false, user: null });
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/login");
-  };
-
-  const getUserInitials = (name?: string | null) => {
-    if (!name) return "U";
-    const parts = name.split(" ");
-    if (parts.length > 1) {
-      return parts[0][0] + parts[parts.length - 1][0];
+    if (selectedRegion === "All") {
+      setSelectedTown("All");
     }
-    return name.substring(0, 2).toUpperCase();
-  };
+  }, [selectedRegion]);
+
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -161,12 +87,7 @@ export function Header() {
     router.push(`/market?${newParams.toString()}`);
   };
 
-  const handleRegionChange = (value: string) => {
-    setSelectedRegion(value);
-    setSelectedTown("All");
-  };
-
-  const SearchBarForm = ({ isMobileLayout }: { isMobileLayout?: boolean }) => (
+  return (
     <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobileLayout ? 'flex-col' : 'flex-grow max-w-2xl'}`}>
       <div className={`${isMobileLayout ? 'w-full' : 'flex-grow'}`}>
         <Input
@@ -179,7 +100,7 @@ export function Header() {
         />
       </div>
       <div className={`grid gap-2 grid-cols-2 ${isMobileLayout ? 'w-full' : 'min-w-[360px]'}`}>
-          <Select value={selectedRegion} onValueChange={handleRegionChange}>
+          <Select value={selectedRegion} onValueChange={setSelectedRegion}>
             <SelectTrigger className="h-9 text-xs">
               <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
               <SelectValue placeholder="All Regions" />
@@ -222,6 +143,91 @@ export function Header() {
         )}
     </form>
   );
+});
+
+
+export function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
+  const { cartCount } = useCart();
+
+  const [isMobileClient, setIsMobileClient] = useState(false);
+  const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  const showSearchBar = pathname !== '/market';
+  const initialSearchTerm = searchParams.get('search') || "";
+  const _isMobileHookValue = useIsMobile();
+
+  useEffect(() => {
+    setIsMobileClient(_isMobileHookValue);
+  }, [_isMobileHookValue]);
+
+  useEffect(() => {
+    if (!isMobileClient) {
+      setShowHeaderOnMobile(true);
+      return;
+    }
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < HEADER_SCROLL_THRESHOLD) {
+        setShowHeaderOnMobile(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > HEADER_SCROLL_THRESHOLD) {
+        setShowHeaderOnMobile(false);
+      } else if (currentScrollY < lastScrollY) {
+        setShowHeaderOnMobile(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      setLastScrollY(0);
+    };
+  }, [isMobileClient, lastScrollY]);
+  
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setAuthStatus({ isAuthenticated: true, user: { id: docSnap.id, ...docSnap.data() } as User });
+        } else {
+          setAuthStatus({ isAuthenticated: true, user: {
+            id: user.uid,
+            name: user.displayName || 'New User',
+            email: user.email || '',
+            role: 'customer',
+            isActive: true,
+          } });
+        }
+      } else {
+        setAuthStatus({ isAuthenticated: false, user: null });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
+
+  const getUserInitials = (name?: string | null) => {
+    if (!name) return "U";
+    const parts = name.split(" ");
+    if (parts.length > 1) {
+      return parts[0][0] + parts[parts.length - 1][0];
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   return (
     <header className={`sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md transition-transform duration-300 ease-in-out ${isMobileClient && !showHeaderOnMobile ? '-translate-y-full' : 'translate-y-0'}`}>
@@ -232,7 +238,7 @@ export function Header() {
         <nav className="flex items-center gap-2 md:gap-4 flex-grow">
           {showSearchBar && (
             <div className="hidden sm:flex flex-grow justify-center">
-               <SearchBarForm />
+               <SearchBarForm initialSearchTerm={initialSearchTerm} />
             </div>
           )}
           
@@ -310,7 +316,7 @@ export function Header() {
       </div>
       {showSearchBar && (
         <div className="container px-4 sm:px-12 pb-3 sm:hidden border-t border-border/40 pt-3">
-          <SearchBarForm isMobileLayout />
+          <SearchBarForm isMobileLayout initialSearchTerm={initialSearchTerm} />
         </div>
       )}
     </header>
