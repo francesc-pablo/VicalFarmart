@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/form";
 import { createOrder } from '@/services/orderService';
 import { getUsers, getUserById } from '@/services/userService';
-import { sendNewOrderEmail, sendOrderConfirmationEmail, sendPayOnDeliveryInvoiceEmail } from '@/ai/flows/emailFlows';
+import { sendNewOrderEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
+import { sendEmail } from '@/services/emailService';
 import { auth } from '@/lib/firebase';
 import type { Order, User, OrderItem, PaymentMethod as PaymentMethodType } from '@/types';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -77,6 +78,64 @@ const checkoutSchema = checkoutSchemaBase.refine(
 
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
+
+// Helper function to generate HTML for the Pay on Delivery invoice
+const generatePayOnDeliveryInvoiceHtml = (
+    order: {
+        id: string,
+        customerName: string,
+        items: OrderItem[],
+        totalAmount: number,
+        currency: string,
+        shippingAddress: { address: string, city: string, zipCode: string }
+    }
+): string => {
+    const currencySymbol = getCurrencySymbol(order.currency);
+    const itemsHtml = order.items.map(item => `
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px 0;">${item.productName} (x${item.quantity})</td>
+            <td style="padding: 10px 0; text-align: right;">${currencySymbol}${(item.price * item.quantity).toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    return `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+            <h1 style="color: #8FBC8F;">Vical Farmart Order Invoice</h1>
+            <p>Hi ${order.customerName},</p>
+            <p>Thank you for placing your order with Vical Farmart! This is an invoice for your 'Pay on Delivery' order. Please have the total amount ready in cash upon delivery.</p>
+            
+            <h2 style="border-bottom: 2px solid #8FBC8F; padding-bottom: 5px;">Order #${order.id.substring(0, 6)}</h2>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; padding: 10px 0; border-bottom: 2px solid #ddd;">Item</th>
+                        <th style="text-align: right; padding: 10px 0; border-bottom: 2px solid #ddd;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td style="padding: 10px 0; font-weight: bold;">Total to Pay:</td>
+                        <td style="padding: 10px 0; text-align: right; font-weight: bold; font-size: 1.2em;">${currencySymbol}${order.totalAmount.toFixed(2)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <h3 style="color: #A0522D;">Shipping Address</h3>
+            <p>
+                ${order.shippingAddress.address}<br>
+                ${order.shippingAddress.city}, ${order.shippingAddress.zipCode}
+            </p>
+
+            <p>You will receive another notification once your order has been shipped. If you have any questions, please contact our support.</p>
+            <p>Thanks,<br>The Vical Farmart Team</p>
+        </div>
+    `;
+};
+
 
 export default function CheckoutPage() {
   const { toast } = useToast();
@@ -144,7 +203,7 @@ export default function CheckoutPage() {
   const handleCreateOrderInDB = async (
     data: CheckoutFormValues, 
     status: Order['status'], 
-    paymentMethod: PaymentMethodType,
+    paymentMethodType: PaymentMethodType,
     paymentDetails?: Order['paymentDetails']
   ) => {
     if (!currentUser || cartItems.length === 0) return null;
@@ -169,7 +228,7 @@ export default function CheckoutPage() {
         totalAmount: total,
         currency: mainCurrency,
         status: status,
-        paymentMethod: paymentMethod,
+        paymentMethod: paymentMethodType,
         shippingAddress: {
             address: data.address,
             city: data.city,
@@ -190,7 +249,7 @@ export default function CheckoutPage() {
 
         try {
             // Send receipt to customer if paid online
-            if (paymentMethod === 'Online Payment') {
+            if (paymentMethodType === 'Online Payment') {
               await sendOrderConfirmationEmail({
                 customerEmail: data.email,
                 customerName: data.fullName,
@@ -205,18 +264,25 @@ export default function CheckoutPage() {
                   zipCode: data.zipCode,
                 },
               });
-            } else if (paymentMethod === 'Pay on Delivery') {
-                await sendPayOnDeliveryInvoiceEmail({
-                    customerEmail: data.email,
+            } else if (paymentMethodType === 'Pay on Delivery') {
+                 // Generate and send invoice email directly using Nodemailer service
+                const invoiceHtml = generatePayOnDeliveryInvoiceHtml({
+                    id: newOrderId,
                     customerName: data.fullName,
-                    orderId: newOrderId,
-                    totalAmount: total,
                     items: orderItems,
+                    totalAmount: total,
+                    currency: mainCurrency,
                     shippingAddress: {
                         address: data.address,
                         city: data.city,
                         zipCode: data.zipCode,
                     },
+                });
+
+                await sendEmail({
+                    to: data.email,
+                    subject: `Your Vical Farmart Order Invoice (#${newOrderId.substring(0, 6)})`,
+                    htmlBody: invoiceHtml,
                 });
             }
 
@@ -302,10 +368,12 @@ export default function CheckoutPage() {
         toast({ title: "Empty Cart", description: "Cannot place an order with an empty cart.", variant: "destructive" });
         return;
     }
-    setIsProcessing(true);
+    
     if (data.paymentMethod === 'cod') {
+        setIsProcessing(true);
         await handleCreateOrderInDB(data, 'Pending', 'Pay on Delivery');
     } else {
+        setIsProcessing(true); // Set processing early for online payment
         handleFlutterwavePayment({
             callback: async (response) => {
                 closePaymentModal(); // Close the modal immediately
@@ -325,12 +393,14 @@ export default function CheckoutPage() {
                 }
             },
             onClose: () => {
-                if (!isProcessing) { // Only show if not already processing a successful payment
-                    toast({
-                        title: "Payment Canceled",
-                        description: "You closed the payment window.",
-                    });
-                }
+                // Check if still processing. If an order was created, isProcessing would still be true.
+                // This prevents showing "Canceled" toast after a successful payment.
+                if (form.formState.isSubmitting) return;
+
+                toast({
+                    title: "Payment Canceled",
+                    description: "You closed the payment window.",
+                });
                 setIsProcessing(false);
             },
         });
