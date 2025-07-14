@@ -56,14 +56,24 @@ export default function SellerDashboardPage() {
   const mainCurrency = orders[0]?.currency || 'GHS';
   const mainCurrencySymbol = getCurrencySymbol(mainCurrency);
 
+  const calculateSellerSubtotal = (order: Order) => {
+    if (!sellerId) return 0;
+    return order.items
+      .filter(item => item.sellerId === sellerId)
+      .reduce((sum, item) => sum + item.price * item.quantity, 0);
+  };
+
   const totalRevenue = orders
     .filter(o => o.status === 'Delivered' || o.status === 'Paid')
-    .reduce((sum, order) => sum + order.totalAmount, 0);
+    .reduce((sum, order) => sum + calculateSellerSubtotal(order), 0);
   
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(o => o.status === 'Pending' || o.status === 'Processing').length;
   
-  const recentOrders = orders.slice(0, 5);
+  const recentOrders = orders.slice(0, 5).map(order => ({
+    ...order,
+    totalAmount: calculateSellerSubtotal(order) // Recalculate for display
+  }));
 
   const statCards = [
     { title: "Total Revenue", value: `${mainCurrencySymbol}${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-500" },
