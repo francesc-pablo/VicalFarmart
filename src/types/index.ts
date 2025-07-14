@@ -22,6 +22,7 @@ export interface OrderItem {
   price: number;
   imageUrl?: string;
   sellerName?: string;
+  sellerId?: string;
 }
 
 export type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Paid';
@@ -85,4 +86,3 @@ export interface User {
   failedLoginAttempts?: number;
   lockoutUntil?: number | null; // Store as UTC milliseconds
 }
-

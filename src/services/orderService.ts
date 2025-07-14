@@ -93,21 +93,15 @@ export async function getOrdersByCustomerId(customerId: string): Promise<Order[]
 
 export async function getOrdersBySellerId(sellerId: string): Promise<Order[]> {
   try {
-    const q = query(
-      ordersCollectionRef, 
-      where("sellerId", "==", sellerId), 
-      orderBy("orderDate", "desc")
+    // Firestore does not support querying array contains on an array of objects directly.
+    // The most scalable solution would be to create a subcollection of sellers on each order.
+    // For this app's scale, we fetch all orders and filter them in the backend.
+    // This is NOT ideal for very large datasets but works for this scope.
+    const allOrders = await getAllOrders();
+    const sellerOrders = allOrders.filter(order => 
+      order.items.some(item => item.sellerId === sellerId)
     );
-    const querySnapshot = await getDocs(q);
-    const orders = querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      const convertedData = convertTimestamp(data);
-      return {
-        id: doc.id,
-        ...convertedData,
-      } as Order;
-    });
-    return orders;
+    return sellerOrders;
   } catch (error) {
     console.error(`Error fetching orders for seller ${sellerId}: `, error);
     return [];

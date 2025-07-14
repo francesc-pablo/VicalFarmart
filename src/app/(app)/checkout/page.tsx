@@ -214,11 +214,16 @@ export default function CheckoutPage() {
         productName: item.name,
         quantity: item.quantity,
         price: item.price,
-        imageUrl: item.imageUrl,
-        sellerName: item.sellerName,
+        imageUrl: item.imageUrl || "",
+        sellerName: item.sellerName || "N/A",
+        sellerId: item.sellerId,
     }));
-    const sellerId = cartItems[0]?.sellerId;
-    const seller = sellerId ? await getUserById(sellerId) : null;
+    
+    // Determine if it's a single seller order
+    const sellerIds = new Set(orderItems.map(item => item.sellerId));
+    const isSingleSeller = sellerIds.size === 1;
+    const singleSellerId = isSingleSeller ? sellerIds.values().next().value : undefined;
+    const seller = singleSellerId ? await getUserById(singleSellerId) : null;
 
     const orderData: Omit<Order, 'id' | 'orderDate'> = {
         customerId: currentUser.id,
@@ -236,8 +241,8 @@ export default function CheckoutPage() {
             zipCode: data.zipCode,
             idCardNumber: data.idCardNumber,
         },
-        sellerId: sellerId,
-        sellerName: seller?.name || cartItems[0]?.sellerName,
+        sellerId: singleSellerId, // Store sellerId for single-seller orders
+        sellerName: seller?.name || (isSingleSeller ? cartItems[0]?.sellerName : "Multiple Sellers"),
         ...(paymentDetails && { paymentDetails }),
     };
 
@@ -303,19 +308,20 @@ export default function CheckoutPage() {
                 });
             }
 
-            // Send notification to seller
-            if (sellerId) {
-                if (seller?.email) {
+            // Send notification to each unique seller
+            for (const sellerId of sellerIds) {
+                 const currentSeller = await getUserById(sellerId);
+                 if (currentSeller?.email) {
                     await sendNewOrderEmail({
-                        recipientEmail: seller.email,
-                        recipientName: seller.name,
+                        recipientEmail: currentSeller.email,
+                        recipientName: currentSeller.name,
                         recipientRole: 'seller',
                         orderId: newOrderId,
                         customerName: data.fullName,
                         totalAmount: total,
-                        items: orderItems,
+                        items: orderItems.filter(item => item.sellerId === sellerId),
                     });
-                }
+                 }
             }
         } catch (emailError) {
             console.error("Failed to send notification emails:", emailError);
@@ -668,4 +674,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
 
