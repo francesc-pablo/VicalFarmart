@@ -58,7 +58,16 @@ export default function SellerOrdersPage() {
     setIsLoading(true);
     try {
       const sellerOrders = await getOrdersBySellerId(sellerId);
-      setOrders(sellerOrders);
+      
+      // Recalculate totalAmount for each order to reflect only seller's items
+      const ordersWithSellerSubtotal = sellerOrders.map(order => {
+        const sellerSubtotal = order.items
+          .filter(item => item.sellerId === sellerId)
+          .reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        return { ...order, totalAmount: sellerSubtotal };
+      });
+
+      setOrders(ordersWithSellerSubtotal);
     } catch (error) {
       toast({ title: "Error", description: "Could not fetch your orders.", variant: "destructive" });
     } finally {
