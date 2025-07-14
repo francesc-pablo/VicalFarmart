@@ -85,6 +85,9 @@ export default function SellerOrdersPage() {
     return "$"; // Default
   };
 
+  const sellerItemsForSelectedOrder = selectedOrder?.items.filter(item => item.sellerId === sellerId) || [];
+  const sellerTotalForSelectedOrder = sellerItemsForSelectedOrder.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
   const OrderTableSkeleton = () => (
      <div className="space-y-2 p-4">
        {[...Array(8)].map((_, i) => (
@@ -162,12 +165,12 @@ export default function SellerOrdersPage() {
                 <Separator />
 
                 <div>
-                    <h4 className="font-semibold mb-2">Items Ordered</h4>
+                    <h4 className="font-semibold mb-2">Your Items in this Order</h4>
                     <div className="space-y-2">
-                        {selectedOrder.items.map((item, index) => (
+                        {sellerItemsForSelectedOrder.map((item, index) => (
                             <div key={`${item.productId}-${index}`} className="flex justify-between items-start text-sm p-2 bg-muted/50 rounded-md">
                                 <div className="flex items-start gap-3">
-                                    <Image src={item.imageUrl ? item.imageUrl : "https://placehold.co/60x60.png"} alt={item.productName} width={60} height={60} className="rounded-md object-cover" />
+                                    <Image src={item.imageUrl || "https://placehold.co/60x60.png"} alt={item.productName} width={60} height={60} className="rounded-md object-cover" />
                                     <div>
                                         <p className="font-medium">{item.productName}</p>
                                         <p className="text-xs text-muted-foreground">{item.quantity} x {getCurrencySymbol(selectedOrder.currency)}{item.price.toFixed(2)}</p>
@@ -182,8 +185,8 @@ export default function SellerOrdersPage() {
                 <Separator />
 
                 <div className="flex justify-between items-center font-bold text-lg">
-                    <span>Total Amount:</span>
-                    <span>{getCurrencySymbol(selectedOrder.currency)}{selectedOrder.totalAmount.toFixed(2)}</span>
+                    <span>Your Subtotal:</span>
+                    <span>{getCurrencySymbol(selectedOrder.currency)}{sellerTotalForSelectedOrder.toFixed(2)}</span>
                 </div>
                 
                 <Separator />
