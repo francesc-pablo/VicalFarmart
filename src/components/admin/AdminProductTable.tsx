@@ -65,7 +65,10 @@ export function AdminProductTable({ products, onEditProduct, onDeleteProduct }: 
                   data-ai-hint={`${product.category} item`}
                 />
               </TableCell>
-              <TableCell className="font-medium">{product.name}</TableCell>
+              <TableCell>
+                <div className="font-medium">{product.name}</div>
+                <div className="text-xs text-muted-foreground font-mono">{product.id}</div>
+              </TableCell>
               <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{product.sellerName || 'N/A'}</TableCell>
               <TableCell className="hidden lg:table-cell"><Badge variant="outline">{product.category}</Badge></TableCell>
               <TableCell>{getCurrencySymbol(product.currency)}{product.price.toFixed(2)} {product.currency}</TableCell>

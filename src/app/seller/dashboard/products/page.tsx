@@ -162,7 +162,8 @@ export default function SellerProductsPage() {
                       />
                     </TableCell>
                     <TableCell>
-                        <p className="font-medium">{product.name}</p>
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{product.id}</div>
                         <Badge variant="outline" className="font-normal mt-1">{product.category}</Badge>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">{getCurrencySymbol(product.currency)}{product.price.toFixed(2)}</TableCell>
