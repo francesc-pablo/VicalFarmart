@@ -17,7 +17,7 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import {
   MoveRight,
-  Citrus, Carrot, Wheat, Milk, Archive, Fish
+  Citrus, Carrot, Wheat, Milk, Archive, Fish, Sprout, Bird, Beef, MoreHorizontal
 } from 'lucide-react';
 import { getFeaturedProducts } from '@/services/productService'; // Import the service
 import { Skeleton } from '@/components/ui/skeleton'; // For loading state
@@ -27,8 +27,12 @@ const categoryDisplayData = [
   { name: "Vegetables", IconComponent: Carrot, imageHint: "vegetables basket", color: "text-emerald-500" },
   { name: "Grains", IconComponent: Wheat, imageHint: "grains bread", color: "text-amber-500" },
   { name: "Dairy", IconComponent: Milk, imageHint: "dairy products", color: "text-sky-500" },
+  { name: "Meat", IconComponent: Beef, imageHint: "raw meat", color: "text-rose-500" },
+  { name: "Poultry", IconComponent: Bird, imageHint: "poultry chicken", color: "text-yellow-500" },
   { name: "Meat & Fish", IconComponent: Fish, imageHint: "meat fish", color: "text-red-500" },
+  { name: "Herbs & Spices", IconComponent: Sprout, imageHint: "herbs spices", color: "text-lime-600" },
   { name: "Groceries & Provisions", IconComponent: Archive, imageHint: "groceries provisions", color: "text-purple-500" },
+  { name: "Other", IconComponent: MoreHorizontal, imageHint: "assorted goods", color: "text-slate-500" },
 ];
 
 const carouselImages = [
