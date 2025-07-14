@@ -58,16 +58,17 @@ const availableOrderStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped
 
 export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerColumn }: OrderTableProps) {
   return (
+    <div className="w-full overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Order ID</TableHead>
-          <TableHead>Customer</TableHead>
-          {showSellerColumn && <TableHead>Seller</TableHead>}
-          <TableHead className="hidden sm:table-cell">Date</TableHead>
+          <TableHead className="min-w-[100px]">Order ID</TableHead>
+          <TableHead className="min-w-[150px]">Customer</TableHead>
+          {showSellerColumn && <TableHead className="min-w-[150px]">Seller</TableHead>}
+          <TableHead className="hidden sm:table-cell min-w-[120px]">Date</TableHead>
           <TableHead>Total</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="hidden md:table-cell">Payment</TableHead>
+          <TableHead className="min-w-[120px]">Status</TableHead>
+          <TableHead className="hidden md:table-cell min-w-[120px]">Payment</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -76,8 +77,8 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
           orders.map((order) => (
             <TableRow key={order.id}>
               <TableCell className="font-medium">#{order.id.substring(0, 6)}</TableCell>
-              <TableCell>{order.customerName}</TableCell>
-              {showSellerColumn && <TableCell className="text-sm text-muted-foreground">{order.sellerId || 'N/A'}</TableCell>}
+              <TableCell className="truncate">{order.customerName}</TableCell>
+              {showSellerColumn && <TableCell className="text-sm text-muted-foreground truncate">{order.sellerName || 'N/A'}</TableCell>}
               <TableCell className="hidden sm:table-cell">{format(new Date(order.orderDate), "MMM d, yyyy")}</TableCell>
               <TableCell>{getCurrencySymbol(order.currency)}{order.totalAmount.toFixed(2)}</TableCell>
               <TableCell>
@@ -131,5 +132,7 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
         )}
       </TableBody>
     </Table>
+    </div>
   );
 }
+

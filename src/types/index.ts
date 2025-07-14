@@ -46,6 +46,7 @@ export interface Order {
   };
   orderDate: string;
   sellerId?: string;
+  sellerName?: string; // Add sellerName to the order itself
   paymentDetails?: {
     transactionId?: string | number;
     status?: string;
@@ -84,3 +85,4 @@ export interface User {
   failedLoginAttempts?: number;
   lockoutUntil?: number | null; // Store as UTC milliseconds
 }
+

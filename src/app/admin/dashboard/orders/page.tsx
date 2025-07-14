@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { getAllOrders, updateOrderStatus, getOrderById } from '@/services/orderService';
-import { getUserById } from '@/services/userService';
+import { getUserById, getUsers } from '@/services/userService';
 import { sendOrderStatusUpdateEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -33,22 +33,36 @@ import Image from "next/image";
 
 export default function AdminOrdersPage() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "All">("All");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { toast } = useToast();
 
-  const fetchOrders = useCallback(async () => {
+  const fetchOrdersAndUsers = useCallback(async () => {
     setIsLoading(true);
-    const ordersFromDb = await getAllOrders();
-    setAllOrders(ordersFromDb);
+    const [ordersFromDb, usersFromDb] = await Promise.all([
+      getAllOrders(),
+      getUsers(),
+    ]);
+    
+    const ordersWithSellerNames = ordersFromDb.map(order => {
+        const seller = usersFromDb.find(u => u.id === order.sellerId);
+        return {
+            ...order,
+            sellerName: seller?.name || order.sellerId || 'N/A'
+        };
+    });
+
+    setAllOrders(ordersWithSellerNames);
+    setUsers(usersFromDb);
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    fetchOrdersAndUsers();
+  }, [fetchOrdersAndUsers]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
@@ -107,7 +121,7 @@ export default function AdminOrdersPage() {
         }
     } catch (error) {
         toast({ title: "Update Failed", description: "Could not update the order status.", variant: "destructive" });
-        fetchOrders(); // Re-fetch all on error to ensure consistency
+        fetchOrdersAndUsers(); // Re-fetch all on error to ensure consistency
     }
   };
 
@@ -116,7 +130,7 @@ export default function AdminOrdersPage() {
     .filter(order => 
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.sellerId && order.sellerId.toLowerCase().includes(searchTerm.toLowerCase()))
+      (order.sellerName && order.sellerName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   
   const orderStatuses: (OrderStatus | "All")[] = ["All", "Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Paid"];
@@ -267,3 +281,4 @@ export default function AdminOrdersPage() {
     </>
   );
 }
+

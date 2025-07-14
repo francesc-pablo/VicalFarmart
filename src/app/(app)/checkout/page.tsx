@@ -218,6 +218,7 @@ export default function CheckoutPage() {
         sellerName: item.sellerName,
     }));
     const sellerId = cartItems[0]?.sellerId;
+    const seller = sellerId ? await getUserById(sellerId) : null;
 
     const orderData: Omit<Order, 'id' | 'orderDate'> = {
         customerId: currentUser.id,
@@ -236,6 +237,7 @@ export default function CheckoutPage() {
             idCardNumber: data.idCardNumber,
         },
         sellerId: sellerId,
+        sellerName: seller?.name || cartItems[0]?.sellerName,
         ...(paymentDetails && { paymentDetails }),
     };
 
@@ -303,7 +305,6 @@ export default function CheckoutPage() {
 
             // Send notification to seller
             if (sellerId) {
-                const seller = await getUserById(sellerId);
                 if (seller?.email) {
                     await sendNewOrderEmail({
                         recipientEmail: seller.email,
@@ -667,3 +668,4 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
