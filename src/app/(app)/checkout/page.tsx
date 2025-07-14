@@ -58,14 +58,14 @@ const checkoutSchemaBase = z.object({
   city: z.string().min(2, { message: "City or town is required." }),
   zipCode: z.string().min(3, { message: "ZIP code is required." }),
   phone: z.string().min(10, { message: "A valid phone number is required." }),
-  idCardNumber: z.string(),
+  idCardNumber: z.string().optional(),
   paymentMethod: z.enum(["online", "cod"]),
 });
 
 const checkoutSchema = checkoutSchemaBase.refine(
   (data) => {
     if (data.paymentMethod === 'cod') {
-      return data.idCardNumber.length >= 5;
+      return data.idCardNumber && data.idCardNumber.length >= 5;
     }
     return true;
   },
@@ -293,24 +293,22 @@ export default function CheckoutPage() {
   const handleFlutterwavePayment = useFlutterwave(flutterwaveConfig);
 
   async function handleFormSubmit(data: CheckoutFormValues) {
-    setIsProcessing(true);
     if (!currentUser) {
         toast({ title: "Please log in", description: "You must be logged in to place an order.", variant: "destructive" });
         router.push('/login');
-        setIsProcessing(false);
         return;
     }
     if (cartItems.length === 0) {
         toast({ title: "Empty Cart", description: "Cannot place an order with an empty cart.", variant: "destructive" });
-        setIsProcessing(false);
         return;
     }
-
+    setIsProcessing(true);
     if (data.paymentMethod === 'cod') {
         await handleCreateOrderInDB(data, 'Pending', 'Pay on Delivery');
     } else {
         handleFlutterwavePayment({
             callback: async (response) => {
+                closePaymentModal(); // Close the modal immediately
                 if (response.status === 'successful') {
                     await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {
                         transactionId: response.transaction_id,
@@ -325,14 +323,14 @@ export default function CheckoutPage() {
                     });
                      setIsProcessing(false);
                 }
-                closePaymentModal();
             },
             onClose: () => {
-                toast({
-                    title: "Payment Canceled",
-                    description: "You closed the payment window.",
-                    variant: "destructive"
-                });
+                if (!isProcessing) { // Only show if not already processing a successful payment
+                    toast({
+                        title: "Payment Canceled",
+                        description: "You closed the payment window.",
+                    });
+                }
                 setIsProcessing(false);
             },
         });
@@ -467,7 +465,8 @@ export default function CheckoutPage() {
                                 <FormControl>
                                     <Input 
                                         placeholder="GHA-123456789-0 / P01234567" 
-                                        {...field} 
+                                        {...field}
+                                        value={field.value ?? ''}
                                         disabled={paymentMethod !== 'cod'}
                                     />
                                 </FormControl>
@@ -549,7 +548,7 @@ export default function CheckoutPage() {
               {cartItems.map(item => (
                 <div key={item.id} className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <Image src={item.imageUrl} alt={item.name} width={60} height={60} className="rounded-md object-cover" data-ai-hint={`${item.category} item`} />
+                    <Image src={item.imageUrl ? item.imageUrl : "https://placehold.co/60x60.png"} alt={item.name} width={60} height={60} className="rounded-md object-cover" data-ai-hint={`${item.category} item`} />
                     <div>
                       <p className="font-medium text-sm line-clamp-2">{item.name}</p>
                       <p className="text-xs text-muted-foreground">{getCurrencySymbol(item.currency)}{item.price.toFixed(2)} each</p>

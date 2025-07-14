@@ -168,10 +168,10 @@ export default function MyOrdersPage() {
                 <div>
                     <h4 className="font-semibold mb-2">Items Ordered</h4>
                     <div className="space-y-2">
-                        {selectedOrder.items.map(item => (
-                            <div key={item.productId} className="flex justify-between items-start text-sm p-2 bg-muted/50 rounded-md">
+                        {selectedOrder.items.map((item, index) => (
+                            <div key={`${item.productId}-${index}`} className="flex justify-between items-start text-sm p-2 bg-muted/50 rounded-md">
                                 <div className="flex items-start gap-3">
-                                    <Image src={item.imageUrl || "https://placehold.co/60x60.png"} alt={item.productName} width={60} height={60} className="rounded-md object-cover" />
+                                    <Image src={item.imageUrl ? item.imageUrl : "https://placehold.co/60x60.png"} alt={item.productName} width={60} height={60} className="rounded-md object-cover" />
                                     <div>
                                         <p className="font-medium">{item.productName}</p>
                                         <p className="text-xs text-muted-foreground">{item.quantity} x {getCurrencySymbol(selectedOrder.currency)}{item.price.toFixed(2)}</p>
@@ -216,7 +216,7 @@ export default function MyOrdersPage() {
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <FileText className="h-4 w-4" />
-                        <span><strong>ID Card:</strong> {selectedOrder.shippingAddress.idCardNumber}</span>
+                        <span><strong>ID Card:</strong> {selectedOrder.shippingAddress.idCardNumber || "N/A"}</span>
                     </div>
                   </div>
                 </div>

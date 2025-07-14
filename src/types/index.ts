@@ -42,7 +42,7 @@ export interface Order {
     address: string;
     city: string;
     zipCode: string;
-    idCardNumber: string;
+    idCardNumber?: string;
   };
   orderDate: string;
   sellerId?: string;
