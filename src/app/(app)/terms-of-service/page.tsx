@@ -28,7 +28,7 @@ export default function TermsOfServicePage() {
           
           <h2 className="text-xl font-semibold">1.1 Interpretation</h2>
           <p>
-            In these terms and conditions, the definitions and rules of interpretations set out, shall have the meaning set out therein and the rules of interpretation shall apply. Customer (refers to consumers/ buyers) and Suppliers (refers to producer) of VICAL FARMART platform which is the sole property of VICAL FARMS.
+            In these terms and conditions, the definitions and rules of interpretations set out, shall have the meaning set out therein and the rules of interpretation shall apply. Customer (refers to consumers/ buyers) and Suppliers (refers to subscriber) of VICAL FARMART platform which is the sole property of VICAL FARMS.
           </p>
 
           <h2 className="text-xl font-semibold">2.1 Basic contract</h2>

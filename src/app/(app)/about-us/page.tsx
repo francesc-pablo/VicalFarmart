@@ -35,7 +35,7 @@ export default function AboutUsPage() {
           <CardContent className="p-8 space-y-4">
             <h2 className="text-2xl font-bold font-headline mb-4">Our Background</h2>
             <p className="text-muted-foreground leading-relaxed">
-              VICAL FARMARTS is an online farmer’s market platform developed by VICAL FARM in partnership 
+              VICAL FARMARTS is an online farmer’s market platform developed by VICAL FARMS in partnership 
               with the GHANA CO-OPERATIVE AGRICULTURAL PRODUCERS AND MARKETING ASSOCIATION to 
               facilitate the needed market linkages between producers, actors in the agriculture value chain and 
               consumer.
@@ -86,9 +86,9 @@ export default function AboutUsPage() {
                 <p className="text-primary">Head of Technology</p>
              </div>
              <div className="text-center">
-                <Image src="https://placehold.co/128x128.png" alt="Team Member 3" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md" data-ai-hint="person face portrait"/>
-                <h3 className="font-semibold text-lg">Mr. Victor Alorbu</h3>
-                <p className="text-primary">Farmer Relations</p>
+                <Image src="https://res.cloudinary.com/ddvlexmvj/image/upload/v1760317091/photo_2025-10-13_00-50-52_kurcti.jpg" alt="Team Member 3" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md" data-ai-hint="person face portrait"/>
+                <h3 className="font-semibold text-lg">Miss Abigail Kumi</h3>
+                <p className="text-primary">Management Team Member</p>
              </div>
           </CardContent>
         </Card>
