@@ -1,7 +1,6 @@
 
-
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, ShoppingBasket, ClipboardList, Users, Settings, Package, DollarSign, ShieldCheck, UserCog } from 'lucide-react';
+import { LayoutDashboard, ShoppingBasket, ClipboardList, Users, Settings, Package, DollarSign, ShieldCheck, UserCog, Shell } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -31,7 +30,7 @@ export const SELLER_DASHBOARD_NAV_ITEMS: NavItem[] = [
 
 
 export const PRODUCT_CATEGORIES = [
-  "Fruits", "Vegetables", "Grains", "Dairy", "Meat", "Poultry", "Herbs & Spices", "Meat & Fish", "Groceries & Provisions", "Other"
+  "Fruits", "Vegetables", "Grains", "Dairy", "Tubers", "Poultry", "Herbs & Spices", "Meat & Fish", "Groceries & Provisions", "Other"
 ];
 
 export const PRODUCT_REGIONS = [
