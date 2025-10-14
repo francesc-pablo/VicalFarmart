@@ -663,6 +663,9 @@ export default function CheckoutPage() {
                 <p>Total</p>
                 <p>{mainCurrencySymbol}{total.toFixed(2)}</p>
               </div>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                Free delivery for orders not less than ₵500.00
+              </p>
             </CardContent>
             <CardFooter>
               <Button size="lg" className="w-full shadow-md" type="submit" form="shipping-form" disabled={isProcessing || form.formState.isSubmitting}>

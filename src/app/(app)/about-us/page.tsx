@@ -76,8 +76,8 @@ export default function AboutUsPage() {
           </CardHeader>
           <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
              <div className="text-center">
-                <Image src="https://placehold.co/128x128.png" alt="Team Member 1" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md" data-ai-hint="person face portrait"/>
-                <h3 className="font-semibold text-lg">Mr. Victor Alorbu</h3>
+                <Image src="https://res.cloudinary.com/ddvlexmvj/image/upload/v1760401383/photo_2025-10-14_00-20-26_jar8kp.jpg" alt="Team Member 1" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md" data-ai-hint="person face portrait"/>
+                <h3 className="font-semibold text-lg">Mr. Victor Atsu Alorbu</h3>
                 <p className="text-primary">Founder & CEO</p>
              </div>
              <div className="text-center">
