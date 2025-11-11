@@ -101,7 +101,7 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
     });
     const result = await response.json();
     if (!response.ok || !result.success) {
-        throw new Error(result.message || "File upload failed");
+        throw new Error(result.message || `Failed to upload ${file.name}`);
     }
     return result.url;
   };
@@ -109,8 +109,9 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
 
   const handleSubmit = async (values: CourierFormValues) => {
     setIsSubmitting(true);
-
-    const dataToSubmit: any = {
+    
+    // Create a mutable copy of the data to submit
+    const dataToSubmit: Omit<Courier, 'id' | 'createdAt'> = {
         businessName: values.businessName,
         businessType: values.businessType,
         businessRegistrationNumber: values.businessRegistrationNumber,
@@ -131,15 +132,29 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
         roadworthinessUrl: courier?.roadworthinessUrl,
     };
     
-    try {
-        if (values.tradeLicenseFile) dataToSubmit.tradeLicenseUrl = await uploadFile(values.tradeLicenseFile);
-        if (values.nationalIdFile) dataToSubmit.nationalIdUrl = await uploadFile(values.nationalIdFile);
-        if (values.policeClearanceFile) dataToSubmit.policeClearanceUrl = await uploadFile(values.policeClearanceFile);
-        if (values.driverLicenseFile) dataToSubmit.driverLicenseUrl = await uploadFile(values.driverLicenseFile);
-        if (values.vehicleInsuranceFile) dataToSubmit.vehicleInsuranceUrl = await uploadFile(values.vehicleInsuranceFile);
-        if (values.roadworthinessFile) dataToSubmit.roadworthinessUrl = await uploadFile(values.roadworthinessFile);
+    const fileFields: (keyof CourierFormValues)[] = [
+      'tradeLicenseFile', 'nationalIdFile', 'policeClearanceFile', 
+      'driverLicenseFile', 'vehicleInsuranceFile', 'roadworthinessFile'
+    ];
+    const urlFields: (keyof typeof dataToSubmit)[] = [
+      'tradeLicenseUrl', 'nationalIdUrl', 'policeClearanceUrl', 
+      'driverLicenseUrl', 'vehicleInsuranceUrl', 'roadworthinessUrl'
+    ];
 
-        onSubmit(dataToSubmit);
+    try {
+      for (let i = 0; i < fileFields.length; i++) {
+        const fileField = fileFields[i];
+        const urlField = urlFields[i];
+        const file = values[fileField as keyof typeof values] as File | undefined;
+        if (file) {
+          toast({ title: `Uploading ${file.name}...` });
+          const url = await uploadFile(file);
+          (dataToSubmit as any)[urlField] = url;
+          toast({ title: `Successfully uploaded ${file.name}` });
+        }
+      }
+
+      onSubmit(dataToSubmit);
 
     } catch (error) {
          toast({
@@ -266,5 +281,3 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
     </Form>
   );
 }
-
-    

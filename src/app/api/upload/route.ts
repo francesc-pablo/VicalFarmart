@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null;
 
     if (!file) {
-      return new NextResponse(JSON.stringify({ success: false, message: "No file provided." }), { status: 400 });
+      return NextResponse.json({ success: false, message: "No file provided." }, { status: 400 });
     }
 
     // Convert file to buffer
@@ -36,19 +36,19 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Cloudinary
-    const results = await uploadStream(buffer, { folder: 'vical_farmart_couriers' });
+    const results = await uploadStream(buffer, { folder: 'vical_farmart_uploads' });
     
     return NextResponse.json({ success: true, url: results.secure_url });
 
   } catch (error) {
     console.error("Error uploading to Cloudinary: ", error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    return new NextResponse(
-      JSON.stringify({
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during upload.";
+    return NextResponse.json(
+      {
         success: false,
         message: "Error uploading file.",
         error: errorMessage,
-      }),
+      },
       { status: 500 }
     );
   }
