@@ -10,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, FileDown } from "lucide-react";
 import {
@@ -40,6 +39,16 @@ interface CourierTableProps {
 }
 
 export function CourierTable({ couriers, onEdit, onDelete }: CourierTableProps) {
+
+  // Function to add the download flag to a Cloudinary URL
+  const createDownloadUrl = (url: string): string => {
+    const parts = url.split('/upload/');
+    if (parts.length === 2) {
+      // Add fl_attachment to force download
+      return `${parts[0]}/upload/fl_attachment/${parts[1]}`;
+    }
+    return url; // Return original URL if format is unexpected
+  };
 
   const documentLinks = (courier: Courier) => [
     { label: "Trade License", url: courier.tradeLicenseUrl },
@@ -88,7 +97,7 @@ export function CourierTable({ couriers, onEdit, onDelete }: CourierTableProps) 
                     <DropdownMenuSeparator />
                     {availableDocs.map((doc) => (
                        <DropdownMenuItem key={doc.label} asChild>
-                         <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                         <a href={createDownloadUrl(doc.url!)} target="_blank" rel="noopener noreferrer">
                            {doc.label}
                          </a>
                        </DropdownMenuItem>
