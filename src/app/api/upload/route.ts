@@ -11,14 +11,13 @@ cloudinary.config({
 // Helper function to upload a stream to Cloudinary
 const uploadStream = (buffer: Buffer, options: any): Promise<any> => {
     return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+        cloudinary.uploader.upload_stream(options, (error, result) => {
             if (result) {
                 resolve(result);
             } else {
                 reject(error);
             }
-        });
-        stream.end(buffer);
+        }).end(buffer);
     });
 };
 
@@ -35,8 +34,18 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload to Cloudinary
-    const results = await uploadStream(buffer, { folder: 'vical_farmart_uploads' });
+    // Determine resource type based on MIME type
+    const isDocument = file.type === 'application/pdf' || 
+                       file.type === 'application/msword' || 
+                       file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                       
+    const resource_type = isDocument ? 'raw' : 'image';
+
+    // Upload to Cloudinary with the correct resource type
+    const results = await uploadStream(buffer, { 
+      folder: 'vical_farmart_uploads',
+      resource_type: resource_type,
+    });
     
     return NextResponse.json({ success: true, url: results.secure_url });
 
