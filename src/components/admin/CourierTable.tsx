@@ -40,14 +40,20 @@ interface CourierTableProps {
 
 export function CourierTable({ couriers, onEdit, onDelete }: CourierTableProps) {
 
-  // Function to add the download flag to a Cloudinary URL
+  // Function to create a robust download URL for Cloudinary
   const createDownloadUrl = (url: string): string => {
-    const parts = url.split('/upload/');
-    if (parts.length === 2) {
-      // Add fl_attachment to force download
-      return `${parts[0]}/upload/fl_attachment/${parts[1]}`;
-    }
-    return url; // Return original URL if format is unexpected
+    // Extract the public ID with extension from the URL
+    // e.g., https://.../upload/v12345/folder/filename.pdf -> v12345/folder/filename.pdf
+    const publicIdWithFolder = url.substring(url.indexOf('/upload/') + '/upload/'.length);
+    const versionPart = publicIdWithFolder.substring(0, publicIdWithFolder.indexOf('/'));
+    const pathAndFile = publicIdWithFolder.substring(publicIdWithFolder.indexOf('/') + 1);
+    const filename = pathAndFile.substring(pathAndFile.lastIndexOf('/') + 1);
+
+    const baseUrl = url.substring(0, url.indexOf('/upload/') + '/upload/'.length);
+
+    // Construct a new URL with fl_attachment and the filename
+    // This tells Cloudinary to force a download with the correct filename
+    return `${baseUrl}fl_attachment:${filename}/${versionPart}/${pathAndFile}`;
   };
 
   const documentLinks = (courier: Courier) => [
