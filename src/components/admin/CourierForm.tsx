@@ -89,20 +89,35 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
       driverLicenseUrl: courier?.driverLicenseUrl || "",
       vehicleInsuranceUrl: courier?.vehicleInsuranceUrl || "",
       roadworthinessUrl: courier?.roadworthinessUrl || "",
+      // File fields are initially undefined
+      tradeLicenseFile: null,
+      nationalIdFile: null,
+      policeClearanceFile: null,
+      driverLicenseFile: null,
+      vehicleInsuranceFile: null,
+      roadworthinessFile: null,
     },
   });
 
   const uploadFile = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
+    
     const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
     });
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-        throw new Error(result.message || `Failed to upload ${file.name}`);
+    
+    if (!response.ok) {
+        const errorResult = await response.json().catch(() => ({ message: 'Failed to parse error response' }));
+        throw new Error(errorResult.message || `Failed to upload ${file.name}. Status: ${response.status}`);
     }
+
+    const result = await response.json();
+    if (!result.success || !result.url) {
+        throw new Error(result.message || `API error when uploading ${file.name}.`);
+    }
+    
     return result.url;
   };
 
@@ -110,55 +125,53 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
   const handleSubmit = async (values: CourierFormValues) => {
     setIsSubmitting(true);
     
-    const dataToSubmit: Omit<Courier, 'id' | 'createdAt'> = {
-        businessName: values.businessName,
-        businessType: values.businessType,
-        businessRegistrationNumber: values.businessRegistrationNumber,
-        businessLocation: values.businessLocation,
-        tinNumber: values.tinNumber,
-        contactName: values.contactName,
-        phone: values.phone,
-        email: values.email,
-        residentialAddress: values.residentialAddress,
-        licenseCategory: values.licenseCategory,
-        vehicleType: values.vehicleType,
-        vehicleRegistrationNumber: values.vehicleRegistrationNumber,
-        tradeLicenseUrl: courier?.tradeLicenseUrl,
-        nationalIdUrl: courier?.nationalIdUrl,
-        policeClearanceUrl: courier?.policeClearanceUrl,
-        driverLicenseUrl: courier?.driverLicenseUrl,
-        vehicleInsuranceUrl: courier?.vehicleInsuranceUrl,
-        roadworthinessUrl: courier?.roadworthinessUrl,
-    };
+    // This object will hold the final data, including new file URLs
+    const dataToSubmit: any = { ...values };
     
-    const fileFields: (keyof CourierFormValues)[] = [
-      'tradeLicenseFile', 'nationalIdFile', 'policeClearanceFile', 
-      'driverLicenseFile', 'vehicleInsuranceFile', 'roadworthinessFile'
-    ];
-    const urlFields: (keyof typeof dataToSubmit)[] = [
-      'tradeLicenseUrl', 'nationalIdUrl', 'policeClearanceUrl', 
-      'driverLicenseUrl', 'vehicleInsuranceUrl', 'roadworthinessUrl'
-    ];
+    const fileUploads: { field: keyof CourierFormValues; file: File }[] = [];
+
+    // Identify which files need uploading
+    if (values.tradeLicenseFile) fileUploads.push({ field: 'tradeLicenseUrl', file: values.tradeLicenseFile });
+    if (values.nationalIdFile) fileUploads.push({ field: 'nationalIdUrl', file: values.nationalIdFile });
+    if (values.policeClearanceFile) fileUploads.push({ field: 'policeClearanceUrl', file: values.policeClearanceFile });
+    if (values.driverLicenseFile) fileUploads.push({ field: 'driverLicenseUrl', file: values.driverLicenseFile });
+    if (values.vehicleInsuranceFile) fileUploads.push({ field: 'vehicleInsuranceUrl', file: values.vehicleInsuranceFile });
+    if (values.roadworthinessFile) fileUploads.push({ field: 'roadworthinessUrl', file: values.roadworthinessFile });
 
     try {
-      for (let i = 0; i < fileFields.length; i++) {
-        const fileField = fileFields[i];
-        const urlField = urlFields[i];
-        const file = values[fileField as keyof typeof values] as File | undefined;
-        if (file) {
-          toast({ title: `Uploading ${file.name}...` });
-          const url = await uploadFile(file);
-          (dataToSubmit as any)[urlField] = url;
-          toast({ title: `Successfully uploaded ${file.name}` });
-        }
-      }
+        if (fileUploads.length > 0) {
+            toast({ title: `Uploading ${fileUploads.length} file(s)...` });
 
-      onSubmit(dataToSubmit);
+            const uploadPromises = fileUploads.map(upload => 
+                uploadFile(upload.file).then(url => {
+                    toast({ title: `Uploaded ${upload.file.name}`});
+                    return { field: upload.field, url };
+                })
+            );
+
+            const uploadedFiles = await Promise.all(uploadPromises);
+
+            // Update the data to submit with the new URLs
+            uploadedFiles.forEach(uploaded => {
+                dataToSubmit[uploaded.field] = uploaded.url;
+            });
+        }
+        
+        // Remove file objects before submission
+        delete dataToSubmit.tradeLicenseFile;
+        delete dataToSubmit.nationalIdFile;
+        delete dataToSubmit.policeClearanceFile;
+        delete dataToSubmit.driverLicenseFile;
+        delete dataToSubmit.vehicleInsuranceFile;
+        delete dataToSubmit.roadworthinessFile;
+
+        // Call the parent onSubmit with the final, clean data
+        onSubmit(dataToSubmit);
 
     } catch (error) {
          toast({
-            title: "Upload Failed",
-            description: error instanceof Error ? error.message : "Could not upload one or more files.",
+            title: "File Upload Failed",
+            description: error instanceof Error ? error.message : "An unknown error occurred during upload.",
             variant: "destructive",
         });
     } finally {
