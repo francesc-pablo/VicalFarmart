@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Cloudinary
-    const results = await uploadStream(buffer, { folder: 'vical_farmart_products' });
+    const results = await uploadStream(buffer, { folder: 'vical_farmart_couriers' });
     
     return NextResponse.json({ success: true, url: results.secure_url });
 
