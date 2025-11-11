@@ -1,9 +1,10 @@
 
+
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { OrderTable } from "@/components/shared/OrderTable";
-import type { Order, OrderStatus, User } from "@/types";
+import type { Order, OrderStatus, User, Courier } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, Box, CalendarIcon, CreditCard, Hash, MapPin, User as UserIcon, Mail, Phone, FileText, Briefcase } from "lucide-react";
@@ -15,8 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
-import { getAllOrders, updateOrderStatus, getOrderById } from '@/services/orderService';
+import { getAllOrders, updateOrderStatus, getOrderById, assignCourierToOrder } from '@/services/orderService';
 import { getUserById, getUsers } from '@/services/userService';
+import { getCouriers } from '@/services/courierService';
 import { sendOrderStatusUpdateEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -34,17 +36,19 @@ import Image from "next/image";
 export default function AdminOrdersPage() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [couriers, setCouriers] = useState<Courier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "All">("All");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { toast } = useToast();
 
-  const fetchOrdersAndUsers = useCallback(async () => {
+  const fetchAllData = useCallback(async () => {
     setIsLoading(true);
-    const [ordersFromDb, usersFromDb] = await Promise.all([
+    const [ordersFromDb, usersFromDb, couriersFromDb] = await Promise.all([
       getAllOrders(),
       getUsers(),
+      getCouriers(),
     ]);
     
     const ordersWithSellerNames = ordersFromDb.map(order => {
@@ -57,25 +61,24 @@ export default function AdminOrdersPage() {
 
     setAllOrders(ordersWithSellerNames);
     setUsers(usersFromDb);
+    setCouriers(couriersFromDb);
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchOrdersAndUsers();
-  }, [fetchOrdersAndUsers]);
+    fetchAllData();
+  }, [fetchAllData]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
         await updateOrderStatus(orderId, newStatus);
         toast({ title: "Order Status Updated", description: `Order #${orderId.substring(0,6)} marked as ${newStatus}.` });
         
-        // Optimistically update local state
-        setAllOrders(prevOrders => prevOrders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+        const updatedOrders = allOrders.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
+        setAllOrders(updatedOrders);
 
-        // Send notification emails
-        const order = await getOrderById(orderId); // Fetch the most up-to-date order
+        const order = updatedOrders.find(o => o.id === orderId);
         if (order) {
-            // Send receipt if order is delivered
              if (newStatus === 'Delivered') {
                 await sendOrderConfirmationEmail({
                     customerEmail: order.customerEmail,
@@ -91,7 +94,6 @@ export default function AdminOrdersPage() {
                     },
                 });
             } else {
-                // Otherwise, send a standard status update
                 if (order.customerEmail) {
                     await sendOrderStatusUpdateEmail({
                         recipientEmail: order.customerEmail,
@@ -100,11 +102,11 @@ export default function AdminOrdersPage() {
                         orderId: order.id,
                         newStatus: newStatus,
                         items: order.items.map(i => ({ productName: i.productName, quantity: i.quantity })),
+                        courierName: order.courierName, // Pass courier name
                     });
                 }
             }
 
-            // 2. Notify Seller (in all cases except when admin is also the seller or no seller exists)
             if (order.sellerId) {
                 const seller = await getUserById(order.sellerId);
                 if (seller?.email) {
@@ -115,14 +117,25 @@ export default function AdminOrdersPage() {
                         orderId: order.id,
                         newStatus: newStatus,
                         items: order.items.map(i => ({ productName: i.productName, quantity: i.quantity })),
+                        courierName: order.courierName,
                     });
                 }
             }
         }
     } catch (error) {
         toast({ title: "Update Failed", description: "Could not update the order status.", variant: "destructive" });
-        fetchOrdersAndUsers(); // Re-fetch all on error to ensure consistency
+        fetchAllData();
     }
+  };
+
+  const handleAssignCourier = async (orderId: string, courierId: string, courierName: string) => {
+      try {
+          await assignCourierToOrder(orderId, courierId, courierName);
+          toast({ title: "Courier Assigned", description: `${courierName} has been assigned to order #${orderId.substring(0, 6)}.` });
+          setAllOrders(prev => prev.map(o => o.id === orderId ? { ...o, courierId, courierName } : o));
+      } catch (error) {
+          toast({ title: "Assignment Failed", description: "Could not assign the courier.", variant: "destructive" });
+      }
   };
 
   const filteredOrders = allOrders
@@ -187,8 +200,10 @@ export default function AdminOrdersPage() {
         <CardContent className="p-0">
           {isLoading ? <OrderTableSkeleton /> : (
             <OrderTable 
-              orders={filteredOrders} 
+              orders={filteredOrders}
+              couriers={couriers} 
               onUpdateStatus={handleUpdateStatus}
+              onAssignCourier={handleAssignCourier}
               onViewDetails={(id) => setSelectedOrder(allOrders.find(o => o.id === id) || null)}
               showSellerColumn={true}
             />
@@ -281,4 +296,5 @@ export default function AdminOrdersPage() {
     </>
   );
 }
+
 

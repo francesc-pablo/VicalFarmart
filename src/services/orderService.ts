@@ -1,4 +1,5 @@
 
+
 import { db } from "@/lib/firebase";
 import type { Order, OrderStatus } from "@/types";
 import { collection, getDocs, doc, updateDoc, query, orderBy, where, addDoc, serverTimestamp, getDoc } from "firebase/firestore";
@@ -116,4 +117,17 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
     console.error("Error updating order status: ", error);
     throw error; // Re-throw to be caught in the component
   }
+}
+
+export async function assignCourierToOrder(orderId: string, courierId: string, courierName: string): Promise<void> {
+    try {
+        const orderDocRef = doc(db, "orders", orderId);
+        await updateDoc(orderDocRef, {
+            courierId: courierId,
+            courierName: courierName,
+        });
+    } catch (error) {
+        console.error("Error assigning courier to order: ", error);
+        throw error;
+    }
 }

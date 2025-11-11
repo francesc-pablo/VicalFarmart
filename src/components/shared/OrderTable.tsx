@@ -1,7 +1,8 @@
 
+
 "use client";
 
-import type { Order, OrderStatus } from "@/types";
+import type { Order, OrderStatus, Courier } from "@/types";
 import {
   Table,
   TableBody,
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Truck } from "lucide-react";
 import { format } from "date-fns";
 import {
   Select,
@@ -24,8 +25,10 @@ import {
 
 interface OrderTableProps {
   orders: Order[];
+  couriers?: Courier[];
   onViewDetails?: (orderId: string) => void;
   onUpdateStatus?: (orderId: string, newStatus: OrderStatus) => void;
+  onAssignCourier?: (orderId: string, courierId: string, courierName: string) => void;
   showSellerColumn?: boolean; 
 }
 
@@ -56,7 +59,7 @@ const getCurrencySymbol = (currencyCode?: string) => {
 
 const availableOrderStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
 
-export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerColumn }: OrderTableProps) {
+export function OrderTable({ orders, couriers = [], onViewDetails, onUpdateStatus, onAssignCourier, showSellerColumn }: OrderTableProps) {
   
   const getUniqueSellers = (order: Order): string[] => {
     if (!order.items || order.items.length === 0) {
@@ -77,6 +80,7 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
           <TableHead className="min-w-[100px]">Order ID</TableHead>
           <TableHead className="min-w-[150px]">Customer</TableHead>
           {showSellerColumn && <TableHead className="min-w-[150px]">Seller(s)</TableHead>}
+          {onAssignCourier && <TableHead className="min-w-[180px]">Courier</TableHead>}
           <TableHead className="hidden sm:table-cell min-w-[120px]">Date</TableHead>
           <TableHead>Total</TableHead>
           <TableHead className="min-w-[120px]">Status</TableHead>
@@ -97,6 +101,32 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
                     {sellers.map((seller, index) => (
                       <div key={index} className="truncate">{seller}</div>
                     ))}
+                  </TableCell>
+                )}
+                {onAssignCourier && (
+                  <TableCell>
+                    <Select
+                      value={order.courierId || ""}
+                      onValueChange={(courierId) => {
+                        const selectedCourier = couriers.find(c => c.id === courierId);
+                        if (selectedCourier) {
+                            onAssignCourier(order.id, selectedCourier.id, selectedCourier.businessName);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <Truck className="mr-2 h-3 w-3" />
+                        <SelectValue placeholder="Assign Courier..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="" disabled>Assign a courier</SelectItem>
+                        {couriers.map(courier => (
+                          <SelectItem key={courier.id} value={courier.id} className="text-xs">
+                            {courier.businessName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                 )}
                 <TableCell className="hidden sm:table-cell">{format(new Date(order.orderDate), "MMM d, yyyy")}</TableCell>
@@ -146,7 +176,7 @@ export function OrderTable({ orders, onViewDetails, onUpdateStatus, showSellerCo
           })
         ) : (
           <TableRow>
-            <TableCell colSpan={showSellerColumn ? 8 : 7} className="text-center h-24">
+            <TableCell colSpan={showSellerColumn ? 9 : 8} className="text-center h-24">
               No orders found.
             </TableCell>
           </TableRow>

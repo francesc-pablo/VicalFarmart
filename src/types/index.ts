@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -48,6 +49,8 @@ export interface Order {
   orderDate: string;
   sellerId?: string;
   sellerName?: string; // Add sellerName to the order itself
+  courierId?: string; // For courier assignment
+  courierName?: string; // For courier assignment
   paymentDetails?: {
     transactionId?: string | number;
     status?: string;

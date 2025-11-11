@@ -1,4 +1,5 @@
 
+
 'use server';
 /**
  * @fileOverview AI flows for generating and sending transactional emails.
@@ -170,6 +171,7 @@ const OrderStatusUpdateInputSchema = z.object({
         productName: z.string(),
         quantity: z.number()
     })),
+    courierName: z.string().optional(),
 });
 type OrderStatusUpdateInput = z.infer<typeof OrderStatusUpdateInputSchema>;
 
@@ -199,7 +201,7 @@ const orderStatusUpdatePrompt = ai.definePrompt({
       
       Provide a brief, reassuring message based on the status and recipient.
       - If for a customer and 'Processing': "We're getting your order ready."
-      - If for a customer and 'Shipped': "Your order is on its way!"
+      - If for a customer and 'Shipped': "Your order is on its way! It will be delivered by {{{courierName}}}."
       - If for a customer and 'Delivered': "Your order has arrived. Enjoy!"
       - If for a customer and 'Cancelled': "Your order has been cancelled."
       - If for a seller, simply state the new status and that the customer has been notified.
