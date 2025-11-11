@@ -5,23 +5,6 @@ import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, serverT
 
 const couriersCollectionRef = collection(db, "couriers");
 
-// Helper to upload a file and get URL
-async function uploadFile(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-    });
-
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-        throw new Error(result.message || "File upload failed");
-    }
-    return result.url;
-}
-
 export async function getCouriers(): Promise<Courier[]> {
     try {
         const q = query(couriersCollectionRef, orderBy("createdAt", "desc"));
@@ -47,19 +30,10 @@ export async function getCourierById(id: string): Promise<Courier | null> {
     }
 }
 
-export async function addCourier(data: Omit<Courier, 'id'>, files: Record<string, File | null>): Promise<string> {
+export async function addCourier(data: Omit<Courier, 'id' | 'createdAt'>): Promise<string> {
     try {
-        const dataToSave = { ...data };
-
-        for (const key in files) {
-            if (files[key]) {
-                const url = await uploadFile(files[key] as File);
-                (dataToSave as any)[key] = url;
-            }
-        }
-
         const docRef = await addDoc(couriersCollectionRef, {
-            ...dataToSave,
+            ...data,
             createdAt: serverTimestamp(),
         });
         return docRef.id;
@@ -70,20 +44,10 @@ export async function addCourier(data: Omit<Courier, 'id'>, files: Record<string
 }
 
 
-export async function updateCourier(id: string, data: Partial<Omit<Courier, 'id'>>, files: Record<string, File | null>): Promise<void> {
+export async function updateCourier(id: string, data: Partial<Omit<Courier, 'id' | 'createdAt'>>): Promise<void> {
     try {
         const courierDocRef = doc(db, "couriers", id);
-        const dataToUpdate: { [key: string]: any } = { ...data };
-        delete (dataToUpdate as any).id;
-
-        for (const key in files) {
-            if (files[key]) {
-                const url = await uploadFile(files[key] as File);
-                dataToUpdate[key] = url;
-            }
-        }
-        
-        await updateDoc(courierDocRef, dataToUpdate);
+        await updateDoc(courierDocRef, data);
     } catch (error) {
         console.error("Error updating courier: ", error);
         throw error;
@@ -100,3 +64,5 @@ export async function deleteCourier(id: string): Promise<void> {
         throw error;
     }
 }
+
+    

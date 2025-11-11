@@ -20,10 +20,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Courier } from "@/types";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 interface CourierFormProps {
   courier?: Courier | null;
-  onSubmit: (data: Omit<Courier, 'id'>, files: Record<string, File | null>) => void;
+  onSubmit: (data: Omit<Courier, 'id' | 'createdAt'>) => void;
   onCancel: () => void;
 }
 
@@ -65,6 +66,7 @@ type CourierFormValues = z.infer<typeof courierFormSchema>;
 
 export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<CourierFormValues>({
     resolver: zodResolver(courierFormSchema),
@@ -90,26 +92,64 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
     },
   });
 
+  const uploadFile = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+        throw new Error(result.message || "File upload failed");
+    }
+    return result.url;
+  };
+
+
   const handleSubmit = async (values: CourierFormValues) => {
     setIsSubmitting(true);
-    
-    const { 
-        tradeLicenseFile, nationalIdFile, policeClearanceFile, 
-        driverLicenseFile, vehicleInsuranceFile, roadworthinessFile,
-        ...dataToSubmit 
-    } = values;
 
-    const files: Record<string, File | null> = {
-        tradeLicenseUrl: tradeLicenseFile,
-        nationalIdUrl: nationalIdFile,
-        policeClearanceUrl: policeClearanceFile,
-        driverLicenseUrl: driverLicenseFile,
-        vehicleInsuranceUrl: vehicleInsuranceFile,
-        roadworthinessUrl: roadworthinessFile,
+    const dataToSubmit: any = {
+        businessName: values.businessName,
+        businessType: values.businessType,
+        businessRegistrationNumber: values.businessRegistrationNumber,
+        businessLocation: values.businessLocation,
+        tinNumber: values.tinNumber,
+        contactName: values.contactName,
+        phone: values.phone,
+        email: values.email,
+        residentialAddress: values.residentialAddress,
+        licenseCategory: values.licenseCategory,
+        vehicleType: values.vehicleType,
+        vehicleRegistrationNumber: values.vehicleRegistrationNumber,
+        tradeLicenseUrl: courier?.tradeLicenseUrl,
+        nationalIdUrl: courier?.nationalIdUrl,
+        policeClearanceUrl: courier?.policeClearanceUrl,
+        driverLicenseUrl: courier?.driverLicenseUrl,
+        vehicleInsuranceUrl: courier?.vehicleInsuranceUrl,
+        roadworthinessUrl: courier?.roadworthinessUrl,
     };
     
-    await onSubmit(dataToSubmit, files);
-    setIsSubmitting(false);
+    try {
+        if (values.tradeLicenseFile) dataToSubmit.tradeLicenseUrl = await uploadFile(values.tradeLicenseFile);
+        if (values.nationalIdFile) dataToSubmit.nationalIdUrl = await uploadFile(values.nationalIdFile);
+        if (values.policeClearanceFile) dataToSubmit.policeClearanceUrl = await uploadFile(values.policeClearanceFile);
+        if (values.driverLicenseFile) dataToSubmit.driverLicenseUrl = await uploadFile(values.driverLicenseFile);
+        if (values.vehicleInsuranceFile) dataToSubmit.vehicleInsuranceUrl = await uploadFile(values.vehicleInsuranceFile);
+        if (values.roadworthinessFile) dataToSubmit.roadworthinessUrl = await uploadFile(values.roadworthinessFile);
+
+        onSubmit(dataToSubmit);
+
+    } catch (error) {
+         toast({
+            title: "Upload Failed",
+            description: error instanceof Error ? error.message : "Could not upload one or more files.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
   const FileInputField = ({ name, label, currentUrl }: { name: keyof CourierFormValues, label: string, currentUrl?: string }) => (
@@ -226,3 +266,5 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
     </Form>
   );
 }
+
+    

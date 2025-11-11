@@ -55,13 +55,13 @@ export default function AdminCouriersPage() {
     fetchData();
   };
 
-  const handleCourierFormSubmit = async (courierData: Omit<Courier, 'id'>, files: Record<string, File | null>) => {
+  const handleCourierFormSubmit = async (courierData: Omit<Courier, 'id' | 'createdAt'>) => {
     try {
       if (editingCourier) {
-        await updateCourier(editingCourier.id, courierData, files);
+        await updateCourier(editingCourier.id, courierData);
         toast({ title: "Courier Updated", description: "Courier details have been saved." });
       } else {
-        await addCourier(courierData, files);
+        await addCourier(courierData);
         toast({ title: "Courier Added", description: "New courier service has been registered." });
       }
       setIsFormOpen(false);
@@ -151,3 +151,5 @@ export default function AdminCouriersPage() {
     </div>
   );
 }
+
+    
