@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, ShoppingBasket, ClipboardList, Users, Settings, Package, DollarSign, ShieldCheck, UserCog, Shell } from 'lucide-react';
+import { LayoutDashboard, ShoppingBasket, ClipboardList, Users, Settings, Package, DollarSign, ShieldCheck, UserCog, Shell, Truck } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -17,6 +17,7 @@ export const ADMIN_DASHBOARD_NAV_ITEMS: NavItem[] = [
   { title: 'Manage Users', href: '/admin/dashboard/users', icon: Users },
   { title: 'Manage Products', href: '/admin/dashboard/products', icon: ShoppingBasket },
   { title: 'All Orders', href: '/admin/dashboard/orders', icon: Package },
+  { title: 'Manage Couriers', href: '/admin/dashboard/couriers', icon: Truck },
   { title: 'Profile', href: '/admin/dashboard/profile', icon: UserCog },
   { title: 'Platform Settings', href: '/admin/dashboard/settings', icon: Settings, disabled: true },
 ];

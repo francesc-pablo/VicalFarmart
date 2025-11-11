@@ -86,3 +86,29 @@ export interface User {
   failedLoginAttempts?: number;
   lockoutUntil?: number | null; // Store as UTC milliseconds
 }
+
+export interface Courier {
+    id: string;
+    createdAt?: any;
+    // Company Info
+    businessName: string;
+    businessType: 'sole proprietorship' | 'partnership' | 'LLC' | 'corporation';
+    businessRegistrationNumber?: string;
+    businessLocation: string;
+    tradeLicenseUrl?: string;
+    tinNumber?: string;
+    // Personal Info
+    contactName: string;
+    nationalIdUrl?: string;
+    phone: string;
+    email: string;
+    residentialAddress: string;
+    policeClearanceUrl?: string;
+    driverLicenseUrl?: string;
+    licenseCategory: string;
+    // Vehicle Info
+    vehicleType: string;
+    vehicleRegistrationNumber: string;
+    vehicleInsuranceUrl: string;
+    roadworthinessUrl: string;
+}
