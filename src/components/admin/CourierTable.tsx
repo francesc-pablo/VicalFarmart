@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, FileDown } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +24,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CourierTableProps {
   couriers: Courier[];
@@ -32,6 +40,17 @@ interface CourierTableProps {
 }
 
 export function CourierTable({ couriers, onEdit, onDelete }: CourierTableProps) {
+
+  const documentLinks = (courier: Courier) => [
+    { label: "Trade License", url: courier.tradeLicenseUrl },
+    { label: "National ID / Passport", url: courier.nationalIdUrl },
+    { label: "Police Clearance", url: courier.policeClearanceUrl },
+    { label: "Driver's License", url: courier.driverLicenseUrl },
+    { label: "Vehicle Insurance", url: courier.vehicleInsuranceUrl },
+    { label: "Roadworthiness Certificate", url: courier.roadworthinessUrl },
+  ].filter(doc => doc.url);
+
+
   return (
     <Table>
       <TableHeader>
@@ -45,7 +64,9 @@ export function CourierTable({ couriers, onEdit, onDelete }: CourierTableProps) 
       </TableHeader>
       <TableBody>
         {couriers.length > 0 ? (
-          couriers.map((courier) => (
+          couriers.map((courier) => {
+            const availableDocs = documentLinks(courier);
+            return (
             <TableRow key={courier.id}>
               <TableCell>
                 <div className="font-medium">{courier.businessName}</div>
@@ -55,6 +76,26 @@ export function CourierTable({ couriers, onEdit, onDelete }: CourierTableProps) 
               <TableCell className="hidden sm:table-cell">{courier.phone}</TableCell>
               <TableCell className="hidden lg:table-cell">{courier.businessLocation}</TableCell>
               <TableCell className="text-right">
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                     <Button variant="ghost" size="icon" title="Download Documents" disabled={availableDocs.length === 0}>
+                        <FileDown className="h-4 w-4" />
+                     </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Courier Documents</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {availableDocs.map((doc) => (
+                       <DropdownMenuItem key={doc.label} asChild>
+                         <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                           {doc.label}
+                         </a>
+                       </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 <Button variant="ghost" size="icon" onClick={() => onEdit(courier)} title="Edit Courier">
                   <Edit className="h-4 w-4" />
                 </Button>
@@ -79,7 +120,7 @@ export function CourierTable({ couriers, onEdit, onDelete }: CourierTableProps) 
                 </AlertDialog>
               </TableCell>
             </TableRow>
-          ))
+          )})
         ) : (
           <TableRow>
             <TableCell colSpan={5} className="text-center h-24">
