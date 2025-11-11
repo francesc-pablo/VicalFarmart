@@ -40,11 +40,15 @@ export async function POST(request: Request) {
                        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
                        
     const resource_type = isDocument ? 'raw' : 'image';
+    
+    // Extract filename without extension to use as a base for the public_id
+    const filename = file.name.split('.').slice(0, -1).join('.');
 
-    // Upload to Cloudinary with the correct resource type
+    // Upload to Cloudinary, preserving the original filename
     const results = await uploadStream(buffer, { 
       folder: 'vical_farmart_uploads',
       resource_type: resource_type,
+      public_id: filename, // Use the original filename
     });
     
     return NextResponse.json({ success: true, url: results.secure_url });
