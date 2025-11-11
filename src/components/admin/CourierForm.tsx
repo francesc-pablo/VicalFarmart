@@ -110,7 +110,6 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
   const handleSubmit = async (values: CourierFormValues) => {
     setIsSubmitting(true);
     
-    // Create a mutable copy of the data to submit
     const dataToSubmit: Omit<Courier, 'id' | 'createdAt'> = {
         businessName: values.businessName,
         businessType: values.businessType,
@@ -167,36 +166,6 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
     }
   };
   
-  const FileInputField = ({ name, label, currentUrl }: { name: keyof CourierFormValues, label: string, currentUrl?: string }) => {
-    const { register, setValue } = form;
-    const { ref, ...rest } = register(name);
-    return (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input 
-              type="file" 
-              {...rest}
-              ref={ref}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                setValue(name, file);
-              }}
-              className="h-auto p-2"
-            />
-          </FormControl>
-          {currentUrl && (
-            <FormDescription>
-              Current file: <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
-              . Upload a new file to replace it.
-            </FormDescription>
-          )}
-          <FormMessage />
-        </FormItem>
-      );
-  };
-
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -223,7 +192,29 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
                 <FormItem><FormLabel>Tax Identification Number (TIN)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
         </div>
-        <FileInputField name="tradeLicenseFile" label="Trade License" currentUrl={form.getValues('tradeLicenseUrl')} />
+
+        <FormField
+          control={form.control}
+          name="tradeLicenseFile"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Trade License</FormLabel>
+              <FormControl>
+                <Input 
+                  type="file" 
+                  className="h-auto p-2"
+                  onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
+                />
+              </FormControl>
+              {courier?.tradeLicenseUrl && (
+                <FormDescription>
+                  Current file: <a href={courier.tradeLicenseUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>. Upload a new file to replace it.
+                </FormDescription>
+              )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
 
         <h3 className="text-lg font-semibold text-primary pt-4">Personal Information</h3>
@@ -244,11 +235,50 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
             <FormItem><FormLabel>Residential Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
         )}/>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <FileInputField name="nationalIdFile" label="National ID / Passport" currentUrl={form.getValues('nationalIdUrl')} />
-           <FileInputField name="policeClearanceFile" label="Police Clearance Certificate" currentUrl={form.getValues('policeClearanceUrl')} />
+            <FormField
+              control={form.control}
+              name="nationalIdFile"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>National ID / Passport</FormLabel>
+                  <FormControl>
+                    <Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} />
+                  </FormControl>
+                  {courier?.nationalIdUrl && ( <FormDescription> Current file: <a href={courier.nationalIdUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>. </FormDescription> )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+           <FormField
+              control={form.control}
+              name="policeClearanceFile"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Police Clearance Certificate</FormLabel>
+                  <FormControl>
+                    <Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} />
+                  </FormControl>
+                  {courier?.policeClearanceUrl && ( <FormDescription> Current file: <a href={courier.policeClearanceUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>. </FormDescription> )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <FileInputField name="driverLicenseFile" label="Driver's / Riding License" currentUrl={form.getValues('driverLicenseUrl')} />
+           <FormField
+              control={form.control}
+              name="driverLicenseFile"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Driver&apos;s / Riding License</FormLabel>
+                  <FormControl>
+                    <Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} />
+                  </FormControl>
+                  {courier?.driverLicenseUrl && ( <FormDescription> Current file: <a href={courier.driverLicenseUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>. </FormDescription> )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField control={form.control} name="licenseCategory" render={({ field }) => (
                 <FormItem><FormLabel>License Category/Type</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
@@ -266,8 +296,34 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
             )}/>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FileInputField name="vehicleInsuranceFile" label="Vehicle Insurance Certificate" currentUrl={form.getValues('vehicleInsuranceUrl')} />
-            <FileInputField name="roadworthinessFile" label="Roadworthiness Certificate" currentUrl={form.getValues('roadworthinessUrl')} />
+            <FormField
+              control={form.control}
+              name="vehicleInsuranceFile"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Vehicle Insurance Certificate</FormLabel>
+                  <FormControl>
+                    <Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} />
+                  </FormControl>
+                  {courier?.vehicleInsuranceUrl && ( <FormDescription> Current file: <a href={courier.vehicleInsuranceUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>. </FormDescription> )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="roadworthinessFile"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Roadworthiness Certificate</FormLabel>
+                  <FormControl>
+                    <Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} />
+                  </FormControl>
+                  {courier?.roadworthinessUrl && ( <FormDescription> Current file: <a href={courier.roadworthinessUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>. </FormDescription> )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
         </div>
 
 
