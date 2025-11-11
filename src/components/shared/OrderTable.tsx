@@ -59,6 +59,8 @@ const getCurrencySymbol = (currencyCode?: string) => {
 
 const availableOrderStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
 
+const NO_COURIER_VALUE = "__NONE__";
+
 export function OrderTable({ orders, couriers = [], onViewDetails, onUpdateStatus, onAssignCourier, showSellerColumn }: OrderTableProps) {
   
   const getUniqueSellers = (order: Order): string[] => {
@@ -106,8 +108,9 @@ export function OrderTable({ orders, couriers = [], onViewDetails, onUpdateStatu
                 {onAssignCourier && (
                   <TableCell>
                     <Select
-                      value={order.courierId || ""}
+                      value={order.courierId || NO_COURIER_VALUE}
                       onValueChange={(courierId) => {
+                        if (courierId === NO_COURIER_VALUE) return;
                         const selectedCourier = couriers.find(c => c.id === courierId);
                         if (selectedCourier) {
                             onAssignCourier(order.id, selectedCourier.id, selectedCourier.businessName);
@@ -119,7 +122,7 @@ export function OrderTable({ orders, couriers = [], onViewDetails, onUpdateStatu
                         <SelectValue placeholder="Assign Courier..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="" disabled>Assign a courier</SelectItem>
+                        <SelectItem value={NO_COURIER_VALUE} disabled>Assign a courier</SelectItem>
                         {couriers.map(courier => (
                           <SelectItem key={courier.id} value={courier.id} className="text-xs">
                             {courier.businessName}
