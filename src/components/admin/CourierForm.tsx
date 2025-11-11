@@ -168,14 +168,20 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
   };
   
   const FileInputField = ({ name, label, currentUrl }: { name: keyof CourierFormValues, label: string, currentUrl?: string }) => {
-    const { register } = form;
+    const { register, setValue } = form;
+    const { ref, ...rest } = register(name);
     return (
         <FormItem>
           <FormLabel>{label}</FormLabel>
           <FormControl>
             <Input 
               type="file" 
-              {...register(name)}
+              {...rest}
+              ref={ref}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                setValue(name, file);
+              }}
               className="h-auto p-2"
             />
           </FormControl>
@@ -277,3 +283,5 @@ export function CourierForm({ courier, onSubmit, onCancel }: CourierFormProps) {
     </Form>
   );
 }
+
+    
