@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db, auth } from "@/lib/firebase";
@@ -101,6 +102,7 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
             address: userData.address || "",
             region: userData.region || "",
             town: userData.town || "",
+            // Seller fields
             businessName: userData.businessName || "",
             businessOwnerName: userData.businessOwnerName || "",
             businessAddress: userData.businessAddress || "",
@@ -172,3 +174,4 @@ export async function deleteUser(userId: string): Promise<void> {
     throw error; // Re-throw to be handled by the caller
   }
 }
+
