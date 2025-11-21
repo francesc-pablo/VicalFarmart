@@ -173,6 +173,8 @@ export function AuthForm({ type }: AuthFormProps) {
         router.push("/admin/dashboard");
       } else if (userRole === 'seller') {
         router.push("/seller/dashboard");
+      } else if (userRole === 'courier') {
+        router.push("/courier/dashboard");
       } else {
         router.push("/market");
       }
@@ -241,6 +243,8 @@ export function AuthForm({ type }: AuthFormProps) {
               router.push("/admin/dashboard");
           } else if (userData.role === "seller") {
               router.push("/seller/dashboard");
+          } else if (userData.role === 'courier') {
+              router.push("/courier/dashboard");
           } else {
               router.push("/market");
           }
