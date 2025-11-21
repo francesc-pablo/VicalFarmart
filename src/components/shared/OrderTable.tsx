@@ -116,6 +116,7 @@ export function OrderTable({ orders, couriers = [], onViewDetails, onUpdateStatu
                             onAssignCourier(order.id, selectedCourier.id, selectedCourier.name);
                         }
                       }}
+                      disabled={['Delivered', 'Cancelled'].includes(order.status)}
                     >
                       <SelectTrigger className="h-8 text-xs">
                         <Truck className="mr-2 h-3 w-3" />
