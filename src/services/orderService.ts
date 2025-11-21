@@ -111,10 +111,12 @@ export async function getOrdersBySellerId(sellerId: string): Promise<Order[]> {
 
 export async function getOrdersByCourierId(courierId: string): Promise<Order[]> {
   try {
+    // The combination of `where` and `orderBy` requires a composite index in Firestore.
+    // To prevent the app from crashing before the index is created, we'll fetch
+    // without the `orderBy` and then sort the results in the application code.
     const q = query(
       ordersCollectionRef,
-      where("courierId", "==", courierId),
-      orderBy("orderDate", "desc")
+      where("courierId", "==", courierId)
     );
     const querySnapshot = await getDocs(q);
     const orders = querySnapshot.docs.map((doc) => {
@@ -125,6 +127,10 @@ export async function getOrdersByCourierId(courierId: string): Promise<Order[]> 
         ...convertedData,
       } as Order;
     });
+
+    // Sort by orderDate descending in code
+    orders.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+
     return orders;
   } catch (error) {
     console.error(`Error fetching orders for courier ${courierId}: `, error);
