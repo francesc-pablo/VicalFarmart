@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, PlayCircle } from "lucide-react";
+import { Eye, PlayCircle, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface CourierOrderTableProps {
@@ -42,8 +42,20 @@ const getCurrencySymbol = (currencyCode?: string) => {
 export function CourierOrderTable({ orders, onViewDetails, onUpdateStatus }: CourierOrderTableProps) {
   
   const handleStartProcessing = (order: Order) => {
-    if (onUpdateStatus && order.status === 'Pending' || order.status === 'Paid') {
+    if (onUpdateStatus && (order.status === 'Pending' || order.status === 'Paid')) {
       onUpdateStatus(order.id, 'Processing');
+    }
+  };
+  
+  const handleMarkAsShipped = (order: Order) => {
+    if (onUpdateStatus && order.status === 'Processing') {
+      onUpdateStatus(order.id, 'Shipped');
+    }
+  };
+
+  const handleMarkAsDelivered = (order: Order) => {
+    if (onUpdateStatus && order.status === 'Shipped') {
+      onUpdateStatus(order.id, 'Delivered');
     }
   };
 
@@ -84,6 +96,17 @@ export function CourierOrderTable({ orders, onViewDetails, onUpdateStatus }: Cou
                   <Button variant="outline" size="sm" onClick={() => handleStartProcessing(order)} title="Start Processing">
                     <PlayCircle className="h-4 w-4 mr-1" />
                     Start
+                  </Button>
+                )}
+                {order.status === 'Processing' && onUpdateStatus && (
+                  <Button variant="outline" size="sm" onClick={() => handleMarkAsShipped(order)} title="Mark as Shipped">
+                     Ship
+                  </Button>
+                )}
+                 {order.status === 'Shipped' && onUpdateStatus && (
+                  <Button variant="outline" size="sm" onClick={() => handleMarkAsDelivered(order)} title="Mark as Delivered">
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Deliver
                   </Button>
                 )}
                 {onViewDetails && (
