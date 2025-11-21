@@ -451,7 +451,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                     </FormItem>
                 )}/>
 
-                {courierBusinessType !== 'sole proprietorship' && (
+                {courierBusinessType && courierBusinessType !== 'sole proprietorship' && (
                     <>
                         <FormField control={form.control} name="businessName" render={({ field }) => (
                             <FormItem><FormLabel>Business Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -522,3 +522,5 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     </Form>
   );
 }
+
+    
