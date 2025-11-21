@@ -109,6 +109,29 @@ export async function getOrdersBySellerId(sellerId: string): Promise<Order[]> {
   }
 }
 
+export async function getOrdersByCourierId(courierId: string): Promise<Order[]> {
+  try {
+    const q = query(
+      ordersCollectionRef,
+      where("courierId", "==", courierId),
+      orderBy("orderDate", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+    const orders = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const convertedData = convertTimestamp(data);
+      return {
+        id: doc.id,
+        ...convertedData,
+      } as Order;
+    });
+    return orders;
+  } catch (error) {
+    console.error(`Error fetching orders for courier ${courierId}: `, error);
+    return [];
+  }
+}
+
 export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
   try {
     const orderDocRef = doc(db, "orders", orderId);

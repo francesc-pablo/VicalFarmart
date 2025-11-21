@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase } from 'lucide-react';
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase, Truck } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import type { User, UserRole } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -275,6 +275,11 @@ export function Header() {
                     {authStatus.user.role === 'seller' && (
                        <DropdownMenuItem asChild>
                         <Link href="/seller/dashboard"><Briefcase className="mr-2 h-4 w-4" /> Seller Dashboard</Link>
+                       </DropdownMenuItem>
+                    )}
+                     {authStatus.user.role === 'courier' && (
+                       <DropdownMenuItem asChild>
+                        <Link href="/courier/dashboard"><Truck className="mr-2 h-4 w-4" /> Courier Dashboard</Link>
                        </DropdownMenuItem>
                     )}
                     {authStatus.user.role === 'admin' && (

@@ -110,6 +110,21 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
             geoCoordinatesLat: userData.geoCoordinatesLat || "",
             geoCoordinatesLng: userData.geoCoordinatesLng || "",
             businessType: userData.businessType || "",
+            // Courier fields
+            businessRegistrationNumber: userData.businessRegistrationNumber || "",
+            businessLocation: userData.businessLocation || "",
+            tradeLicenseUrl: userData.tradeLicenseUrl || "",
+            tinNumber: userData.tinNumber || "",
+            nationalIdUrl: userData.nationalIdUrl || "",
+            residentialAddress: userData.residentialAddress || "",
+            policeClearanceUrl: userData.policeClearanceUrl || "",
+            driverLicenseUrl: userData.driverLicenseUrl || "",
+            licenseCategory: userData.licenseCategory || "",
+            vehicleType: userData.vehicleType || "",
+            vehicleRegistrationNumber: userData.vehicleRegistrationNumber || "",
+            vehicleInsuranceUrl: userData.vehicleInsuranceUrl || "",
+            roadworthinessUrl: userData.roadworthinessUrl || "",
+            // Login tracking
             failedLoginAttempts: 0,
             lockoutUntil: null,
         };

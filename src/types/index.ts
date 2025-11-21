@@ -58,7 +58,7 @@ export interface Order {
   };
 }
 
-export type UserRole = 'seller' | 'admin' | 'customer';
+export type UserRole = 'seller' | 'admin' | 'customer' | 'courier';
 
 export interface User {
   id: string;
@@ -85,33 +85,22 @@ export interface User {
   geoCoordinatesLng?: string;
   businessType?: string;
 
+  // Courier-specific fields
+  businessRegistrationNumber?: string;
+  businessLocation?: string;
+  tradeLicenseUrl?: string;
+  tinNumber?: string;
+  nationalIdUrl?: string;
+  residentialAddress?: string;
+  policeClearanceUrl?: string;
+  driverLicenseUrl?: string;
+  licenseCategory?: string;
+  vehicleType?: string;
+  vehicleRegistrationNumber?: string;
+  vehicleInsuranceUrl?: string;
+  roadworthinessUrl?: string;
+
   // For login attempts
   failedLoginAttempts?: number;
   lockoutUntil?: number | null; // Store as UTC milliseconds
-}
-
-export interface Courier {
-    id: string;
-    createdAt?: any;
-    // Company Info
-    businessName: string;
-    businessType: 'sole proprietorship' | 'partnership' | 'LLC' | 'corporation';
-    businessRegistrationNumber?: string;
-    businessLocation: string;
-    tradeLicenseUrl?: string;
-    tinNumber?: string;
-    // Personal Info
-    contactName: string;
-    nationalIdUrl?: string;
-    phone: string;
-    email: string;
-    residentialAddress: string;
-    policeClearanceUrl?: string;
-    driverLicenseUrl?: string;
-    licenseCategory: string;
-    // Vehicle Info
-    vehicleType: string;
-    vehicleRegistrationNumber: string;
-    vehicleInsuranceUrl: string;
-    roadworthinessUrl: string;
 }

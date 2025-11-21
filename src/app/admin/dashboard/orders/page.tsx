@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { OrderTable } from "@/components/shared/OrderTable";
-import type { Order, OrderStatus, User, Courier } from "@/types";
+import type { Order, OrderStatus, User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, Box, CalendarIcon, CreditCard, Hash, MapPin, User as UserIcon, Mail, Phone, FileText, Briefcase } from "lucide-react";
@@ -18,7 +18,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getAllOrders, updateOrderStatus, getOrderById, assignCourierToOrder } from '@/services/orderService';
 import { getUserById, getUsers } from '@/services/userService';
-import { getCouriers } from '@/services/courierService';
 import { sendOrderStatusUpdateEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -36,7 +35,7 @@ import Image from "next/image";
 export default function AdminOrdersPage() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [couriers, setCouriers] = useState<Courier[]>([]);
+  const [couriers, setCouriers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "All">("All");
@@ -45,10 +44,9 @@ export default function AdminOrdersPage() {
 
   const fetchAllData = useCallback(async () => {
     setIsLoading(true);
-    const [ordersFromDb, usersFromDb, couriersFromDb] = await Promise.all([
+    const [ordersFromDb, usersFromDb] = await Promise.all([
       getAllOrders(),
       getUsers(),
-      getCouriers(),
     ]);
     
     const ordersWithSellerNames = ordersFromDb.map(order => {
@@ -61,7 +59,7 @@ export default function AdminOrdersPage() {
 
     setAllOrders(ordersWithSellerNames);
     setUsers(usersFromDb);
-    setCouriers(couriersFromDb);
+    setCouriers(usersFromDb.filter(u => u.role === 'courier'));
     setIsLoading(false);
   }, []);
 
@@ -296,5 +294,6 @@ export default function AdminOrdersPage() {
     </>
   );
 }
+
 
 

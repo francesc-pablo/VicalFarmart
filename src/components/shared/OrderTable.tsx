@@ -2,7 +2,7 @@
 
 "use client";
 
-import type { Order, OrderStatus, Courier } from "@/types";
+import type { Order, OrderStatus, User } from "@/types";
 import {
   Table,
   TableBody,
@@ -25,7 +25,7 @@ import {
 
 interface OrderTableProps {
   orders: Order[];
-  couriers?: Courier[];
+  couriers?: User[];
   onViewDetails?: (orderId: string) => void;
   onUpdateStatus?: (orderId: string, newStatus: OrderStatus) => void;
   onAssignCourier?: (orderId: string, courierId: string, courierName: string) => void;
@@ -113,7 +113,7 @@ export function OrderTable({ orders, couriers = [], onViewDetails, onUpdateStatu
                         if (courierId === NO_COURIER_VALUE) return;
                         const selectedCourier = couriers.find(c => c.id === courierId);
                         if (selectedCourier) {
-                            onAssignCourier(order.id, selectedCourier.id, selectedCourier.businessName);
+                            onAssignCourier(order.id, selectedCourier.id, selectedCourier.name);
                         }
                       }}
                     >
@@ -125,7 +125,7 @@ export function OrderTable({ orders, couriers = [], onViewDetails, onUpdateStatu
                         <SelectItem value={NO_COURIER_VALUE} disabled>Assign a courier</SelectItem>
                         {couriers.map(courier => (
                           <SelectItem key={courier.id} value={courier.id} className="text-xs">
-                            {courier.businessName}
+                            {courier.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

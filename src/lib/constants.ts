@@ -17,7 +17,6 @@ export const ADMIN_DASHBOARD_NAV_ITEMS: NavItem[] = [
   { title: 'Manage Users', href: '/admin/dashboard/users', icon: Users },
   { title: 'Manage Products', href: '/admin/dashboard/products', icon: ShoppingBasket },
   { title: 'All Orders', href: '/admin/dashboard/orders', icon: Package },
-  { title: 'Manage Couriers', href: '/admin/dashboard/couriers', icon: Truck },
   { title: 'Profile', href: '/admin/dashboard/profile', icon: UserCog },
   { title: 'Platform Settings', href: '/admin/dashboard/settings', icon: Settings, disabled: true },
 ];
@@ -27,6 +26,12 @@ export const SELLER_DASHBOARD_NAV_ITEMS: NavItem[] = [
   { title: 'My Products', href: '/seller/dashboard/products', icon: ShoppingBasket },
   { title: 'My Sales', href: '/seller/dashboard/orders', icon: Package },
   { title: 'Profile', href: '/seller/dashboard/profile', icon: UserCog },
+];
+
+export const COURIER_DASHBOARD_NAV_ITEMS: NavItem[] = [
+  { title: 'Overview', href: '/courier/dashboard', icon: LayoutDashboard },
+  { title: 'Assigned Orders', href: '/courier/dashboard/orders', icon: Package },
+  { title: 'Profile', href: '/courier/dashboard/profile', icon: UserCog },
 ];
 
 
