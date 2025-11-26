@@ -38,7 +38,7 @@ interface UserFormProps {
 
 const fileSchema = z.custom<File>((v) => v instanceof File, "Please upload a file").optional().nullable();
 
-const userFormSchemaBase = z.object({
+const baseSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   phone: z.string().optional(),
@@ -70,50 +70,58 @@ const userFormSchemaBase = z.object({
   vehicleRegistrationNumber: z.string().optional(),
   vehicleInsuranceFile: fileSchema,
   roadworthinessFile: fileSchema,
-}).superRefine((data, ctx) => {
+});
+
+const refinedSchema = (schema: typeof baseSchema | z.ZodObject<any, any>) =>
+  schema.superRefine((data, ctx) => {
     if (data.role === 'courier') {
-        if (!data.businessRegistrationNumber) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Business Registration No. is required for couriers.",
-                path: ["businessRegistrationNumber"],
-            });
-        }
-        if (!data.tradeLicenseFile && !data.tradeLicenseUrl) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Trade License is required for couriers.",
-                path: ["tradeLicenseFile"],
-            });
-        }
-        if (!data.tinNumber) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Tax Identification Number is required for couriers.",
-                path: ["tinNumber"],
-            });
-        }
-        if (!data.policeClearanceFile && !data.policeClearanceUrl) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Police Clearance Certificate is required for couriers.",
-                path: ["policeClearanceFile"],
-            });
-        }
+      if (!data.businessRegistrationNumber) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Business Registration No. is required for couriers.",
+          path: ["businessRegistrationNumber"],
+        });
+      }
+      // Check for file or existing URL
+      if (!data.tradeLicenseFile && !(data.user && data.user.tradeLicenseUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Trade License is required for couriers.",
+          path: ["tradeLicenseFile"],
+        });
+      }
+      if (!data.tinNumber) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Tax Identification Number is required for couriers.",
+          path: ["tinNumber"],
+        });
+      }
+      if (!data.policeClearanceFile && !(data.user && data.user.policeClearanceUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Police Clearance Certificate is required for couriers.",
+          path: ["policeClearanceFile"],
+        });
+      }
     }
-});
+  });
 
 
-const userFormSchemaCreate = userFormSchemaBase.extend({
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-});
+const userFormSchemaCreate = refinedSchema(
+    baseSchema.extend({
+        password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+    })
+);
 
-const userFormSchemaUpdate = userFormSchemaBase.extend({
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional().or(z.literal('')),
-});
+const userFormSchemaUpdate = refinedSchema(
+    baseSchema.extend({
+        password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional().or(z.literal('')),
+    })
+);
 
 
-type UserFormValues = z.infer<typeof userFormSchemaBase> & { password?: string };
+type UserFormValues = z.infer<typeof baseSchema> & { password?: string };
 
 const NO_REGION_VALUE = "--NONE--";
 const NO_TOWN_VALUE = "--NONE--";
@@ -490,7 +498,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                 )}/>
 
                 <Separator className="my-4" />
-                <h4 className="text-md font-medium">Personal & Vehicle Details</h4>
+                <h4 className="text-md font-medium">Personal &amp; Vehicle Details</h4>
 
                 <FormField control={form.control} name="residentialAddress" render={({ field }) => (
                     <FormItem><FormLabel>Residential Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
