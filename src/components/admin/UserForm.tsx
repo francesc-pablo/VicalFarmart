@@ -72,54 +72,38 @@ const baseSchema = z.object({
   roadworthinessFile: fileSchema,
 });
 
-const refinedSchema = (schema: typeof baseSchema | z.ZodObject<any, any>) =>
+const refinedSchema = (schema: z.ZodObject<any, any>, isEditing: boolean) =>
   schema.superRefine((data, ctx) => {
     if (data.role === 'courier') {
       if (!data.businessRegistrationNumber) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Business Registration No. is required for couriers.",
-          path: ["businessRegistrationNumber"],
-        });
-      }
-      // Check for file or existing URL
-      if (!data.tradeLicenseFile && !(data.user && data.user.tradeLicenseUrl)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Trade License is required for couriers.",
-          path: ["tradeLicenseFile"],
-        });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Business Registration No. is required.", path: ["businessRegistrationNumber"] });
       }
       if (!data.tinNumber) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Tax Identification Number is required for couriers.",
-          path: ["tinNumber"],
-        });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Tax Identification Number is required.", path: ["tinNumber"] });
       }
-      if (!data.policeClearanceFile && !(data.user && data.user.policeClearanceUrl)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Police Clearance Certificate is required for couriers.",
-          path: ["policeClearanceFile"],
-        });
+      // For file fields, only require them if we are creating a new user or if there's no existing file URL during an edit
+      if (!isEditing && !data.tradeLicenseFile) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Trade License is required for new couriers.", path: ["tradeLicenseFile"] });
+      }
+      if (!isEditing && !data.policeClearanceFile) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Police Clearance Certificate is required for new couriers.", path: ["policeClearanceFile"] });
       }
     }
   });
 
-
 const userFormSchemaCreate = refinedSchema(
     baseSchema.extend({
         password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-    })
+    }),
+    false
 );
 
 const userFormSchemaUpdate = refinedSchema(
     baseSchema.extend({
         password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional().or(z.literal('')),
-    })
+    }),
+    true
 );
-
 
 type UserFormValues = z.infer<typeof baseSchema> & { password?: string };
 
@@ -227,17 +211,16 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
         businessLocationTown: values.businessLocationTown === NO_TOWN_VALUE || !values.town ? undefined : values.town,
     };
 
-    const fileFields: (keyof User)[] = ['tradeLicenseUrl', 'nationalIdUrl', 'policeClearanceUrl', 'driverLicenseUrl', 'vehicleInsuranceUrl', 'roadworthinessUrl'];
-    const fileInputs = form.getValues();
+    const fileFields: (keyof UserFormValues)[] = ['tradeLicenseFile', 'nationalIdFile', 'policeClearanceFile', 'driverLicenseFile', 'vehicleInsuranceFile', 'roadworthinessFile'];
 
     try {
         toast({ title: `Processing user data...` });
-        const uploadPromises = fileFields.map(async (field) => {
-            const fileInputKey = `${field.replace('Url', '')}File` as keyof UserFormValues;
-            const file = fileInputs[fileInputKey] as File | undefined;
+        const uploadPromises = fileFields.map(async (fieldKey) => {
+            const file = values[fieldKey] as File | undefined;
             if (file) {
                 const url = await uploadFile(file);
-                dataToSubmit[field] = url;
+                const urlKey = `${fieldKey.replace('File', '')}Url` as keyof Partial<User>;
+                dataToSubmit[urlKey] = url;
             }
         });
 
@@ -548,5 +531,3 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     </Form>
   );
 }
-
-    
