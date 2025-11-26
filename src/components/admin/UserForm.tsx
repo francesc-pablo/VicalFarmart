@@ -38,7 +38,7 @@ interface UserFormProps {
 
 const fileSchema = z.custom<File>((v) => v instanceof File, "Please upload a file").optional().nullable();
 
-const baseSchema = z.object({
+const userFormSchemaBase = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   phone: z.string().optional(),
@@ -72,40 +72,16 @@ const baseSchema = z.object({
   roadworthinessFile: fileSchema,
 });
 
-const refinedSchema = (schema: z.ZodObject<any, any>, isEditing: boolean) =>
-  schema.superRefine((data, ctx) => {
-    if (data.role === 'courier') {
-      if (!data.businessRegistrationNumber) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Business Registration No. is required.", path: ["businessRegistrationNumber"] });
-      }
-      if (!data.tinNumber) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Tax Identification Number is required.", path: ["tinNumber"] });
-      }
-      // For file fields, only require them if we are creating a new user or if there's no existing file URL during an edit
-      if (!isEditing && !data.tradeLicenseFile) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Trade License is required for new couriers.", path: ["tradeLicenseFile"] });
-      }
-      if (!isEditing && !data.policeClearanceFile) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Police Clearance Certificate is required for new couriers.", path: ["policeClearanceFile"] });
-      }
-    }
-  });
 
-const userFormSchemaCreate = refinedSchema(
-    baseSchema.extend({
-        password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-    }),
-    false
-);
+const userFormSchemaCreate = userFormSchemaBase.extend({
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+});
 
-const userFormSchemaUpdate = refinedSchema(
-    baseSchema.extend({
-        password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional().or(z.literal('')),
-    }),
-    true
-);
+const userFormSchemaUpdate = userFormSchemaBase.extend({
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional().or(z.literal('')),
+});
 
-type UserFormValues = z.infer<typeof baseSchema> & { password?: string };
+type UserFormValues = z.infer<typeof userFormSchemaBase> & { password?: string };
 
 const NO_REGION_VALUE = "--NONE--";
 const NO_TOWN_VALUE = "--NONE--";
@@ -531,3 +507,5 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     </Form>
   );
 }
+
+    
