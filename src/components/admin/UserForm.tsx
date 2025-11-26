@@ -144,6 +144,13 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     }
   }, [watchedRegion, form, user?.region]);
   
+<<<<<<< HEAD
+=======
+  const courierRoleActive = watchedRole === 'courier';
+  const courierBusinessType = form.watch('businessType' as any); // Using `any` for conditional field
+  
+
+>>>>>>> a310e5a5789fe38a0b4cab4c75913a21451f8c50
 
   useEffect(() => {
     if ((watchedRole === 'seller' || watchedRole === 'courier') && watchedBusinessRegion && watchedBusinessRegion !== NO_REGION_VALUE) {
@@ -442,6 +449,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                     </FormItem>
                 )}/>
 
+<<<<<<< HEAD
                 <>
                     <FormField control={form.control} name="businessName" render={({ field }) => (
                         <FormItem><FormLabel>Business Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -456,6 +464,20 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                         <FormItem><FormLabel>Trade License</FormLabel><FormControl><Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} /></FormControl>{user?.tradeLicenseUrl && (<FormDescription>Current file: <a href={user.tradeLicenseUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a></FormDescription>)}<FormMessage /></FormItem>
                     )}/>
                 </>
+=======
+                <FormField control={form.control} name="businessName" render={({ field }) => (
+                    <FormItem><FormLabel>Business Name (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="businessRegistrationNumber" render={({ field }) => (
+                    <FormItem><FormLabel>Business Registration No. (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="tinNumber" render={({ field }) => (
+                    <FormItem><FormLabel>Tax Identification Number (TIN) (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="tradeLicenseFile" render={({ field }) => (
+                    <FormItem><FormLabel>Trade License (Optional)</FormLabel><FormControl><Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} /></FormControl>{user?.tradeLicenseUrl && (<FormDescription>Current file: <a href={user.tradeLicenseUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a></FormDescription>)}<FormMessage /></FormItem>
+                )}/>
+>>>>>>> a310e5a5789fe38a0b4cab4c75913a21451f8c50
 
                 <Separator className="my-4" />
                 <h4 className="text-md font-medium">Personal & Vehicle Details</h4>
@@ -469,7 +491,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                         <FormItem><FormLabel>National ID / Passport</FormLabel><FormControl><Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} /></FormControl>{user?.nationalIdUrl && ( <FormDescription> Current file: <a href={user.nationalIdUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>. </FormDescription> )}<FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="policeClearanceFile" render={({ field }) => (
-                        <FormItem><FormLabel>Police Clearance Certificate</FormLabel><FormControl><Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} /></FormControl>{user?.policeClearanceUrl && ( <FormDescription> Current file: <a href={user.policeClearanceUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>. </FormDescription> )}<FormMessage /></FormItem>
+                        <FormItem><FormLabel>Police Clearance Certificate (Optional)</FormLabel><FormControl><Input type="file" className="h-auto p-2" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} /></FormControl>{user?.policeClearanceUrl && ( <FormDescription> Current file: <a href={user.policeClearanceUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>. </FormDescription> )}<FormMessage /></FormItem>
                     )}/>
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -511,3 +533,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
     </Form>
   );
 }
+
+    
+
+    
