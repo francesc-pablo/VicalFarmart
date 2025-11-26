@@ -154,13 +154,34 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
 export async function updateUser(userId: string, data: Partial<User>): Promise<void> {
     try {
         const userDocRef = doc(db, "users", userId);
-        const updateData = { ...data };
-        delete updateData.password;
-        delete updateData.id; 
+        const updateData: { [key: string]: any } = {};
+
+        // List of all possible fields in the User type
+        const userFields: (keyof User)[] = [
+            'name', 'email', 'role', 'avatarUrl', 'isActive', 'phone', 'address', 'region', 'town',
+            'businessName', 'businessOwnerName', 'businessAddress', 'contactNumber', 'businessLocationRegion', 
+            'businessLocationTown', 'geoCoordinatesLat', 'geoCoordinatesLng', 'businessType',
+            'businessRegistrationNumber', 'businessLocation', 'tradeLicenseUrl', 'tinNumber', 'nationalIdUrl',
+            'residentialAddress', 'policeClearanceUrl', 'driverLicenseUrl', 'licenseCategory',
+            'vehicleType', 'vehicleRegistrationNumber', 'vehicleInsuranceUrl', 'roadworthinessUrl'
+        ];
+
+        // Construct the update object from the provided data
+        for (const key of userFields) {
+            if (key in data) {
+                updateData[key] = (data as any)[key];
+            }
+        }
         
+        // Ensure non-updatable fields are not included
+        delete updateData.id; 
+        delete updateData.password; 
+        delete updateData.createdAt;
+
         await updateDoc(userDocRef, updateData);
     } catch (error) {
         console.error("Error updating user: ", error);
+        throw error; // Re-throw to be handled by the caller
     }
 }
 
@@ -174,4 +195,3 @@ export async function deleteUser(userId: string): Promise<void> {
     throw error; // Re-throw to be handled by the caller
   }
 }
-
