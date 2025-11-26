@@ -81,11 +81,18 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
         throw new Error("Missing required fields for user creation.");
     }
     
-    // Temporarily sign out the admin to avoid auth state conflicts
-    const adminUser = auth.currentUser;
-    if (adminUser) {
-        await signOut(auth);
-    }
+    // CRITICAL FIX: Do NOT sign out the admin. The admin needs to be authenticated
+    // to have permission to write to the Firestore database.
+    // The previous implementation failed because this line removed write permissions.
+    // const adminUser = auth.currentUser;
+    // if (adminUser) {
+    //     await signOut(auth);
+    // }
+
+    // IMPORTANT: The client-side SDK is not designed for admin-style user creation.
+    // Calling `createUserWithEmailAndPassword` will sign IN the NEW user in the admin's browser,
+    // replacing the admin's session. The admin will need to log back in.
+    // This is a known limitation of using the client SDK for this purpose. A backend with the Admin SDK is the standard solution.
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -131,6 +138,7 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
             lockoutUntil: null,
         };
 
+        // This operation relies on the admin being authenticated.
         await setDoc(doc(db, "users", user.uid), newUserProfile);
         
         try {
@@ -144,7 +152,8 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
 
     } catch (error) {
         console.error("Error creating user:", error);
-        // The admin is already logged out, so just re-throw the error
+        // Because the admin is now logged out (as the new user), re-throw the error
+        // so the UI can handle the redirect to the login page.
         throw error;
     }
 }
