@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, ToggleLeft, ToggleRight, Edit } from "lucide-react";
+import { Trash2, ToggleLeft, ToggleRight, Edit, Download } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
@@ -25,6 +25,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface UserTableProps {
   users: User[];
@@ -39,6 +47,8 @@ const getRoleBadgeVariant = (role: UserRole): "default" | "secondary" | "outline
       return "default"; // Primary color for admin
     case "seller":
       return "secondary";
+    case "courier":
+      return "secondary";
     case "customer":
       return "outline";
     default:
@@ -46,7 +56,26 @@ const getRoleBadgeVariant = (role: UserRole): "default" | "secondary" | "outline
   }
 };
 
+const getFileNameFromUrl = (url: string) => {
+    try {
+        const path = new URL(url).pathname;
+        const segments = path.split('/');
+        return segments.pop() || "download";
+    } catch {
+        return "download";
+    }
+};
+
 export function UserTable({ users, onDeleteUser, onToggleUserStatus, onEditUser }: UserTableProps) {
+  const courierFileFields: (keyof User)[] = [
+    'tradeLicenseUrl', 
+    'nationalIdUrl', 
+    'policeClearanceUrl', 
+    'driverLicenseUrl', 
+    'vehicleInsuranceUrl', 
+    'roadworthinessUrl'
+  ];
+
   return (
     <Table>
       <TableHeader>
@@ -81,6 +110,37 @@ export function UserTable({ users, onDeleteUser, onToggleUserStatus, onEditUser 
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
+                {user.role === 'courier' && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" title="Download Courier Files">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Courier Documents</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {courierFileFields.map(field => {
+                        const url = user[field] as string | undefined;
+                        if (url) {
+                          const fileName = getFileNameFromUrl(url);
+                          const label = field.replace('Url', '').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                          return (
+                            <DropdownMenuItem key={field} asChild>
+                                <a href={url} download={fileName} target="_blank" rel="noopener noreferrer">
+                                    {label}
+                                </a>
+                            </DropdownMenuItem>
+                          );
+                        }
+                        return null;
+                      })}
+                      {courierFileFields.every(field => !user[field]) && (
+                          <DropdownMenuItem disabled>No files available</DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 {onEditUser && (
                   <Button variant="ghost" size="icon" onClick={() => onEditUser(user)} title="Edit User">
                     <Edit className="h-4 w-4" />
