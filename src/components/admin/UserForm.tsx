@@ -38,7 +38,7 @@ interface UserFormProps {
 
 const fileSchema = z.custom<File>((v) => v instanceof File, "Please upload a file").optional().nullable();
 
-const userFormSchemaBase = z.object({
+const userFormObject = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   phone: z.string().optional(),
@@ -73,15 +73,16 @@ const userFormSchemaBase = z.object({
 });
 
 
-const userFormSchemaCreate = userFormSchemaBase.extend({
+const userFormSchemaCreate = userFormObject.extend({
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-const userFormSchemaUpdate = userFormSchemaBase.extend({
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional().or(z.literal('')),
+const userFormSchemaUpdate = userFormObject.extend({
+  password: z.string().min(6, { message: "New password must be at least 6 characters." }).optional().or(z.literal('')),
 });
 
-type UserFormValues = z.infer<typeof userFormSchemaBase> & { password?: string };
+
+type UserFormValues = z.infer<typeof userFormObject> & { password?: string };
 
 const NO_REGION_VALUE = "--NONE--";
 const NO_TOWN_VALUE = "--NONE--";
