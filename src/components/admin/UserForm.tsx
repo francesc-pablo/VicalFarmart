@@ -257,7 +257,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email Address</FormLabel>
-                <FormControl><Input type="email" placeholder="user@example.com" {...field} /></FormControl>
+                <FormControl><Input type="email" placeholder="user@example.com" {...field} disabled={isEditing} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}

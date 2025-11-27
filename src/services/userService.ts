@@ -81,14 +81,6 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
         throw new Error("Missing required fields for user creation.");
     }
     
-    // CRITICAL FIX: Do NOT sign out the admin. The admin needs to be authenticated
-    // to have permission to write to the Firestore database.
-    // The previous implementation failed because this line removed write permissions.
-    // const adminUser = auth.currentUser;
-    // if (adminUser) {
-    //     await signOut(auth);
-    // }
-
     // IMPORTANT: The client-side SDK is not designed for admin-style user creation.
     // Calling `createUserWithEmailAndPassword` will sign IN the NEW user in the admin's browser,
     // replacing the admin's session. The admin will need to log back in.
@@ -167,7 +159,7 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
 
         // List of all possible fields in the User type
         const userFields: (keyof User)[] = [
-            'name', 'email', 'role', 'avatarUrl', 'isActive', 'phone', 'address', 'region', 'town',
+            'name', 'role', 'avatarUrl', 'isActive', 'phone', 'address', 'region', 'town',
             'businessName', 'businessOwnerName', 'businessAddress', 'contactNumber', 'businessLocationRegion', 
             'businessLocationTown', 'geoCoordinatesLat', 'geoCoordinatesLng', 'businessType',
             'businessRegistrationNumber', 'businessLocation', 'tradeLicenseUrl', 'tinNumber', 'nationalIdUrl',
@@ -186,6 +178,7 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
         delete updateData.id; 
         delete updateData.password; 
         delete updateData.createdAt;
+        delete updateData.email; // Do not allow email to be updated
 
         await updateDoc(userDocRef, updateData);
     } catch (error) {
@@ -204,3 +197,5 @@ export async function deleteUser(userId: string): Promise<void> {
     throw error; // Re-throw to be handled by the caller
   }
 }
+
+    
