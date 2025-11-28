@@ -42,22 +42,13 @@ export async function POST(request: Request) {
     
     const filename = file.name.split('.').slice(0, -1).join('.');
 
-    // --- Start of Change: Added optimization for images ---
     const options: any = { 
       folder: 'vical_farmart_uploads',
       resource_type: resource_type,
       public_id: filename,
     };
 
-    if (resource_type === 'image') {
-      options.transformation = [
-        { width: 1024, height: 1024, crop: 'limit' },
-        { quality: 'auto:good' }
-      ];
-    }
-    // --- End of Change ---
-
-    // Upload to Cloudinary with optimization options
+    // Upload to Cloudinary
     const results = await uploadStream(buffer, options);
     
     return NextResponse.json({ success: true, url: results.secure_url });
