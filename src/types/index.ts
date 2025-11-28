@@ -58,7 +58,7 @@ export interface Order {
   };
 }
 
-export type UserRole = 'seller' | 'admin' | 'customer' | 'courier';
+export type UserRole = 'seller' | 'admin' | 'customer' | 'courier' | 'supervisor';
 
 export interface User {
   id: string;

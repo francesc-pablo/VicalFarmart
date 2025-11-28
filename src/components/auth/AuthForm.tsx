@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -175,6 +176,8 @@ export function AuthForm({ type }: AuthFormProps) {
         router.push("/seller/dashboard");
       } else if (userRole === 'courier') {
         router.push("/courier/dashboard");
+      } else if (userRole === 'supervisor') {
+        router.push("/supervisor/dashboard");
       } else {
         router.push("/market");
       }
@@ -241,6 +244,8 @@ export function AuthForm({ type }: AuthFormProps) {
           toast({ title: "Login Successful", description: "Welcome back!" });
           if (userData.role === "admin") {
               router.push("/admin/dashboard");
+          } else if (userData.role === "supervisor") {
+              router.push("/supervisor/dashboard");
           } else if (userData.role === "seller") {
               router.push("/seller/dashboard");
           } else if (userData.role === 'courier') {

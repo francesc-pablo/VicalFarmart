@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from 'next/link';
@@ -282,9 +283,9 @@ export function Header() {
                         <Link href="/courier/dashboard"><Truck className="mr-2 h-4 w-4" /> Courier Dashboard</Link>
                        </DropdownMenuItem>
                     )}
-                    {authStatus.user.role === 'admin' && (
+                    {(authStatus.user.role === 'admin' || authStatus.user.role === 'supervisor') && (
                        <DropdownMenuItem asChild>
-                        <Link href="/admin/dashboard"><LayoutDashboardIcon className="mr-2 h-4 w-4" /> Admin Dashboard</Link>
+                        <Link href={authStatus.user.role === 'admin' ? "/admin/dashboard" : "/supervisor/dashboard"}><LayoutDashboardIcon className="mr-2 h-4 w-4" /> Dashboard</Link>
                        </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
