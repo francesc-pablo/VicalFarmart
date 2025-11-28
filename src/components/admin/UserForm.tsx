@@ -119,7 +119,7 @@ export function UserForm({ user, currentUserRole, onSubmit, onCancel }: UserForm
       address: user?.address || '',
       region: user?.region || undefined,
       town: user?.town || undefined,
-      role: user?.role || 'customer',
+      role: user?.role || (currentUserRole === 'supervisor' ? 'seller' : 'customer'),
       password: '',
       // Seller
       businessName: user?.businessName || '',
