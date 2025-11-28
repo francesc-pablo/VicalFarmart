@@ -34,22 +34,31 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Determine resource type based on MIME type
     const isDocument = file.type === 'application/pdf' || 
                        file.type === 'application/msword' || 
                        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
                        
     const resource_type = isDocument ? 'raw' : 'image';
     
-    // Extract filename without extension to use as a base for the public_id
     const filename = file.name.split('.').slice(0, -1).join('.');
 
-    // Upload to Cloudinary, preserving the original filename
-    const results = await uploadStream(buffer, { 
+    // --- Start of Change: Added optimization for images ---
+    const options: any = { 
       folder: 'vical_farmart_uploads',
       resource_type: resource_type,
-      public_id: filename, // Use the original filename
-    });
+      public_id: filename,
+    };
+
+    if (resource_type === 'image') {
+      options.transformation = [
+        { width: 1024, height: 1024, crop: 'limit' },
+        { quality: 'auto:good' }
+      ];
+    }
+    // --- End of Change ---
+
+    // Upload to Cloudinary with optimization options
+    const results = await uploadStream(buffer, options);
     
     return NextResponse.json({ success: true, url: results.secure_url });
 
