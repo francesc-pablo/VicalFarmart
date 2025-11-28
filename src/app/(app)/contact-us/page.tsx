@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Mail, MapPin, Phone } from "lucide-react";
+import { ArrowLeft, Mail, MapPin, Phone, Send } from "lucide-react";
 import Link from "next/link";
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from "react-hook-form";
@@ -21,6 +21,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { sendContactFormEmail } from "@/ai/flows/emailFlows";
+import { useState } from "react";
 
 
 const contactFormSchema = z.object({
@@ -35,6 +37,7 @@ type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 export default function ContactUsPage() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
@@ -46,14 +49,25 @@ export default function ContactUsPage() {
     },
   });
 
-  const handleSubmit = (data: ContactFormValues) => {
-    console.log("Contact form submitted with:", data);
-    // In a real app, you would handle form submission here (e.g., send data to an API)
-    toast({
-      title: "Message Sent!",
-      description: "Thank you for contacting us. We will get back to you shortly.",
-    });
-    form.reset();
+  const handleSubmit = async (data: ContactFormValues) => {
+    setIsSubmitting(true);
+    try {
+      await sendContactFormEmail(data);
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for contacting us. We will get back to you shortly.",
+      });
+      form.reset();
+    } catch (error) {
+      console.error("Failed to send contact form email:", error);
+      toast({
+        title: "Submission Failed",
+        description: "Could not send your message. Please try again later or use one of the methods below.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -128,7 +142,10 @@ export default function ContactUsPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full shadow-md">Send Message</Button>
+                <Button type="submit" className="w-full shadow-md" disabled={isSubmitting}>
+                   <Send className="mr-2 h-4 w-4" />
+                   {isSubmitting ? "Sending..." : "Send Message"}
+                </Button>
               </form>
             </Form>
           </CardContent>

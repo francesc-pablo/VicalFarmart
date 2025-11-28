@@ -311,3 +311,69 @@ const sendOrderConfirmationEmailFlow = ai.defineFlow({
 export async function sendOrderConfirmationEmail(input: OrderConfirmationEmailInput): Promise<void> {
     return sendOrderConfirmationEmailFlow(input);
 }
+
+
+// == 5. Contact Form Submission Email Flow ==
+
+const ContactFormEmailInputSchema = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  subject: z.string(),
+  message: z.string(),
+});
+export type ContactFormEmailInput = z.infer<typeof ContactFormEmailInputSchema>;
+
+const contactFormEmailPrompt = ai.definePrompt({
+  name: 'contactFormEmailPrompt',
+  input: { schema: ContactFormEmailInputSchema },
+  output: { schema: EmailOutputSchema },
+  prompt: `
+    You are an email formatting service for Vical Farmart.
+    A user has submitted the contact form. Format the submission into a clean, professional HTML email.
+
+    The subject line should be: "New Contact Form Submission: {{{subject}}}"
+
+    The email body should clearly present the following information:
+    - Name: {{{name}}}
+    - Email: {{{email}}}
+    - Subject: {{{subject}}}
+    - Message:
+      {{{message}}}
+
+    Wrap the message content in a <pre> tag to preserve formatting like line breaks.
+  `,
+});
+
+const sendContactFormEmailFlow = ai.defineFlow(
+  {
+    name: 'sendContactFormEmailFlow',
+    inputSchema: ContactFormEmailInputSchema,
+    outputSchema: z.void(),
+  },
+  async (input) => {
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+    if (!adminEmail) {
+      console.error('Admin email is not configured. Cannot send contact form submission.');
+      throw new Error('The server is not configured to receive contact messages.');
+    }
+
+    console.log(`Generating contact form email from ${input.email}`);
+    const { output } = await contactFormEmailPrompt(input);
+    if (!output) {
+      console.error('Failed to generate contact form email content.');
+      throw new Error('Email content generation failed.');
+    }
+    
+    console.log(`Sending contact form submission to ${adminEmail}`);
+    await sendEmail({
+      to: adminEmail,
+      subject: output.subject,
+      htmlBody: output.body,
+    });
+    console.log('Contact form email sent successfully.');
+  }
+);
+
+export async function sendContactFormEmail(input: ContactFormEmailInput): Promise<void> {
+    return sendContactFormEmailFlow(input);
+}
