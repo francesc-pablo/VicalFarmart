@@ -35,6 +35,7 @@ import { useRouter } from 'next/navigation';
 
 interface UserFormProps {
   user?: User | null;
+  currentUserRole?: UserRole;
   onSubmit: (data: Partial<User>) => void;
   onCancel: () => void;
 }
@@ -99,7 +100,7 @@ type UserFormValues = z.infer<typeof userFormObject> & { password?: string };
 const NO_REGION_VALUE = '--NONE--';
 const NO_TOWN_VALUE = '--NONE--';
 
-export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
+export function UserForm({ user, currentUserRole, onSubmit, onCancel }: UserFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const isEditing = !!user;
@@ -235,14 +236,18 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
 
     try {
       toast({ title: `Processing user data...` });
-      for (const fieldKey of fileFields) {
+      
+      const uploadPromises = fileFields.map(async (fieldKey) => {
         const file = values[fieldKey] as File | undefined | null;
         if (file) {
           const url = await uploadFile(file);
           const urlKey = `${fieldKey.replace('File', '')}Url` as keyof Partial<User>;
           (dataToSubmit as any)[urlKey] = url;
         }
-      }
+      });
+
+      await Promise.all(uploadPromises);
+
 
       if (isEditing) {
         dataToSubmit.id = user.id;
@@ -271,6 +276,14 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
       }
     }
   };
+
+  const roleOptions: { value: UserRole; label: string; disabled: boolean }[] = [
+    { value: 'customer', label: 'Customer', disabled: currentUserRole === 'supervisor' },
+    { value: 'seller', label: 'Seller', disabled: false },
+    { value: 'courier', label: 'Courier', disabled: false },
+    { value: 'supervisor', label: 'Supervisor', disabled: currentUserRole === 'supervisor' },
+    { value: 'admin', label: 'Admin', disabled: currentUserRole === 'supervisor' },
+  ];
 
   return (
     <Form {...form}>
@@ -342,17 +355,13 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {(
-                    [
-                      'customer',
-                      'seller',
-                      'admin',
-                      'courier',
-                      'supervisor',
-                    ] as UserRole[]
-                  ).map(roleOption => (
-                    <SelectItem key={roleOption} value={roleOption}>
-                      {roleOption.charAt(0).toUpperCase() + roleOption.slice(1)}
+                  {roleOptions.map(roleOption => (
+                    <SelectItem 
+                      key={roleOption.value} 
+                      value={roleOption.value}
+                      disabled={roleOption.disabled}
+                    >
+                      {roleOption.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

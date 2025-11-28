@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/dialog";
 import { UserForm } from '@/components/admin/UserForm';
 import { useRouter } from 'next/navigation';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function SupervisorUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -29,6 +32,7 @@ export default function SupervisorUsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const [supervisorUser, setSupervisorUser] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
@@ -41,6 +45,19 @@ export default function SupervisorUsersPage() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && (docSnap.data().role === 'supervisor' || docSnap.data().role === 'admin')) {
+          setSupervisorUser({ id: docSnap.id, ...docSnap.data() } as User);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
     await updateUser(userId, { isActive: !currentStatus });
@@ -169,6 +186,7 @@ export default function SupervisorUsersPage() {
           </DialogHeader>
           <UserForm
             user={editingUser}
+            currentUserRole={supervisorUser?.role}
             onSubmit={handleFormSubmit}
             onCancel={() => { setIsFormOpen(false); setEditingUser(null); }}
           />

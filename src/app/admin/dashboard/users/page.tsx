@@ -81,7 +81,7 @@ export default function AdminUsersPage() {
         setEditingUser(null);
         fetchUsers();
     } catch (error: any) {
-        if (!editingUser) {
+        if (!isEditing) {
           // This path is for creation failure. The admin is already logged out.
           toast({
             title: "Creation Failed",
@@ -172,6 +172,7 @@ export default function AdminUsersPage() {
           </DialogHeader>
           <UserForm
             user={editingUser}
+            currentUserRole="admin"
             onSubmit={handleFormSubmit}
             onCancel={() => { setIsFormOpen(false); setEditingUser(null); }}
           />
