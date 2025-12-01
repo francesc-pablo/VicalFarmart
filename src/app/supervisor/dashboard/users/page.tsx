@@ -64,16 +64,6 @@ export default function SupervisorUsersPage() {
     toast({ title: "User Status Updated", description: `User status changed to ${!currentStatus ? 'Active' : 'Inactive'}.` });
     fetchUsers(); // Refresh data
   };
-
-  const handleDeleteUser = async (userId: string) => {
-    try {
-        await deleteUser(userId);
-        toast({ title: "User Deleted", description: "The user has been removed from the database." });
-        fetchUsers();
-    } catch (error: any) {
-        toast({ title: "Error", description: error.message || "An unexpected error occurred during deletion.", variant: "destructive" });
-    }
-  };
   
   const handleEditUser = (user: User) => {
     setEditingUser(user);
@@ -164,7 +154,6 @@ export default function SupervisorUsersPage() {
             <UserTable
               users={filteredUsers}
               onToggleUserStatus={handleToggleUserStatus}
-              onDeleteUser={handleDeleteUser}
               onEditUser={handleEditUser}
             />
           )}
