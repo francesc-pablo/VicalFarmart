@@ -25,6 +25,7 @@ export const ADMIN_DASHBOARD_NAV_ITEMS: NavItem[] = [
 export const SUPERVISOR_DASHBOARD_NAV_ITEMS: NavItem[] = [
   { title: 'Overview', href: '/supervisor/dashboard', icon: LayoutDashboard },
   { title: 'Manage Users', href: '/supervisor/dashboard/users', icon: Users },
+  { title: 'Manage Products', href: '/supervisor/dashboard/products', icon: ShoppingBasket },
   { title: 'All Orders', href: '/supervisor/dashboard/orders', icon: Package },
   { title: 'Profile', href: '/supervisor/dashboard/profile', icon: UserCog },
 ];
