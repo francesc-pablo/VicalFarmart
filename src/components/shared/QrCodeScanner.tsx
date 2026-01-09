@@ -1,175 +1,337 @@
-
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
-import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
-import { CameraOff, Upload } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import Link from 'next/link';
+import { Logo } from './Logo';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase, Truck, QrCode } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import type { User, UserRole } from '@/types';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useCart } from '@/context/CartContext';
+import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
-interface QrCodeScannerProps {
-  onScanSuccess: () => void;
+
+interface AuthStatus {
+  isAuthenticated: boolean;
+  user?: User | null;
 }
 
-const QR_READER_ID = "qr-code-reader";
+const HEADER_SCROLL_THRESHOLD = 50;
 
-export function QrCodeScanner({ onScanSuccess }: QrCodeScannerProps) {
+// Memoize the search bar to prevent re-renders on every keystroke, which causes focus loss.
+const SearchBarForm = React.memo(function SearchBarForm({
+  isMobileLayout,
+  initialSearchTerm,
+}: {
+  isMobileLayout?: boolean;
+  initialSearchTerm: string;
+}) {
   const router = useRouter();
-  const { toast } = useToast();
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
+  const searchParams = useSearchParams();
 
-  const isValidProductUrl = (url: string) => {
-    try {
-      const urlObject = new URL(url);
-      return urlObject.pathname.startsWith('/market/');
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const handleScanSuccess = (decodedText: string) => {
-    if (isValidProductUrl(decodedText)) {
-      toast({
-        title: "QR Code Scanned",
-        description: "Redirecting to product page...",
-      });
-      router.push(decodedText);
-      onScanSuccess();
-    } else {
-      toast({
-        title: "Invalid QR Code",
-        description: "This QR code does not lead to a valid product page.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleScanFailure = (error: any) => {
-    // This can get noisy, so we don't toast every failure.
-    // console.warn(`QR error: ${error}`);
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      if (!html5QrCodeRef.current) return;
-      try {
-        await html5QrCodeRef.current.scanFile(file, true)
-            .then(handleScanSuccess)
-            .catch(handleScanFailure);
-      } catch (error: any) {
-        toast({
-          title: "Scan Failed",
-          description: error.message || "Could not scan the QR code from the image.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const [selectedRegion, setSelectedRegion] = useState(searchParams.get('region') || "All");
+  const [selectedTown, setSelectedTown] = useState(searchParams.get('town') || "All");
+  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
+  
+  useEffect(() => {
+    setSearchTerm(initialSearchTerm);
+  }, [initialSearchTerm]);
 
   useEffect(() => {
-    if (!html5QrCodeRef.current) {
-        html5QrCodeRef.current = new Html5Qrcode(QR_READER_ID, {
-            formatsToSupport: [0], // 0 corresponds to QR_CODE format
-            verbose: false
-        });
+    if (selectedRegion && selectedRegion !== "All") {
+      const townsForRegion = GHANA_REGIONS_AND_TOWNS[selectedRegion] || [];
+      setAvailableTowns(townsForRegion);
+    } else {
+      setAvailableTowns([]);
     }
+  }, [selectedRegion]);
+  
+  useEffect(() => {
+    if (selectedRegion === "All") {
+      setSelectedTown("All");
+    }
+  }, [selectedRegion]);
 
-    const qrCode = html5QrCodeRef.current;
+
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const newParams = new URLSearchParams();
     
-    // Prevent starting a new scan if one is already running
-    if (qrCode.getState() === Html5QrcodeScannerState.SCANNING) {
+    if (searchTerm.trim()) newParams.set('search', searchTerm.trim());
+    if (selectedRegion && selectedRegion !== "All") newParams.set('region', selectedRegion);
+    if (selectedTown && selectedTown !== "All" && selectedRegion !== "All") newParams.set('town', selectedTown);
+    
+    router.push(`/market?${newParams.toString()}`);
+  };
+
+  return (
+    <form onSubmit={handleSearchSubmit} className={`flex w-full items-center gap-2 ${isMobileLayout ? 'flex-col' : 'flex-grow max-w-2xl'}`}>
+      <div className={`${isMobileLayout ? 'w-full' : 'flex-grow'}`}>
+        <Input
+          type="search"
+          placeholder="Search products..."
+          className="h-9 w-full"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          aria-label="Search products"
+        />
+      </div>
+      <div className={`grid gap-2 grid-cols-2 ${isMobileLayout ? 'w-full' : 'min-w-[360px]'}`}>
+          <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+            <SelectTrigger className="h-9 text-xs">
+              <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="All Regions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Regions</SelectItem>
+              {PRODUCT_REGIONS.map(region => (
+                <SelectItem key={region} value={region}>{region}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+              value={selectedTown} 
+              onValueChange={setSelectedTown}
+              disabled={selectedRegion === "All" || availableTowns.length === 0}
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="All Towns" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Towns</SelectItem>
+              {availableTowns.map(town => (
+                <SelectItem key={town} value={town}>{town}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+      </div>
+      {!isMobileLayout && (
+         <Button type="submit" size="icon" className="h-9 w-9 shrink-0">
+           <SearchIcon className="h-4 w-4" />
+           <span className="sr-only">Search</span>
+         </Button>
+       )}
+       {isMobileLayout && (
+          <Button type="submit" className="w-full h-9">
+            <SearchIcon className="h-4 w-4 mr-2" />
+            Search
+          </Button>
+        )}
+    </form>
+  );
+});
+
+
+export function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
+  const { cartCount } = useCart();
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const [isMobileClient, setIsMobileClient] = useState(false);
+  const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  const showSearchBar = pathname !== '/market';
+  const initialSearchTerm = searchParams.get('search') || "";
+  const _isMobileHookValue = useIsMobile();
+
+  useEffect(() => {
+    setIsMobileClient(_isMobileHookValue);
+  }, [_isMobileHookValue]);
+
+  useEffect(() => {
+    if (!isMobileClient) {
+      setShowHeaderOnMobile(true);
       return;
     }
 
-    Html5Qrcode.getCameras()
-      .then(cameras => {
-        if (cameras && cameras.length) {
-          setHasPermission(true);
-          qrCode.start(
-            { facingMode: "environment" },
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 }
-            },
-            handleScanSuccess,
-            handleScanFailure
-          ).then(() => {
-            setIsScanning(true);
-          }).catch(err => {
-             console.error("Failed to start scanner", err);
-             setHasPermission(false);
-          });
-        } else {
-          setHasPermission(false);
-        }
-      })
-      .catch(err => {
-        console.error("Failed to get cameras", err);
-        setHasPermission(false);
-      });
-
-    return () => {
-      // Check if the scanner is running before trying to stop it
-      if (qrCode && qrCode.getState() === Html5QrcodeScannerState.SCANNING) {
-        qrCode.stop().then(() => {
-          setIsScanning(false);
-          console.log("QR scanner stopped successfully.");
-        }).catch(err => {
-          console.error("Failed to stop QR scanner.", err)
-        });
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < HEADER_SCROLL_THRESHOLD) {
+        setShowHeaderOnMobile(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > HEADER_SCROLL_THRESHOLD) {
+        setShowHeaderOnMobile(false);
+      } else if (currentScrollY < lastScrollY) {
+        setShowHeaderOnMobile(true);
       }
+      setLastScrollY(currentScrollY);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      setLastScrollY(0);
+    };
+  }, [isMobileClient, lastScrollY]);
+  
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setAuthStatus({ isAuthenticated: true, user: { id: docSnap.id, ...docSnap.data() } as User });
+        } else {
+          setAuthStatus({ isAuthenticated: true, user: {
+            id: user.uid,
+            name: user.displayName || 'New User',
+            email: user.email || '',
+            role: 'customer',
+            isActive: true,
+          } });
+        }
+      } else {
+        setAuthStatus({ isAuthenticated: false, user: null });
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  return (
-    <div className="space-y-4">
-        <div id={QR_READER_ID} className="w-full border-2 border-dashed rounded-lg bg-muted min-h-[300px] flex items-center justify-center">
-            {hasPermission === false && (
-                <div className="text-center p-4">
-                    <CameraOff className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <p className="mt-2 text-muted-foreground">Camera not available or permission denied.</p>
-                    <p className="text-xs text-muted-foreground">Please grant camera access in your browser settings.</p>
-                </div>
-            )}
-             {hasPermission === null && (
-                <div className="text-center p-4">
-                    <p className="text-muted-foreground">Requesting camera permission...</p>
-                </div>
-            )}
-        </div>
-        
-        <Alert>
-            <AlertTitle className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                No Camera?
-            </AlertTitle>
-            <AlertDescription>
-                You can upload an image of a QR code instead.
-            </AlertDescription>
-        </Alert>
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
 
-        <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => fileInputRef.current?.click()}
-        >
-            Upload QR Code Image
-        </Button>
-        <Input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            accept="image/*"
-        />
-    </div>
+  const getUserInitials = (name?: string | null) => {
+    if (!name) return "U";
+    const parts = name.split(" ");
+    if (parts.length > 1) {
+      return parts[0][0] + parts[parts.length - 1][0];
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  return (
+    <header className={`sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md transition-transform duration-300 ease-in-out ${isMobileClient && !showHeaderOnMobile ? '-translate-y-full' : 'translate-y-0'}`}>
+      <div className="container px-4 sm:px-12 flex h-16 max-w-screen-2xl items-center justify-between gap-2 sm:gap-4">
+        <div className="hidden sm:block"> <Logo /> </div>
+        <div className="sm:hidden"> <Logo className="text-xl" /></div>
+
+        <nav className="flex items-center gap-2 md:gap-4 flex-grow">
+          {showSearchBar && (
+            <div className="hidden sm:flex flex-grow justify-center">
+               <SearchBarForm initialSearchTerm={initialSearchTerm} />
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2 md:gap-3 ml-auto">
+            {authStatus.isAuthenticated && authStatus.user ? (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={authStatus.user.avatarUrl || `https://placehold.co/40x40.png?text=${getUserInitials(authStatus.user.name)}`} alt={authStatus.user.name || "User"} data-ai-hint="person face"/>
+                        <AvatarFallback>{getUserInitials(authStatus.user.name)}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{authStatus.user.name || "User"}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {authStatus.user.email || "No email"}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
+                    </DropdownMenuItem>
+                    {authStatus.user.role === 'customer' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/my-orders"><ListOrdered className="mr-2 h-4 w-4" /> My Orders</Link>
+                      </DropdownMenuItem>
+                    )}
+                    {authStatus.user.role === 'seller' && (
+                       <DropdownMenuItem asChild>
+                        <Link href="/seller/dashboard"><Briefcase className="mr-2 h-4 w-4" /> Seller Dashboard</Link>
+                       </DropdownMenuItem>
+                    )}
+                     {authStatus.user.role === 'courier' && (
+                       <DropdownMenuItem asChild>
+                        <Link href="/courier/dashboard"><Truck className="mr-2 h-4 w-4" /> Courier Dashboard</Link>
+                       </DropdownMenuItem>
+                    )}
+                    {(authStatus.user.role === 'admin' || authStatus.user.role === 'supervisor') && (
+                       <DropdownMenuItem asChild>
+                        <Link href={authStatus.user.role === 'admin' ? "/admin/dashboard" : "/supervisor/dashboard"}><LayoutDashboardIcon className="mr-2 h-4 w-4" /> Dashboard</Link>
+                       </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/login">Login</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/register">Register</Link>
+                </Button>
+              </>
+            )}
+             <Button variant="outline" size="icon" asChild className="relative h-9 w-9">
+              <Link href="/checkout">
+                {cartCount > 0 && (
+                  <span className="absolute top-0 right-0 flex h-5 w-5 -translate-y-1/2 translate-x-1/2 transform items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    {cartCount}
+                  </span>
+                )}
+                <ShoppingCart className="h-5 w-5" />
+                <span className="sr-only">Cart</span>
+              </Link>
+            </Button>
+          </div>
+        </nav>
+      </div>
+      {showSearchBar && (
+        <div className="container px-4 sm:px-12 pb-3 sm:hidden border-t border-border/40 pt-3">
+          <SearchBarForm isMobileLayout initialSearchTerm={initialSearchTerm} />
+        </div>
+      )}
+    </header>
   );
 }

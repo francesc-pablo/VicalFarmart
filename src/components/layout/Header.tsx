@@ -40,7 +40,6 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { QrCodeScanner } from '../shared/QrCodeScanner';
 
 
 interface AuthStatus {
@@ -254,23 +253,6 @@ export function Header() {
           )}
           
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
-            <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-9 w-9" title="Scan QR Code">
-                        <QrCode className="h-5 w-5" />
-                        <span className="sr-only">Scan QR Code</span>
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                    <DialogTitle>Scan Product QR Code</DialogTitle>
-                    <DialogDescription>
-                        Point your camera at a QR code to go to the product page.
-                    </DialogDescription>
-                    </DialogHeader>
-                    <QrCodeScanner onScanSuccess={() => setIsScannerOpen(false)} />
-                </DialogContent>
-            </Dialog>
             {authStatus.isAuthenticated && authStatus.user ? (
               <>
                 <DropdownMenu>
