@@ -22,6 +22,7 @@ export function QrCodeScanner({ onScanSuccess }: QrCodeScannerProps) {
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   const isValidProductUrl = (url: string) => {
     try {
@@ -57,8 +58,9 @@ export function QrCodeScanner({ onScanSuccess }: QrCodeScannerProps) {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
+      if (!html5QrCodeRef.current) return;
       try {
-        await html5QrCodeRef.current?.scanFile(file, true)
+        await html5QrCodeRef.current.scanFile(file, true)
             .then(handleScanSuccess)
             .catch(handleScanFailure);
       } catch (error: any) {
@@ -81,7 +83,7 @@ export function QrCodeScanner({ onScanSuccess }: QrCodeScannerProps) {
 
     const qrCode = html5QrCodeRef.current;
     
-    if (qrCode.getState() === Html5QrcodeScannerState.SCANNING) {
+    if (isScanning || qrCode.getState() === Html5QrcodeScannerState.SCANNING) {
       return;
     }
 
@@ -97,7 +99,9 @@ export function QrCodeScanner({ onScanSuccess }: QrCodeScannerProps) {
             },
             handleScanSuccess,
             handleScanFailure
-          ).catch(err => {
+          ).then(() => {
+            setIsScanning(true);
+          }).catch(err => {
              console.error("Failed to start scanner", err);
              setHasPermission(false);
           });
@@ -111,8 +115,10 @@ export function QrCodeScanner({ onScanSuccess }: QrCodeScannerProps) {
       });
 
     return () => {
-      if (qrCode && qrCode.getState() === Html5QrcodeScannerState.SCANNING) {
-        qrCode.stop().catch(err => console.error("Failed to stop QR scanner.", err));
+      if (qrCode && qrCode.isScanning) {
+        qrCode.stop().then(() => {
+          setIsScanning(false);
+        }).catch(err => console.error("Failed to stop QR scanner.", err));
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
