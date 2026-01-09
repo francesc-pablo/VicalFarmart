@@ -234,6 +234,7 @@ export function Header() {
   const handleScanSuccess = (url: string) => {
     setIsScannerOpen(false);
     if (url) {
+        // This is now the user-initiated action from the scanner component
         window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
