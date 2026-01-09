@@ -22,58 +22,9 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || scannedUrl) {
-      return;
-    }
-
-    if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode(QR_SCANNER_ELEMENT_ID, {
-            useBarCodeDetectorIfSupported: false,
-            verbose: false,
-        });
-    }
-    const scanner = scannerRef.current;
-    let isMounted = true;
-
-    const startScanner = async () => {
-      try {
-        await scanner.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            if (isMounted) handleScanSuccess(decodedText, scanner);
-          },
-          (errorMessage) => {
-            // Ignore scan errors
-          }
-        );
-        if (isMounted) setHasPermission(true);
-      } catch (err) {
-        console.error("QR Scanner Start Error:", err);
-        if (isMounted) setHasPermission(false);
-      }
-    };
-    
-    startScanner();
-
-    return () => {
-      isMounted = false;
-      if (scanner && scanner.isScanning) {
-        scanner.stop().catch(err => {
-          console.warn("Failed to stop scanner cleanly during cleanup:", err);
-        });
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scannedUrl]);
-
-  const handleScanSuccess = (decodedText: string, scanner: Html5Qrcode) => {
+  const handleScanSuccess = (decodedText: string) => {
     try {
-      new URL(decodedText);
-      if (scanner.isScanning) {
-        scanner.stop();
-      }
+      new URL(decodedText); // Validate if it's a URL
       setScannedUrl(decodedText);
       toast({ title: "QR Code Scanned!", description: "Click the button to open the link." });
     } catch (error) {
@@ -85,19 +36,78 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
     }
   };
   
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode(QR_SCANNER_ELEMENT_ID, false);
+    }
+    const scanner = scannerRef.current;
+    
+    // If a URL has been scanned, we should stop the scanner.
+    if (scannedUrl) {
+      if (scanner && scanner.isScanning) {
+        scanner.stop().catch(err => {
+          console.error("Failed to stop scanner after success:", err);
+        });
+      }
+      return;
+    }
+
+    const startScanner = async () => {
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          handleScanSuccess,
+          (errorMessage) => { /* ignore non-successful scans */ }
+        );
+        setHasPermission(true);
+      } catch (err) {
+        console.error("QR Scanner Start Error:", err);
+        setHasPermission(false);
+      }
+    };
+    
+    startScanner();
+
+    return () => {
+      if (scanner && scanner.isScanning) {
+        scanner.stop().catch(err => {
+          console.warn("Failed to stop scanner cleanly during cleanup:", err);
+        });
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannedUrl]); // Rerun effect when scannedUrl changes to stop the scanner
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && scannerRef.current) {
+    const scanner = scannerRef.current;
+    
+    if (file && scanner) {
+      // Stop the camera feed before scanning file
+      if (scanner.isScanning) {
+        await scanner.stop();
+      }
       try {
-        const decodedText = await scannerRef.current.scanFile(file, false);
-        // We can re-use the same success handler, it will stop the camera if it's running
-        handleScanSuccess(decodedText, scannerRef.current);
+        const decodedText = await scanner.scanFile(file, false);
+        handleScanSuccess(decodedText);
       } catch (err) {
         toast({
           title: "Scan Failed",
           description: "Could not find a valid QR code in the uploaded image.",
           variant: "destructive",
         });
+         // If file scan fails, try to restart the camera if it was running
+        if (!scannedUrl) {
+            scanner.start(
+              { facingMode: "environment" },
+              { fps: 10, qrbox: { width: 250, height: 250 } },
+              handleScanSuccess,
+              () => {}
+            ).catch(() => {});
+        }
       }
     }
   };
