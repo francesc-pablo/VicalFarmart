@@ -2,11 +2,14 @@
 "use client";
 
 import React, { useState } from 'react';
-import QrScanner from '@yudiel/react-qr-scanner';
+import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { Link as LinkIcon, ExternalLink, CameraOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
+
+// Dynamically import the scanner component to ensure it only runs on the client-side
+const QrScanner = dynamic(() => import('@yudiel/react-qr-scanner'), { ssr: false });
 
 interface QrCodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -73,8 +76,6 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
            </Button>
         </div>
       )}
-      
-      {/* The @yudiel/react-qr-scanner library handles errors via the onError prop, so a separate permission alert is less necessary */}
     </div>
   );
 };
