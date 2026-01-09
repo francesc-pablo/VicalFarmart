@@ -20,124 +20,106 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isScannerInitialized, setIsScannerInitialized] = useState(false);
 
   useEffect(() => {
-    if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode(QR_SCANNER_ELEMENT_ID, {
-            verbose: false,
-        });
-    }
-    const scanner = scannerRef.current;
-    
-    if (isScannerInitialized || !scanner) {
-        return;
-    }
+    // Initialize the scanner instance
+    const scanner = new Html5Qrcode(QR_SCANNER_ELEMENT_ID);
+    scannerRef.current = scanner;
 
     const startScanner = async () => {
-        try {
-            const cameras = await Html5Qrcode.getCameras();
-            if (!cameras || cameras.length === 0) {
-                setHasPermission(false);
-                toast({ title: 'No cameras found', variant: 'destructive' });
-                return;
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (cameras && cameras.length > 0) {
+          setHasPermission(true);
+          await scanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+              handleScanSuccess(decodedText);
+            },
+            (errorMessage) => {
+              // ignore errors
             }
-            setHasPermission(true);
-
-            await scanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText) => {
-                    handleScanSuccess(decodedText);
-                    // No need to stop here, the unmount will handle it
-                },
-                (errorMessage) => {
-                    // Ignore "QR code not found" errors
-                }
-            );
-            setIsScannerInitialized(true);
-        } catch (err) {
-            setHasPermission(false);
-            console.error("QR Scanner Start Error:", err);
-            // Don't toast on every render if permission is denied.
+          );
+        } else {
+          setHasPermission(false);
         }
+      } catch (err) {
+        console.error("QR Scanner Start Error:", err);
+        setHasPermission(false);
+      }
     };
-    
+
     startScanner();
 
     return () => {
-        if (scannerRef.current && scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
-            scannerRef.current.stop().catch(err => {
-                // This can happen if the component unmounts quickly.
-                // It's generally safe to ignore.
-                console.warn("Failed to stop scanner cleanly during unmount:", err);
-            });
-        }
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().catch(err => {
+          console.warn("Failed to stop scanner cleanly:", err);
+        });
+      }
     };
-  }, [isScannerInitialized, toast]);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleScanSuccess = (decodedText: string) => {
     try {
-        // Check if the decoded text is a valid URL
-        new URL(decodedText); 
-        
-        toast({ title: "QR Code Scanned!", description: "Opening in a new tab..." });
-        window.open(decodedText, '_blank', 'noopener,noreferrer'); // Open in a new tab
-        onScanSuccess();
-
+      new URL(decodedText);
+      toast({ title: "QR Code Scanned!", description: "Opening in a new tab..." });
+      window.open(decodedText, '_blank', 'noopener,noreferrer');
+      onScanSuccess();
     } catch (error) {
-        toast({
-            title: "Invalid QR Code",
-            description: "The scanned code is not a valid URL.",
-            variant: "destructive",
-        });
+      toast({
+        title: "Invalid QR Code",
+        description: "The scanned code is not a valid URL.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && scannerRef.current) {
-        try {
-            const decodedText = await scannerRef.current.scanFile(file, false);
-            handleScanSuccess(decodedText);
-        } catch (err) {
-            toast({
-                title: "Scan Failed",
-                description: "Could not find a valid QR code in the uploaded image.",
-                variant: "destructive",
-            });
-        }
+      try {
+        const decodedText = await scannerRef.current.scanFile(file, false);
+        handleScanSuccess(decodedText);
+      } catch (err) {
+        toast({
+          title: "Scan Failed",
+          description: "Could not find a valid QR code in the uploaded image.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
   return (
     <div>
-        <div id={QR_SCANNER_ELEMENT_ID} className="w-full rounded-md overflow-hidden border"></div>
-        
-        {hasPermission === false && (
-            <Alert variant="destructive" className="mt-4">
-                <CameraOff className="h-4 w-4" />
-                <AlertTitle>Camera Permission Required</AlertTitle>
-                <AlertDescription>
-                    Please grant camera access in your browser settings to use the scanner. If you have, try reloading the page.
-                </AlertDescription>
-            </Alert>
-        )}
-        
-        <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground mb-2">Or upload an image of a QR code</p>
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Image
-            </Button>
-            <Input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/*"
-            />
-        </div>
+      <div id={QR_SCANNER_ELEMENT_ID} className="w-full rounded-md overflow-hidden border"></div>
+      
+      {hasPermission === false && (
+        <Alert variant="destructive" className="mt-4">
+          <CameraOff className="h-4 w-4" />
+          <AlertTitle>Camera Permission Required</AlertTitle>
+          <AlertDescription>
+            Please grant camera access in your browser settings to use the scanner. If you have, try reloading the page.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="mt-4 text-center">
+        <p className="text-sm text-muted-foreground mb-2">Or upload an image of a QR code</p>
+        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+          <Upload className="mr-2 h-4 w-4" />
+          Upload Image
+        </Button>
+        <Input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="image/*"
+        />
+      </div>
     </div>
   );
 };
