@@ -80,18 +80,17 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
 
   const handleScanSuccess = (decodedText: string) => {
     try {
-        const url = new URL(decodedText);
-        if (url.pathname.startsWith('/market/')) {
-            toast({ title: "QR Code Scanned!", description: "Redirecting to product page..." });
-            router.push(url.pathname);
-            onScanSuccess();
-        } else {
-            throw new Error("Not a valid product URL.");
-        }
+        // Check if the decoded text is a valid URL
+        new URL(decodedText); 
+        
+        toast({ title: "QR Code Scanned!", description: "Redirecting..." });
+        router.push(decodedText); // Redirect to the scanned URL
+        onScanSuccess();
+
     } catch (error) {
         toast({
             title: "Invalid QR Code",
-            description: "The scanned code is not a valid Vical Farmart product link.",
+            description: "The scanned code is not a valid URL.",
             variant: "destructive",
         });
     }
