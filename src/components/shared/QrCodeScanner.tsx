@@ -83,7 +83,8 @@ export function QrCodeScanner({ onScanSuccess }: QrCodeScannerProps) {
 
     const qrCode = html5QrCodeRef.current;
     
-    if (isScanning || qrCode.getState() === Html5QrcodeScannerState.SCANNING) {
+    // Prevent starting a new scan if one is already running
+    if (qrCode.getState() === Html5QrcodeScannerState.SCANNING) {
       return;
     }
 
@@ -115,10 +116,14 @@ export function QrCodeScanner({ onScanSuccess }: QrCodeScannerProps) {
       });
 
     return () => {
-      if (qrCode && qrCode.isScanning) {
+      // Check if the scanner is running before trying to stop it
+      if (qrCode && qrCode.getState() === Html5QrcodeScannerState.SCANNING) {
         qrCode.stop().then(() => {
           setIsScanning(false);
-        }).catch(err => console.error("Failed to stop QR scanner.", err));
+          console.log("QR scanner stopped successfully.");
+        }).catch(err => {
+          console.error("Failed to stop QR scanner.", err)
+        });
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
