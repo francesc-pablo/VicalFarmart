@@ -7,8 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
 
-// Dynamically import the scanner component to ensure it only runs on the client-side
-// and correctly reference the default export from the module.
+// Dynamically import the scanner component to ensure it only runs on the client-side.
+// This specific import syntax is required to correctly handle how the library exports its component.
 const QrScanner = dynamic(
   () => import('@yudiel/react-qr-scanner'),
   { ssr: false }
