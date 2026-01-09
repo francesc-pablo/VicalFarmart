@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -21,62 +22,61 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isScannerInitialized, setIsScannerInitialized] = useState(false);
 
   useEffect(() => {
     if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode(QR_SCANNER_ELEMENT_ID, {
-            verbose: false, // Set to true for debugging
+            verbose: false,
         });
     }
     const scanner = scannerRef.current;
     
-    let isMounted = true;
-    
+    if (isScannerInitialized || !scanner) {
+        return;
+    }
+
     const startScanner = async () => {
         try {
             const cameras = await Html5Qrcode.getCameras();
             if (!cameras || cameras.length === 0) {
-                if(isMounted) setHasPermission(false);
+                setHasPermission(false);
                 toast({ title: 'No cameras found', variant: 'destructive' });
                 return;
             }
-            if(isMounted) setHasPermission(true);
+            setHasPermission(true);
 
             await scanner.start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText) => {
-                    if (scanner.isScanning) {
-                        handleScanSuccess(decodedText);
-                        scanner.stop();
-                    }
+                    handleScanSuccess(decodedText);
+                    // No need to stop here, the unmount will handle it
                 },
                 (errorMessage) => {
                     // Ignore "QR code not found" errors
                 }
             );
+            setIsScannerInitialized(true);
         } catch (err) {
-            if (isMounted) setHasPermission(false);
+            setHasPermission(false);
             console.error("QR Scanner Start Error:", err);
-            toast({
-                title: "Camera Access Denied",
-                description: "Please allow camera access to scan QR codes.",
-                variant: "destructive",
-            });
+            // Don't toast on every render if permission is denied.
         }
     };
     
     startScanner();
 
     return () => {
-        isMounted = false;
         if (scannerRef.current && scannerRef.current.isScanning) {
             scannerRef.current.stop().catch(err => {
-                console.error("Failed to stop scanner cleanly:", err);
+                // This can happen if the component unmounts quickly.
+                // It's generally safe to ignore.
+                console.warn("Failed to stop scanner cleanly during unmount:", err);
             });
         }
     };
-  }, [toast]);
+  }, [isScannerInitialized, toast]);
 
   const handleScanSuccess = (decodedText: string) => {
     try {
@@ -122,7 +122,7 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
                 <CameraOff className="h-4 w-4" />
                 <AlertTitle>Camera Permission Required</AlertTitle>
                 <AlertDescription>
-                    Please grant camera access in your browser settings to use the scanner.
+                    Please grant camera access in your browser settings to use the scanner. If you have, try reloading the page.
                 </AlertDescription>
             </Alert>
         )}
