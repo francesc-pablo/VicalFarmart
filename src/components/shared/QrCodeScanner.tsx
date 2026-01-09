@@ -9,7 +9,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
 
 // Dynamically import the scanner component to ensure it only runs on the client-side
-const QrScanner = dynamic(() => import('@yudiel/react-qr-scanner'), { ssr: false });
+// and correctly reference the default export from the module.
+const QrScanner = dynamic(
+  () => import('@yudiel/react-qr-scanner').then(mod => mod.default),
+  { ssr: false }
+);
 
 interface QrCodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
