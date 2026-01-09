@@ -231,6 +231,13 @@ export function Header() {
     router.push("/login");
   };
 
+  const handleScanSuccess = (url: string) => {
+    setIsScannerOpen(false);
+    if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const getUserInitials = (name?: string | null) => {
     if (!name) return "U";
     const parts = name.split(" ");
@@ -268,7 +275,7 @@ export function Header() {
                     Point your camera at a QR code to view the item.
                   </DialogDescription>
                 </DialogHeader>
-                <QrCodeScanner onScanSuccess={() => setIsScannerOpen(false)} />
+                <QrCodeScanner onScanSuccess={handleScanSuccess} />
               </DialogContent>
             </Dialog>
             {authStatus.isAuthenticated && authStatus.user ? (
