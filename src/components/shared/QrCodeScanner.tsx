@@ -4,14 +4,13 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
-import { Link as LinkIcon, ExternalLink, CameraOff } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
 
 // Dynamically import the scanner component to ensure it only runs on the client-side
 // and correctly reference the default export from the module.
 const QrScanner = dynamic(
-  () => import('@yudiel/react-qr-scanner').then(mod => mod.default),
+  () => import('@yudiel/react-qr-scanner'),
   { ssr: false }
 );
 
