@@ -4,7 +4,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import { CameraOff, Upload } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
@@ -18,7 +17,6 @@ const QR_SCANNER_ELEMENT_ID = "qr-code-scanner-region";
 
 export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) => {
   const { toast } = useToast();
-  const router = useRouter();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,7 +66,7 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
     startScanner();
 
     return () => {
-        if (scannerRef.current && scannerRef.current.isScanning) {
+        if (scannerRef.current && scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
             scannerRef.current.stop().catch(err => {
                 // This can happen if the component unmounts quickly.
                 // It's generally safe to ignore.
@@ -83,8 +81,8 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
         // Check if the decoded text is a valid URL
         new URL(decodedText); 
         
-        toast({ title: "QR Code Scanned!", description: "Redirecting..." });
-        router.push(decodedText); // Redirect to the scanned URL
+        toast({ title: "QR Code Scanned!", description: "Opening in a new tab..." });
+        window.open(decodedText, '_blank', 'noopener,noreferrer'); // Open in a new tab
         onScanSuccess();
 
     } catch (error) {
