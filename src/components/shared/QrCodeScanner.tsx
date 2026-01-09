@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { useToast } from '@/hooks/use-toast';
 import { CameraOff, Upload } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,24 +18,26 @@ const QR_SCANNER_ELEMENT_ID = "qr-code-scanner-region";
 export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) => {
   const { toast } = useToast();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scannerContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Use a ref to hold the Html5Qrcode instance
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !scannerContainerRef.current) {
+    // Ensure this only runs on the client
+    if (typeof window === "undefined") {
       return;
     }
 
+    // Initialize the scanner instance once
     if (!scannerRef.current) {
       scannerRef.current = new Html5Qrcode(QR_SCANNER_ELEMENT_ID, {
          useBarCodeDetectorIfSupported: false,
-         verbose: false
+         verbose: false,
       });
     }
-
     const scanner = scannerRef.current;
-    
+
     const startScanner = async () => {
       try {
         await scanner.start(
@@ -44,7 +47,7 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
             handleScanSuccess(decodedText);
           },
           (errorMessage) => {
-            // ignore scan errors
+            // This callback is for scan errors, which we can ignore.
           }
         );
         setHasPermission(true);
@@ -56,23 +59,27 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
     
     startScanner();
 
+    // Define a cleanup function
     return () => {
       if (scanner && scanner.isScanning) {
         scanner.stop().catch(err => {
-          console.warn("Failed to stop scanner cleanly:", err);
+          // This can fail if the component unmounts quickly, so we just log a warning.
+          console.warn("Failed to stop scanner cleanly during cleanup:", err);
         });
       }
     };
-  // We only want this effect to run once on mount and unmount.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // The empty dependency array ensures this effect runs only once on mount and cleans up on unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleScanSuccess = (decodedText: string) => {
-     if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop();
+    const scanner = scannerRef.current;
+    if (scanner && scanner.isScanning) {
+        scanner.stop().catch(err => console.warn("Failed to stop scanner after success:", err));
     }
     
     try {
+      // Validate if the decoded text is a plausible URL before opening
       new URL(decodedText); 
       toast({ title: "QR Code Scanned!", description: "Opening in a new tab..." });
       window.open(decodedText, '_blank', 'noopener,noreferrer');
@@ -80,17 +87,27 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
     } catch (error) {
       toast({
         title: "Invalid QR Code",
-        description: "The scanned code is not a valid URL.",
+        description: "The scanned code does not contain a valid URL.",
         variant: "destructive",
       });
+      // Optionally restart the scanner if the code is invalid
+      if(scanner && !scanner.isScanning) {
+        scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => handleScanSuccess(decodedText),
+          () => {}
+        ).catch(err => console.error("Failed to restart scanner:", err));
+      }
     }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && scannerRef.current) {
+    const scanner = scannerRef.current;
+    if (file && scanner) {
       try {
-        const decodedText = await scannerRef.current.scanFile(file, false);
+        const decodedText = await scanner.scanFile(file, false);
         handleScanSuccess(decodedText);
       } catch (err) {
         toast({
@@ -104,7 +121,8 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
 
   return (
     <div>
-      <div id={QR_SCANNER_ELEMENT_ID} ref={scannerContainerRef} className="w-full rounded-md overflow-hidden border"></div>
+      {/* This div is the target for the scanner */}
+      <div id={QR_SCANNER_ELEMENT_ID} className="w-full rounded-md overflow-hidden border"></div>
       
       {hasPermission === false && (
         <Alert variant="destructive" className="mt-4">
