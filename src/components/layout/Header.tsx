@@ -265,7 +265,7 @@ export function Header() {
                 <DialogHeader>
                   <DialogTitle>Scan Product QR Code</DialogTitle>
                   <DialogDescription>
-                    Point your camera at a QR code to jump to the product page.
+                    Point your camera at a QR code to view the item.
                   </DialogDescription>
                 </DialogHeader>
                 <QrCodeScanner onScanSuccess={() => setIsScannerOpen(false)} />

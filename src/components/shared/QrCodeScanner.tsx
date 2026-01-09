@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -20,21 +19,27 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scannerContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Ensure this runs only in the browser
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || !scannerContainerRef.current) {
       return;
     }
 
-    const scanner = new Html5Qrcode(QR_SCANNER_ELEMENT_ID);
-    scannerRef.current = scanner;
+    if (!scannerRef.current) {
+      scannerRef.current = new Html5Qrcode(QR_SCANNER_ELEMENT_ID, {
+         useBarCodeDetectorIfSupported: false,
+         verbose: false
+      });
+    }
 
+    const scanner = scannerRef.current;
+    
     const startScanner = async () => {
       try {
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 }, useBarCodeDetectorIfSupported: false },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             handleScanSuccess(decodedText);
           },
@@ -48,31 +53,26 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
         setHasPermission(false);
       }
     };
-
+    
     startScanner();
 
-    // Cleanup function to stop the scanner
     return () => {
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop()
-          .then(() => {
-            scannerRef.current?.clear();
-          })
-          .catch(err => {
-            console.warn("Failed to stop or clear scanner cleanly:", err);
-          });
+      if (scanner && scanner.isScanning) {
+        scanner.stop().catch(err => {
+          console.warn("Failed to stop scanner cleanly:", err);
+        });
       }
     };
+  // We only want this effect to run once on mount and unmount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleScanSuccess = (decodedText: string) => {
-    // Stop the scanner immediately on success to prevent multiple triggers
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      scannerRef.current.stop();
+     if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop();
     }
     
     try {
-      // Validate if it's a URL
       new URL(decodedText); 
       toast({ title: "QR Code Scanned!", description: "Opening in a new tab..." });
       window.open(decodedText, '_blank', 'noopener,noreferrer');
@@ -83,8 +83,6 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
         description: "The scanned code is not a valid URL.",
         variant: "destructive",
       });
-      // Optionally restart scanning if it was an invalid code
-      // scannerRef.current?.start(...);
     }
   };
 
@@ -106,8 +104,7 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
 
   return (
     <div>
-      {/* This div is the container for the scanner */}
-      <div id={QR_SCANNER_ELEMENT_ID} className="w-full rounded-md overflow-hidden border"></div>
+      <div id={QR_SCANNER_ELEMENT_ID} ref={scannerContainerRef} className="w-full rounded-md overflow-hidden border"></div>
       
       {hasPermission === false && (
         <Alert variant="destructive" className="mt-4">
