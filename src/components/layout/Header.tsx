@@ -40,7 +40,11 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { QrCodeScanner } from '../shared/QrCodeScanner';
+import dynamic from 'next/dynamic';
+
+const DynamicQrScanner = dynamic(() => import('../shared/QrCodeScanner'), {
+  ssr: false,
+});
 
 
 interface AuthStatus {
@@ -232,10 +236,9 @@ export function Header() {
   };
 
   const handleScanSuccess = (url: string) => {
-    setIsScannerOpen(false);
     if (url) {
-        // This is now the user-initiated action from the scanner component
-        window.open(url, '_blank', 'noopener,noreferrer');
+      setIsScannerOpen(false);
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -276,7 +279,7 @@ export function Header() {
                     Point your camera at a QR code to view the item.
                   </DialogDescription>
                 </DialogHeader>
-                <QrCodeScanner onScanSuccess={handleScanSuccess} />
+                <DynamicQrScanner onScanSuccess={handleScanSuccess} />
               </DialogContent>
             </Dialog>
             {authStatus.isAuthenticated && authStatus.user ? (

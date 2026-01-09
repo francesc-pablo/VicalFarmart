@@ -2,34 +2,27 @@
 "use client";
 
 import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
-import { ExternalLink, LinkIcon } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Skeleton } from '../ui/skeleton';
-
-// Use dynamic import for client-side only component
-const QrScanner = dynamic(() => import('react-qr-scanner'), {
-  ssr: false,
-  loading: () => <Skeleton className="w-full h-full aspect-square" />,
-});
+import { ExternalLink, LinkIcon, ScanLine } from 'lucide-react';
+import { QrScanner } from '@yudiel/react-qr-scanner';
 
 interface QrCodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
 }
 
-export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) => {
+const QrCodeScannerComponent: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) => {
   const { toast } = useToast();
   const [scannedUrl, setScannedUrl] = useState<string | null>(null);
 
-  const handleScan = (result: { text: string } | null) => {
-    if (result?.text && !scannedUrl) { // Only process the first scan
+  const handleDecode = (result: string) => {
+    if (result && !scannedUrl) {
       try {
-        new URL(result.text); // Validate if it's a URL
-        setScannedUrl(result.text);
+        // Simple validation to check if it's a plausible URL
+        new URL(result);
+        setScannedUrl(result);
         toast({ title: "QR Code Scanned!", description: "Click the button to open the link." });
       } catch (error) {
-        setScannedUrl(null);
         toast({
           title: "Invalid QR Code",
           description: "The scanned code does not contain a valid URL.",
@@ -39,18 +32,18 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
     }
   };
 
-  const handleError = (error: any) => {
+  const handleError = (error: Error) => {
     console.error("QR Scanner Error:", error);
     let message = "An unknown error occurred with the camera.";
     if (error?.name === "NotAllowedError") {
-        message = "Camera permission was denied. Please enable it in your browser settings.";
+      message = "Camera permission was denied. Please enable it in your browser settings.";
     } else if (error?.name === "NotFoundError") {
-        message = "No camera was found on this device.";
+      message = "No camera was found on this device.";
     }
     toast({
-        title: "Camera Error",
-        description: message,
-        variant: "destructive",
+      title: "Camera Error",
+      description: message,
+      variant: "destructive",
     });
   };
 
@@ -77,24 +70,23 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
                 Go to URL
             </Button>
             <Button onClick={scanAgain} variant="outline">
+                <ScanLine className="mr-2 h-4 w-4" />
                 Scan Again
             </Button>
            </div>
         </div>
-      ) : null}
-      
-      <div className={`w-full rounded-md overflow-hidden border ${scannedUrl ? 'hidden' : 'block'}`}>
-        <QrScanner
-            delay={300}
-            onError={handleError}
-            onScan={handleScan}
-            style={{ width: '100%' }}
-            constraints={{
-                video: { facingMode: "environment" }
-            }}
-        />
-        <p className="text-center text-sm text-muted-foreground mt-2">Point your camera at a QR code.</p>
-      </div>
+      ) : (
+        <div className="w-full rounded-md overflow-hidden border">
+           <QrScanner
+                onDecode={handleDecode}
+                onError={handleError}
+                constraints={{ facingMode: 'environment' }}
+            />
+            <p className="text-center text-sm text-muted-foreground p-2">Point your camera at a QR code.</p>
+        </div>
+      )}
     </div>
   );
 };
+
+export default QrCodeScannerComponent;
