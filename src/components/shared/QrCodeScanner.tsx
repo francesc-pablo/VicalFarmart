@@ -2,10 +2,18 @@
 "use client";
 
 import React, { useState } from 'react';
-import { QrScanner } from '@yudiel/react-qr-scanner';
+import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Skeleton } from '../ui/skeleton';
+
+// Dynamically import the QrScanner to avoid SSR issues
+const QrScanner = dynamic(() => import('react-qr-scanner'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-full aspect-square" />,
+});
+
 
 interface QrCodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -15,11 +23,11 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
   const { toast } = useToast();
   const [scannedUrl, setScannedUrl] = useState<string | null>(null);
 
-  const handleScan = (result: string) => {
-    if (result) {
+  const handleScan = (result: any) => {
+    if (result && result.text) {
       try {
-        new URL(result); // Validate if it's a URL
-        setScannedUrl(result);
+        new URL(result.text); // Validate if it's a URL
+        setScannedUrl(result.text);
         toast({ title: "QR Code Scanned!", description: "Click the button to open the link." });
       } catch (error) {
         setScannedUrl(null);
@@ -77,11 +85,13 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
       ) : (
          <div className="w-full rounded-md overflow-hidden border">
            <QrScanner
-                onDecode={handleScan}
+                delay={300}
                 onError={handleError}
-                constraints={{ facingMode: 'environment' }}
-                containerStyle={{ width: '100%', paddingTop: '100%' }}
-                videoStyle={{ objectFit: 'cover' }}
+                onScan={handleScan}
+                style={{ width: '100%' }}
+                constraints={{
+                    video: { facingMode: "environment" }
+                }}
             />
             <p className="text-center text-sm text-muted-foreground mt-2">Point your camera at a QR code.</p>
          </div>
