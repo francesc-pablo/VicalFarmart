@@ -4,16 +4,15 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
-import { Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { ExternalLink, LinkIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 
-// Dynamically import the QrScanner to avoid SSR issues
+// Use dynamic import for client-side only component
 const QrScanner = dynamic(() => import('react-qr-scanner'), {
   ssr: false,
   loading: () => <Skeleton className="w-full h-full aspect-square" />,
 });
-
 
 interface QrCodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -23,8 +22,8 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
   const { toast } = useToast();
   const [scannedUrl, setScannedUrl] = useState<string | null>(null);
 
-  const handleScan = (result: any) => {
-    if (result && result.text) {
+  const handleScan = (result: { text: string } | null) => {
+    if (result?.text && !scannedUrl) { // Only process the first scan
       try {
         new URL(result.text); // Validate if it's a URL
         setScannedUrl(result.text);
@@ -82,20 +81,20 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess }) =
             </Button>
            </div>
         </div>
-      ) : (
-         <div className="w-full rounded-md overflow-hidden border">
-           <QrScanner
-                delay={300}
-                onError={handleError}
-                onScan={handleScan}
-                style={{ width: '100%' }}
-                constraints={{
-                    video: { facingMode: "environment" }
-                }}
-            />
-            <p className="text-center text-sm text-muted-foreground mt-2">Point your camera at a QR code.</p>
-         </div>
-      )}
+      ) : null}
+      
+      <div className={`w-full rounded-md overflow-hidden border ${scannedUrl ? 'hidden' : 'block'}`}>
+        <QrScanner
+            delay={300}
+            onError={handleError}
+            onScan={handleScan}
+            style={{ width: '100%' }}
+            constraints={{
+                video: { facingMode: "environment" }
+            }}
+        />
+        <p className="text-center text-sm text-muted-foreground mt-2">Point your camera at a QR code.</p>
+      </div>
     </div>
   );
 };
