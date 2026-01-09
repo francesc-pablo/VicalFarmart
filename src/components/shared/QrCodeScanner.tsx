@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { QrScanner } from '@yudiel/react-qr-scanner';
+import QrScanner from '@yudiel/react-qr-scanner';
 import { useToast } from '@/hooks/use-toast';
 import { Link as LinkIcon, ExternalLink, CameraOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
