@@ -11,6 +11,14 @@ import type { User } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { QrCodeScannerDialog } from '@/components/shared/QrCodeScanner';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -244,7 +252,7 @@ export function Header() {
           )}
           
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
-
+            <QrCodeScannerDialog />
             {authStatus.isAuthenticated && authStatus.user ? (
               <>
                 <DropdownMenu>
