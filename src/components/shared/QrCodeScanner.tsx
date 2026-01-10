@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Alert, AlertTitle } from '@/components/ui/alert';
-import { QrScanner } from '@yudiel/react-qr-scanner';
+import QrScanner from '@yudiel/react-qr-scanner';
 import { ExternalLink, Camera } from 'lucide-react';
 
 
