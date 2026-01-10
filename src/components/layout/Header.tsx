@@ -1,16 +1,16 @@
 
-
 "use client";
 
 import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase, Truck } from 'lucide-react';
-import React, { useState, useEffect, useCallback } from 'react';
-import type { User, UserRole } from '@/types';
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase, Truck, Camera } from 'lucide-react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import type { User } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import dynamic from 'next/dynamic';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCart } from '@/context/CartContext';
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
@@ -33,6 +41,12 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
+
+// Dynamically import the QR code scanner to ensure it's only loaded on the client side.
+const QrCodeScanner = dynamic(() => import('@/components/shared/QrCodeScanner'), {
+  ssr: false,
+  loading: () => <p>Loading Scanner...</p>
+});
 
 interface AuthStatus {
   isAuthenticated: boolean;
@@ -153,6 +167,7 @@ export function Header() {
   const searchParams = useSearchParams();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
   const { cartCount } = useCart();
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
@@ -244,6 +259,25 @@ export function Header() {
           )}
           
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
+             <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" title="Scan QR Code">
+                        <Camera className="h-5 w-5" />
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Scan QR Code</DialogTitle>
+                        <DialogDescription>
+                            Point your camera at a product or payment QR code to quickly access it.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Suspense fallback={<p>Loading scanner...</p>}>
+                        <QrCodeScanner onScanSuccess={() => setIsScannerOpen(false)} />
+                    </Suspense>
+                </DialogContent>
+            </Dialog>
+
             {authStatus.isAuthenticated && authStatus.user ? (
               <>
                 <DropdownMenu>
