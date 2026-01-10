@@ -40,13 +40,108 @@ import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+import { ExternalLink } from 'lucide-react';
+
+const QrScanner = dynamic(
+  () => import('@yudiel/react-qr-scanner').then(mod => mod.QrScanner),
+  { ssr: false, loading: () => <p>Loading Scanner...</p> }
+);
 
 
-// Dynamically import the QR code scanner to ensure it's only loaded on the client side.
-const QrCodeScanner = dynamic(() => import('@/components/shared/QrCodeScanner'), {
-  ssr: false,
-  loading: () => <p>Loading Scanner...</p>
-});
+const QrCodeScannerDialog = () => {
+    const [scannedUrl, setScannedUrl] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleDecode = (result: string) => {
+        try {
+            if (result && (result.startsWith('http://') || result.startsWith('https://'))) {
+                const url = new URL(result);
+                setScannedUrl(url.href);
+            } else {
+                setError("Scanned QR code does not contain a valid URL.");
+                setScannedUrl(null);
+            }
+        } catch (_) {
+            setError("Scanned QR code is not a valid URL.");
+            setScannedUrl(null);
+        }
+    };
+
+    const handleError = (err: any) => {
+        if (err && err.name === 'NotAllowedError') {
+            setError('Camera access denied. Please allow camera permissions in your browser settings.');
+        } else {
+            console.error('QR Scanner Error:', err);
+            setError('An unexpected error occurred with the camera.');
+        }
+    };
+
+    const handleGoToUrl = () => {
+        if (scannedUrl) {
+            window.open(scannedUrl, '_blank', 'noopener,noreferrer');
+            setIsOpen(false);
+        }
+    };
+    
+    // Reset state when dialog is closed
+    useEffect(() => {
+        if (!isOpen) {
+            setTimeout(() => {
+                setScannedUrl(null);
+                setError(null);
+            }, 300); // Delay to allow dialog to close smoothly
+        }
+    }, [isOpen]);
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" title="Scan QR Code">
+                    <Camera className="h-5 w-5" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Scan QR Code</DialogTitle>
+                    <DialogDescription>
+                        Point your camera at a product or payment QR code to quickly access it.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    {error && (
+                        <Alert variant="destructive">
+                            <AlertTitle>{error}</AlertTitle>
+                        </Alert>
+                    )}
+                    {scannedUrl ? (
+                        <div className="text-center space-y-3">
+                            <Alert>
+                                <AlertTitle>Scan Successful!</AlertTitle>
+                                <p className="text-sm text-muted-foreground break-all">{scannedUrl}</p>
+                            </Alert>
+                            <Button onClick={handleGoToUrl} className="w-full">
+                                <ExternalLink className="mr-2 h-4 w-4" /> Go to URL
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="w-full rounded-md overflow-hidden border">
+                           <QrScanner
+                                onDecode={handleDecode}
+                                onError={handleError}
+                                constraints={{ facingMode: 'environment' }}
+                                videoStyle={{ width: '100%', height: '100%' }}
+                                containerStyle={{ width: '100%' }}
+                            />
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 interface AuthStatus {
   isAuthenticated: boolean;
@@ -167,7 +262,6 @@ export function Header() {
   const searchParams = useSearchParams();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
   const { cartCount } = useCart();
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
@@ -259,24 +353,7 @@ export function Header() {
           )}
           
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
-             <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" title="Scan QR Code">
-                        <Camera className="h-5 w-5" />
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Scan QR Code</DialogTitle>
-                        <DialogDescription>
-                            Point your camera at a product or payment QR code to quickly access it.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Suspense fallback={<p>Loading scanner...</p>}>
-                        <QrCodeScanner onScanSuccess={() => setIsScannerOpen(false)} />
-                    </Suspense>
-                </DialogContent>
-            </Dialog>
+             <QrCodeScannerDialog />
 
             {authStatus.isAuthenticated && authStatus.user ? (
               <>
