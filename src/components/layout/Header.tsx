@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase, Truck, QrCode } from 'lucide-react';
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase, Truck } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import type { User, UserRole } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -32,19 +32,6 @@ import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import dynamic from 'next/dynamic';
-
-const DynamicQrScanner = dynamic(() => import('../shared/QrCodeScanner'), {
-  ssr: false,
-});
 
 
 interface AuthStatus {
@@ -166,7 +153,6 @@ export function Header() {
   const searchParams = useSearchParams();
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ isAuthenticated: false });
   const { cartCount } = useCart();
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [showHeaderOnMobile, setShowHeaderOnMobile] = useState(true);
@@ -235,13 +221,6 @@ export function Header() {
     router.push("/login");
   };
 
-  const handleScanSuccess = (url: string) => {
-    if (url) {
-      setIsScannerOpen(false);
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
-
   const getUserInitials = (name?: string | null) => {
     if (!name) return "U";
     const parts = name.split(" ");
@@ -265,23 +244,6 @@ export function Header() {
           )}
           
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
-             <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <QrCode className="h-5 w-5" />
-                  <span className="sr-only">Scan QR Code</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Scan Product QR Code</DialogTitle>
-                  <DialogDescription>
-                    Point your camera at a QR code to view the item.
-                  </DialogDescription>
-                </DialogHeader>
-                <DynamicQrScanner onScanSuccess={handleScanSuccess} />
-              </DialogContent>
-            </Dialog>
             {authStatus.isAuthenticated && authStatus.user ? (
               <>
                 <DropdownMenu>
