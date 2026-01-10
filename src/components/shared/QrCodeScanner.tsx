@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { QrScanner } from '@yudiel/react-qr-scanner';
+import QrScanner from '@yudiel/react-qr-scanner';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { ExternalLink } from 'lucide-react';
@@ -16,21 +16,28 @@ export const QrCodeScanner = ({ onScanSuccess }: QrCodeScannerProps) => {
 
   const handleDecode = (result: string) => {
     try {
-      const url = new URL(result);
-      setScannedUrl(url.href);
-      onScanSuccess();
+      // Basic validation to ensure it's a plausible URL before creating a URL object
+      if (result && (result.startsWith('http://') || result.startsWith('https://'))) {
+        const url = new URL(result);
+        setScannedUrl(url.href);
+        onScanSuccess();
+      } else {
+        setError("Scanned QR code does not contain a valid URL.");
+        setScannedUrl(null);
+      }
     } catch (_) {
       setError("Scanned QR code is not a valid URL.");
       setScannedUrl(null);
     }
   };
 
-  const handleError = (err: Error) => {
-    if (err.name === 'NotAllowedError') {
+  const handleError = (err: any) => {
+    if (err && err.name === 'NotAllowedError') {
       setError('Camera access denied. Please allow camera permissions in your browser settings.');
     } else {
       console.error('QR Scanner Error:', err);
       // Avoid showing overly technical errors to the user
+      setError('An unexpected error occurred with the camera.');
     }
   };
 
