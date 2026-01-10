@@ -24,15 +24,24 @@ export function QrCodeScannerDialog() {
 
   useEffect(() => {
     if (!isOpen) {
-      // Cleanup when dialog is closed
       setScannedUrl(null);
+      return;
+    }
+
+    if (scannedUrl) {
       return;
     }
 
     let scanner: Html5QrcodeScanner | null = null;
     
-    // Only start scanning if there's no URL already scanned
-    if (!scannedUrl) {
+    // Add a short delay to ensure the DOM element is available.
+    const timeoutId = setTimeout(() => {
+      // Check if the element exists before initializing
+      if (!document.getElementById(SCANNER_REGION_ID)) {
+          console.error("Scanner container not found.");
+          return;
+      }
+
       scanner = new Html5QrcodeScanner(
         SCANNER_REGION_ID,
         {
@@ -52,13 +61,14 @@ export function QrCodeScannerDialog() {
       };
 
       const onScanError = (errorMessage: string, error: Html5QrcodeError) => {
-        // handle scan error, usually you want to ignore this.
+        // This callback is called frequently, so we typically ignore errors.
       };
 
       scanner.render(onScanSuccess, onScanError);
-    }
+    }, 100); // 100ms delay
 
     return () => {
+      clearTimeout(timeoutId);
       if (scanner && scanner.getState() !== 2 /* NOT_SCANNING */) {
         scanner.clear().catch(error => {
           console.error("Failed to clear scanner on cleanup.", error);
@@ -70,7 +80,6 @@ export function QrCodeScannerDialog() {
   const handleGoToUrl = () => {
     if (scannedUrl) {
       setIsOpen(false);
-      // Use Next.js router for internal links or window.open for external
       if (scannedUrl.startsWith('/') || scannedUrl.startsWith(window.location.origin)) {
         router.push(scannedUrl);
       } else {
@@ -102,7 +111,7 @@ export function QrCodeScannerDialog() {
         <DialogHeader>
           <DialogTitle>Scan QR Code</DialogTitle>
         </DialogHeader>
-        <div className="p-4 flex flex-col items-center justify-center">
+        <div className="p-4 flex flex-col items-center justify-center min-h-[300px]">
           {scannedUrl ? (
             <div className="text-center">
               <p className="text-lg font-semibold mb-2">Scan Successful!</p>
