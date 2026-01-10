@@ -31,7 +31,7 @@ import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { QrCodeScannerDialog } from '@/components/shared/QrCodeScanner';
+
 
 
 interface AuthStatus {
@@ -244,7 +244,6 @@ export function Header() {
           )}
           
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
-             <QrCodeScannerDialog />
 
             {authStatus.isAuthenticated && authStatus.user ? (
               <>
