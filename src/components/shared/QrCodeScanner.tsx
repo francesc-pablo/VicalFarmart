@@ -12,7 +12,7 @@ import {
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
-import { Camera, Package, RefreshCw } from 'lucide-react';
+import { QrCode, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const SCANNER_REGION_ID = "qr-code-reader";
@@ -96,7 +96,7 @@ export function QrCodeScannerDialog() {
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" title="Scan QR Code">
-          <Camera className="h-5 w-5" />
+          <QrCode className="h-5 w-5" />
           <span className="sr-only">Scan Product QR Code</span>
         </Button>
       </DialogTrigger>

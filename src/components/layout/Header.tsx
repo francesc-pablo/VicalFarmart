@@ -5,18 +5,11 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase, Truck, Camera } from 'lucide-react';
+import { ShoppingCart, UserCircle, LogOut, LayoutDashboardIcon, ListOrdered, Search as SearchIcon, MapPin, Briefcase, Truck, QrCode } from 'lucide-react';
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import type { User } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { QrCodeScannerDialog } from '@/components/shared/QrCodeScanner';
 import {
   DropdownMenu,
