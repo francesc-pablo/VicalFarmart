@@ -12,23 +12,26 @@ import {
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
-import { Camera, ExternalLink, RefreshCw } from 'lucide-react';
+import { Camera, Package, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const SCANNER_REGION_ID = "qr-code-reader";
 
 export function QrCodeScannerDialog() {
   const [isOpen, setIsOpen] = useState(false);
-  const [scannedUrl, setScannedUrl] = useState<string | null>(null);
+  const [scannedProductId, setScannedProductId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (!isOpen) {
-      setScannedUrl(null);
+      setScannedProductId(null);
       return;
     }
 
-    if (scannedUrl) {
+    if (scannedProductId) {
+      // If we have a result, redirect.
+      router.push(`/market/${scannedProductId}`);
+      setIsOpen(false); // Close the dialog after initiating navigation
       return;
     }
 
@@ -52,7 +55,7 @@ export function QrCodeScannerDialog() {
       );
 
       const onScanSuccess = (decodedText: string, decodedResult: QrCodeResult) => {
-        setScannedUrl(decodedText);
+        setScannedProductId(decodedText);
         if (scanner) {
           scanner.clear().catch(error => {
             console.error("Failed to clear scanner.", error);
@@ -75,27 +78,17 @@ export function QrCodeScannerDialog() {
         });
       }
     };
-  }, [isOpen, scannedUrl]);
+  }, [isOpen, scannedProductId, router]);
 
-  const handleGoToUrl = () => {
-    if (scannedUrl) {
-      setIsOpen(false);
-      if (scannedUrl.startsWith('/') || scannedUrl.startsWith(window.location.origin)) {
-        router.push(scannedUrl);
-      } else {
-        window.open(scannedUrl, '_blank', 'noopener,noreferrer');
-      }
-    }
-  };
 
   const handleScanAgain = () => {
-    setScannedUrl(null);
+    setScannedProductId(null);
   };
   
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open) {
-      setScannedUrl(null); // Reset on close
+      setScannedProductId(null); // Reset on close
     }
   };
 
@@ -104,28 +97,26 @@ export function QrCodeScannerDialog() {
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" title="Scan QR Code">
           <Camera className="h-5 w-5" />
-          <span className="sr-only">Scan QR Code</span>
+          <span className="sr-only">Scan Product QR Code</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Scan QR Code</DialogTitle>
+          <DialogTitle>Scan Product QR Code</DialogTitle>
         </DialogHeader>
         <div className="p-4 flex flex-col items-center justify-center min-h-[300px]">
-          {scannedUrl ? (
+          {scannedProductId ? (
             <div className="text-center">
-              <p className="text-lg font-semibold mb-2">Scan Successful!</p>
-              <p className="text-sm text-muted-foreground break-all mb-4">{scannedUrl}</p>
-              <Button onClick={handleGoToUrl}>
-                <ExternalLink className="mr-2 h-4 w-4" /> Go to URL
-              </Button>
+              <p className="text-lg font-semibold mb-2">Product Found!</p>
+              <p className="text-sm text-muted-foreground break-all mb-4">Product ID: {scannedProductId}</p>
+              <p className="text-sm">Redirecting you to the product page...</p>
             </div>
           ) : (
             <div id={SCANNER_REGION_ID} className="w-full rounded-md" />
           )}
         </div>
         <DialogFooter>
-           {scannedUrl && (
+           {scannedProductId && (
              <Button variant="outline" onClick={handleScanAgain}>
                <RefreshCw className="mr-2 h-4 w-4" /> Scan Again
              </Button>
