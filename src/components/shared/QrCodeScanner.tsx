@@ -29,10 +29,12 @@ export function QrCodeScannerDialog() {
     }
 
     if (scannedProductId) {
-      // If we have a result, redirect.
-      router.push(`/market/${scannedProductId}`);
-      setIsOpen(false); // Close the dialog after initiating navigation
-      return;
+      // If we have a result, wait a bit, then redirect.
+      const redirectTimeout = setTimeout(() => {
+        router.push(`/market/${scannedProductId}`);
+        setIsOpen(false); 
+      }, 2000); // 2-second delay before redirect
+      return () => clearTimeout(redirectTimeout);
     }
 
     let scanner: Html5QrcodeScanner | null = null;
