@@ -4,7 +4,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Capacitor } from '@capacitor/core';
-import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,7 +30,9 @@ export function QrCodeScannerDialog() {
   const stopNativeScan = useCallback(() => {
     document.body.classList.remove('qr-scanner-active');
     document.querySelector('main')?.classList.remove('hidden');
-    BarcodeScanner.stopScan();
+    import('@capacitor-community/barcode-scanner').then(({ BarcodeScanner }) => {
+        BarcodeScanner.stopScan();
+    });
     setIsNativeScanning(false);
   }, []);
 
@@ -55,6 +56,7 @@ export function QrCodeScannerDialog() {
 
   const startNativeScanner = useCallback(async () => {
     try {
+        const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
         const status = await BarcodeScanner.checkPermission({ force: true });
         if (!status.granted) {
             setError("Camera permission is required to scan QR codes.");
