@@ -1,9 +1,7 @@
-
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,41 +42,56 @@ export function QrCodeScannerDialog() {
     }
   }, [router, toast]);
   
-  const stopAllScans = useCallback(() => {
+  const stopAllScans = useCallback(async () => {
     if (Capacitor.isNativePlatform() && isScanning) {
+      try {
+        // Dynamically import to avoid server-side bundling
+        const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
         document.body.classList.remove('qr-scanner-active');
-        BarcodeScanner.showBackground();
-        BarcodeScanner.stopScan();
+        await BarcodeScanner.showBackground();
+        await BarcodeScanner.stopScan();
+      } catch (e) {
+        console.error("Error stopping native scanner", e);
+      }
     }
     if (scannerRef.current && scannerRef.current.isScanning) {
-      scannerRef.current.clear().catch(err => console.error("Failed to clear web scanner", err));
+      try {
+        await scannerRef.current.clear();
+      } catch (err) {
+        console.error("Failed to clear web scanner", err);
+      }
     }
     setIsScanning(false);
   }, [isScanning]);
 
   const startNativeScan = useCallback(async () => {
-    try {
-      await BarcodeScanner.checkPermission({ force: true });
-      
-      await BarcodeScanner.hideBackground();
-      document.body.classList.add('qr-scanner-active');
-      setIsScanning(true);
+    const start = async () => {
+      try {
+        // Dynamically import to avoid server-side bundling
+        const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
+        await BarcodeScanner.checkPermission({ force: true });
+        
+        await BarcodeScanner.hideBackground();
+        document.body.classList.add('qr-scanner-active');
+        setIsScanning(true);
 
-      const result = await BarcodeScanner.startScan();
+        const result = await BarcodeScanner.startScan();
 
-      if (result.hasContent) {
-        handleScanSuccess(result.content);
+        if (result.hasContent) {
+          handleScanSuccess(result.content);
+        }
+      } catch (e: any) {
+        if (e.message.includes("permission was denied")) {
+          setError("Camera permission is required. Please grant permission in your device settings.");
+        } else if (!e.message.includes("cancelled")) {
+          setError(e.message || "An unknown error occurred during scanning.");
+        }
+      } finally {
+          await stopAllScans();
+          setIsOpen(false);
       }
-    } catch (e: any) {
-      if (e.message.includes("permission was denied")) {
-        setError("Camera permission is required. Please grant permission in your device settings.");
-      } else if (!e.message.includes("cancelled")) {
-        setError(e.message || "An unknown error occurred during scanning.");
-      }
-    } finally {
-        stopAllScans();
-        setIsOpen(false);
-    }
+    };
+    start();
   }, [handleScanSuccess, stopAllScans]);
 
   const startWebScan = useCallback(() => {
@@ -115,23 +128,18 @@ export function QrCodeScannerDialog() {
   };
   
   useEffect(() => {
-    if (isOpen) {
-      setError(null);
-      if (Capacitor.isNativePlatform()) {
-        startNativeScan();
-      } else {
-        const timer = setTimeout(() => startWebScan(), 100);
-        return () => clearTimeout(timer);
-      }
-    } else {
+    if (!isOpen) {
       stopAllScans();
     }
-  }, [isOpen, startNativeScan, startWebScan, stopAllScans]);
+  }, [isOpen, stopAllScans]);
   
   if (isScanning && Capacitor.isNativePlatform()) {
     return (
       <div className="fixed top-0 left-0 w-full h-full z-[100] bg-transparent flex flex-col justify-end items-center p-8">
-        <Button onClick={() => setIsOpen(false)} variant="destructive" size="lg">
+        <Button onClick={() => {
+          stopAllScans();
+          setIsOpen(false);
+        }} variant="destructive" size="lg">
           <X className="mr-2 h-4 w-4" /> Cancel Scan
         </Button>
       </div>
@@ -141,7 +149,16 @@ export function QrCodeScannerDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" title="Scan QR Code">
+        <Button variant="ghost" size="icon" title="Scan QR Code" onClick={() => {
+          setError(null);
+          if (Capacitor.isNativePlatform()) {
+            startNativeScan();
+          } else {
+            setIsOpen(true);
+            const timer = setTimeout(() => startWebScan(), 100);
+            return () => clearTimeout(timer);
+          }
+        }}>
           <QrCode className="h-5 w-5" />
           <span className="sr-only">Scan Product QR Code</span>
         </Button>
