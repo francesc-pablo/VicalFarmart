@@ -29,7 +29,11 @@ export function QrCodeScannerDialog() {
   const scannerRef = React.useRef<Html5QrcodeScanner | null>(null);
 
   const handleScanSuccess = useCallback((result: string) => {
-    const productId = result.split('/').pop();
+    // Basic validation to check if it looks like a URL or has a product ID path
+    const urlPattern = /^(https?:\/\/[^\s$.?#].[^\s]*\/market\/|vicalfarmart:\/\/product\/)([a-zA-Z0-9_-]+)$/;
+    const match = result.match(urlPattern);
+    const productId = match ? match[2] : result.split('/').pop();
+
     if (productId) {
       toast({
         title: "QR Code Scanned",
@@ -38,6 +42,11 @@ export function QrCodeScannerDialog() {
       setIsOpen(false);
       router.push(`/market/${productId}`);
     } else {
+      toast({
+        title: "Invalid QR Code",
+        description: "This QR code does not seem to be a valid Vical Farmart product link.",
+        variant: "destructive"
+      });
       setError("Invalid QR code format.");
     }
   }, [router, toast]);
@@ -45,7 +54,6 @@ export function QrCodeScannerDialog() {
   const stopAllScans = useCallback(async () => {
     if (Capacitor.isNativePlatform() && isScanning) {
       try {
-        // Dynamically import to avoid server-side bundling
         const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
         document.body.classList.remove('qr-scanner-active');
         await BarcodeScanner.showBackground();
@@ -64,35 +72,61 @@ export function QrCodeScannerDialog() {
     setIsScanning(false);
   }, [isScanning]);
 
-  const startNativeScan = useCallback(async () => {
-    const start = async () => {
-      try {
-        // Dynamically import to avoid server-side bundling
-        const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
-        await BarcodeScanner.checkPermission({ force: true });
-        
-        await BarcodeScanner.hideBackground();
-        document.body.classList.add('qr-scanner-active');
-        setIsScanning(true);
+ const startNativeScan = useCallback(async () => {
+    try {
+      const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
+      
+      // Check permission status without forcing the prompt
+      const initialStatus = await BarcodeScanner.checkPermission({ force: false });
 
-        const result = await BarcodeScanner.startScan();
-
-        if (result.hasContent) {
-          handleScanSuccess(result.content);
-        }
-      } catch (e: any) {
-        if (e.message.includes("permission was denied")) {
-          setError("Camera permission is required. Please grant permission in your device settings.");
-        } else if (!e.message.includes("cancelled")) {
-          setError(e.message || "An unknown error occurred during scanning.");
-        }
-      } finally {
-          await stopAllScans();
-          setIsOpen(false);
+      if (initialStatus.denied || initialStatus.restricted) {
+        toast({
+          title: "Permission Required",
+          description: "Please grant camera access in your device settings to use the QR scanner.",
+          variant: "destructive",
+        });
+        return;
       }
-    };
-    start();
-  }, [handleScanSuccess, stopAllScans]);
+      
+      // If permission is not denied, proceed to prompt the user if necessary.
+      const finalStatus = await BarcodeScanner.checkPermission({ force: true });
+      if (!finalStatus.granted) {
+          toast({
+              title: "Permission Denied",
+              description: "Camera access was not granted. The scanner cannot start.",
+              variant: "destructive"
+          });
+          return;
+      }
+
+      // If we get here, permission is granted.
+      await BarcodeScanner.hideBackground();
+      document.body.classList.add('qr-scanner-active');
+      setIsScanning(true);
+
+      const result = await BarcodeScanner.startScan();
+
+      if (result.hasContent) {
+        handleScanSuccess(result.content);
+      }
+      // If no content, it means the scan was cancelled by the user, which is handled in the finally block.
+    } catch (e: any) {
+      // This will now mostly catch scan cancellations or other unexpected camera errors.
+      // We only show a toast if it's an actual error, not a user cancellation.
+      if (e.message && !e.message.toLowerCase().includes("cancelled")) {
+        toast({
+            title: "Scan Error",
+            description: "An unexpected error occurred with the camera. Please try again.",
+            variant: "destructive"
+        });
+        console.error("Native Scan Error:", e);
+      }
+    } finally {
+        // This ensures the UI is always reset correctly.
+        await stopAllScans();
+        setIsOpen(false);
+    }
+  }, [handleScanSuccess, stopAllScans, toast]);
 
   const startWebScan = useCallback(() => {
       try {
@@ -132,6 +166,17 @@ export function QrCodeScannerDialog() {
       stopAllScans();
     }
   }, [isOpen, stopAllScans]);
+
+  const handleTriggerClick = () => {
+    setError(null);
+    if (Capacitor.isNativePlatform()) {
+      startNativeScan();
+    } else {
+      setIsOpen(true);
+      const timer = setTimeout(() => startWebScan(), 100);
+      return () => clearTimeout(timer);
+    }
+  };
   
   if (isScanning && Capacitor.isNativePlatform()) {
     return (
@@ -149,16 +194,7 @@ export function QrCodeScannerDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" title="Scan QR Code" onClick={() => {
-          setError(null);
-          if (Capacitor.isNativePlatform()) {
-            startNativeScan();
-          } else {
-            setIsOpen(true);
-            const timer = setTimeout(() => startWebScan(), 100);
-            return () => clearTimeout(timer);
-          }
-        }}>
+        <Button variant="ghost" size="icon" title="Scan QR Code" onClick={handleTriggerClick}>
           <QrCode className="h-5 w-5" />
           <span className="sr-only">Scan Product QR Code</span>
         </Button>
