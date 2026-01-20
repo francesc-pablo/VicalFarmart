@@ -1,0 +1,23 @@
+# DO NOT MODIFY!
+# This file is managed by Capacitor.
+# You can add custom pods in the App/App.podspec file.
+
+platform :ios, '13.0'
+use_frameworks!
+
+# workaround for cocoapods-xcode-xcfile issue
+# can be removed once this is resolved: https://github.com/CocoaPods/cocoapods-xcode-xcfile/pull/1
+install! 'cocoapods', :integrate_targets => false
+
+target 'App' do
+  # This is a placeholder, Capacitor will auto-populate this with your plugins.
+  # Do not add pods here manually.
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+    end
+  end
+end
