@@ -85,4 +85,8 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  /* This style is for the native QR scanner to see the camera view */
+  body.qr-scanner-active {
+    background-color: transparent !important;
+  }
 }
