@@ -10,7 +10,7 @@ import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import type { User } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { QrCodeScannerDialog } from '@/components/shared/QrCodeScanner';
+import dynamic from 'next/dynamic';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +33,18 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
+const QrCodeScannerDialog = dynamic(
+  () => import('@/components/shared/QrCodeScanner').then((mod) => mod.QrCodeScannerDialog),
+  { 
+    ssr: false,
+    loading: () => (
+      <Button variant="ghost" size="icon" title="Scan QR Code" disabled>
+        <QrCode className="h-5 w-5" />
+        <span className="sr-only">Scan Product QR Code</span>
+      </Button>
+    ),
+  }
+);
 
 
 interface AuthStatus {
