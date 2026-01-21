@@ -87,13 +87,18 @@
     background: transparent !important;
   }
   
-  /* Hide all direct children of body when scanner is active */
-  body.qr-scanner-active > * {
-    display: none;
+  /* When scanning, make the root Next.js app transparent */
+  body.qr-scanner-active #__next {
+    background: transparent !important;
   }
   
-  /* Make the scanner UI visible again */
+  /* Hide all direct children of body when scanner is active */
+  body.qr-scanner-active > #__next > * {
+    visibility: hidden;
+  }
+  
+  /* Make the scanner UI visible again. This is crucial. */
   body.qr-scanner-active [data-qr-scanner-ui] {
-    display: flex;
+    visibility: visible;
   }
 }
