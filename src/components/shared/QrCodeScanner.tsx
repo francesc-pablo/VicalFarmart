@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,13 +22,18 @@ export function QrCodeScannerDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isNative, setIsNative] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   
-  const scannerRef = React.useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = React.useRef<any | null>(null);
+
+  useEffect(() => {
+    // This check is deferred until after the component mounts, preventing hydration errors.
+    setIsNative(Capacitor.isNativePlatform());
+  }, []);
 
   const handleScanSuccess = useCallback((result: string) => {
-    // Basic validation to check if it looks like a URL or has a product ID path
     const urlPattern = /^(https?:\/\/[^\s$.?#].[^\s]*\/market\/|vicalfarmart:\/\/product\/)([a-zA-Z0-9_-]+)$/;
     const match = result.match(urlPattern);
     const productId = match ? match[2] : result.split('/').pop();
@@ -52,27 +56,28 @@ export function QrCodeScannerDialog() {
   }, [router, toast]);
   
   const stopAllScans = useCallback(async () => {
-    if (Capacitor.isNativePlatform() && isScanning) {
+    if (isNative && isScanning) {
       try {
-        // Dynamically import to avoid server-side bundling errors
         const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
         document.body.classList.remove('qr-scanner-active');
         await BarcodeScanner.showBackground();
         await BarcodeScanner.stopScan();
       } catch (e) {
-        // This might fail if the scan was already stopped, which is fine.
         console.warn("Could not stop native scanner (it may have already been stopped).", e);
       }
     }
-    if (scannerRef.current && scannerRef.current.isScanning) {
+    
+    if (!isNative && scannerRef.current && scannerRef.current.getState() === 2) { // 2 is SCANNING state for Html5QrcodeScanner
       try {
         await scannerRef.current.clear();
       } catch (err) {
         console.error("Failed to clear web scanner", err);
       }
     }
+
     setIsScanning(false);
-  }, [isScanning]);
+  }, [isScanning, isNative]);
+
 
  const startNativeScan = useCallback(async () => {
     try {
@@ -81,12 +86,15 @@ export function QrCodeScannerDialog() {
       const initialStatus = await BarcodeScanner.checkPermission({ force: false });
 
       if (initialStatus.denied || initialStatus.restricted) {
-        toast({
-          title: "Permission Required",
-          description: "Please grant camera access in your device settings to use the QR scanner.",
-          variant: "destructive",
-        });
-        return;
+          const didOpenSettings = await BarcodeScanner.openAppSettings();
+          if(!didOpenSettings){
+             toast({
+                title: "Permission Required",
+                description: "Please grant camera access in your device settings to use the QR scanner.",
+                variant: "destructive",
+            });
+          }
+          return;
       }
       
       const finalStatus = await BarcodeScanner.checkPermission({ force: true });
@@ -123,8 +131,9 @@ export function QrCodeScannerDialog() {
     }
   }, [handleScanSuccess, stopAllScans, toast]);
 
-  const startWebScan = useCallback(() => {
+  const startWebScan = useCallback(async () => {
       try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
         if (!document.getElementById(SCANNER_REGION_ID)) return;
 
         const scanner = new Html5QrcodeScanner(
@@ -164,7 +173,7 @@ export function QrCodeScannerDialog() {
 
   const handleTriggerClick = () => {
     setError(null);
-    if (Capacitor.isNativePlatform()) {
+    if (isNative) {
       startNativeScan();
     } else {
       setIsOpen(true);
@@ -173,7 +182,7 @@ export function QrCodeScannerDialog() {
     }
   };
   
-  if (isScanning && Capacitor.isNativePlatform()) {
+  if (isScanning && isNative) {
     return (
       <div className="fixed top-0 left-0 w-full h-full z-[100] bg-transparent flex flex-col justify-end items-center p-8">
         <Button onClick={() => {
