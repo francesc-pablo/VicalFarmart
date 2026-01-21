@@ -56,6 +56,7 @@ export function QrCodeScannerDialog() {
   }, [router, toast]);
   
   const stopAllScans = useCallback(async () => {
+    // Stop native scanner
     if (isNative && isScanning) {
       try {
         const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
@@ -63,11 +64,12 @@ export function QrCodeScannerDialog() {
         await BarcodeScanner.showBackground();
         await BarcodeScanner.stopScan();
       } catch (e) {
-        console.warn("Could not stop native scanner (it may have already been stopped).", e);
+        // This error is common if the scan is already stopped, so we can ignore it.
       }
     }
     
-    if (!isNative && scannerRef.current && scannerRef.current.getState() === 2) { // 2 is SCANNING state for Html5QrcodeScanner
+    // Stop web scanner
+    if (!isNative && scannerRef.current && scannerRef.current.getState() === 2) { // 2 is SCANNING state
       try {
         await scannerRef.current.clear();
       } catch (err) {
@@ -84,26 +86,16 @@ export function QrCodeScannerDialog() {
       const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
       
       const initialStatus = await BarcodeScanner.checkPermission({ force: false });
-
       if (initialStatus.denied || initialStatus.restricted) {
           const didOpenSettings = await BarcodeScanner.openAppSettings();
           if(!didOpenSettings){
-             toast({
-                title: "Permission Required",
-                description: "Please grant camera access in your device settings to use the QR scanner.",
-                variant: "destructive",
-            });
+             toast({ title: "Permission Required", description: "Please grant camera access in your device settings to use the QR scanner.", variant: "destructive"});
           }
           return;
       }
-      
       const finalStatus = await BarcodeScanner.checkPermission({ force: true });
       if (!finalStatus.granted) {
-          toast({
-              title: "Permission Denied",
-              description: "Camera access was not granted. The scanner cannot start.",
-              variant: "destructive"
-          });
+          toast({ title: "Permission Denied", description: "Camera access was not granted. The scanner cannot start.", variant: "destructive" });
           return;
       }
 
@@ -114,18 +106,21 @@ export function QrCodeScannerDialog() {
       const result = await BarcodeScanner.startScan();
 
       if (result.hasContent) {
+        // IMPORTANT: Stop the scan BEFORE handling the success to restore the UI.
+        await stopAllScans(); 
         handleScanSuccess(result.content);
+      } else {
+        // If scan was cancelled without content, just clean up.
+        await stopAllScans();
       }
     } catch (e: any) {
+      // Don't show toast for "cancelled" error
       if (e.message && !e.message.toLowerCase().includes("cancelled")) {
-        toast({
-            title: "Scan Error",
-            description: "An unexpected error occurred with the camera. Please try again.",
-            variant: "destructive"
-        });
+        toast({ title: "Scan Error", description: "An unexpected error occurred with the camera. Please try again.", variant: "destructive" });
         console.error("Native Scan Error:", e);
       }
     } finally {
+        // Final cleanup to ensure UI is always restored
         await stopAllScans();
         setIsOpen(false);
     }
@@ -141,6 +136,9 @@ export function QrCodeScannerDialog() {
             {
                 qrbox: { width: 250, height: 250 },
                 fps: 10,
+                rememberLastUsedCamera: true,
+                // Re-enable file based scanning
+                supportedScanTypes: [0, 1] // 0 for Camera, 1 for File
             },
             false // verbose
         );
@@ -148,6 +146,7 @@ export function QrCodeScannerDialog() {
 
         const onScanSuccess = (decodedText: string) => {
             handleScanSuccess(decodedText);
+            stopAllScans();
         };
 
         const onScanError = (errorMessage: string) => { /* ignore minor scan errors */ };
@@ -157,9 +156,9 @@ export function QrCodeScannerDialog() {
 
     } catch (e: any) {
         console.error("Web scanner init failed", e);
-        setError("Could not initialize QR scanner.");
+        setError("Could not initialize QR scanner. Please ensure camera permissions are granted in your browser.");
     }
-  }, [handleScanSuccess]);
+  }, [handleScanSuccess, stopAllScans]);
   
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -177,25 +176,24 @@ export function QrCodeScannerDialog() {
       startNativeScan();
     } else {
       setIsOpen(true);
-      // Give the dialog time to mount before starting the web scanner
-      const timer = setTimeout(() => startWebScan(), 100);
+      // Give dialog time to mount before starting the web scanner
+      const timer = setTimeout(() => startWebScan(), 150);
       return () => clearTimeout(timer);
     }
   };
   
+  // This is the native UI overlay
   if (isScanning && isNative) {
     return (
       <div data-qr-scanner-ui className="fixed top-0 left-0 w-full h-full z-[100] bg-transparent flex flex-col justify-end items-center p-8">
-        <Button onClick={() => {
-          stopAllScans();
-          setIsOpen(false);
-        }} variant="destructive" size="lg">
+        <Button onClick={stopAllScans} variant="destructive" size="lg">
           <X className="mr-2 h-4 w-4" /> Cancel Scan
         </Button>
       </div>
     );
   }
 
+  // This is the web/dialog UI
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -208,7 +206,7 @@ export function QrCodeScannerDialog() {
         <DialogHeader>
           <DialogTitle>Scan Product QR Code</DialogTitle>
           <DialogDescription>
-            Position the QR code inside the box to scan it.
+            Position the QR code inside the box to scan it, or select an image file.
           </DialogDescription>
         </DialogHeader>
         <div className="p-4 flex flex-col items-center justify-center min-h-[300px]">
