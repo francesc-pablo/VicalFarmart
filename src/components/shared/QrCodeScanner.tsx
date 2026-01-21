@@ -54,12 +54,14 @@ export function QrCodeScannerDialog() {
   const stopAllScans = useCallback(async () => {
     if (Capacitor.isNativePlatform() && isScanning) {
       try {
+        // Dynamically import to avoid server-side bundling errors
         const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
         document.body.classList.remove('qr-scanner-active');
         await BarcodeScanner.showBackground();
         await BarcodeScanner.stopScan();
       } catch (e) {
-        console.error("Error stopping native scanner", e);
+        // This might fail if the scan was already stopped, which is fine.
+        console.warn("Could not stop native scanner (it may have already been stopped).", e);
       }
     }
     if (scannerRef.current && scannerRef.current.isScanning) {
@@ -76,7 +78,6 @@ export function QrCodeScannerDialog() {
     try {
       const { BarcodeScanner } = await import('@capacitor-community/barcode-scanner');
       
-      // Check permission status without forcing the prompt
       const initialStatus = await BarcodeScanner.checkPermission({ force: false });
 
       if (initialStatus.denied || initialStatus.restricted) {
@@ -88,7 +89,6 @@ export function QrCodeScannerDialog() {
         return;
       }
       
-      // If permission is not denied, proceed to prompt the user if necessary.
       const finalStatus = await BarcodeScanner.checkPermission({ force: true });
       if (!finalStatus.granted) {
           toast({
@@ -99,7 +99,6 @@ export function QrCodeScannerDialog() {
           return;
       }
 
-      // If we get here, permission is granted.
       await BarcodeScanner.hideBackground();
       document.body.classList.add('qr-scanner-active');
       setIsScanning(true);
@@ -109,10 +108,7 @@ export function QrCodeScannerDialog() {
       if (result.hasContent) {
         handleScanSuccess(result.content);
       }
-      // If no content, it means the scan was cancelled by the user, which is handled in the finally block.
     } catch (e: any) {
-      // This will now mostly catch scan cancellations or other unexpected camera errors.
-      // We only show a toast if it's an actual error, not a user cancellation.
       if (e.message && !e.message.toLowerCase().includes("cancelled")) {
         toast({
             title: "Scan Error",
@@ -122,7 +118,6 @@ export function QrCodeScannerDialog() {
         console.error("Native Scan Error:", e);
       }
     } finally {
-        // This ensures the UI is always reset correctly.
         await stopAllScans();
         setIsOpen(false);
     }
