@@ -81,24 +81,4 @@
   body {
     @apply bg-background text-foreground;
   }
-  
-  /* Styles for native QR scanner camera view */
-  body.qr-scanner-active {
-    background: transparent !important;
-  }
-  
-  /* When scanning, make the root Next.js app transparent */
-  body.qr-scanner-active #__next {
-    background: transparent !important;
-  }
-  
-  /* Hide all direct children of body when scanner is active */
-  body.qr-scanner-active > #__next > * {
-    visibility: hidden;
-  }
-  
-  /* Make the scanner UI visible again. This is crucial. */
-  body.qr-scanner-active [data-qr-scanner-ui] {
-    visibility: visible;
-  }
 }
