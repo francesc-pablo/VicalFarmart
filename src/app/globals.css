@@ -81,8 +81,19 @@
   body {
     @apply bg-background text-foreground;
   }
-  /* This style is for the native QR scanner to see the camera view */
+  
+  /* Styles for native QR scanner camera view */
   body.qr-scanner-active {
-    background-color: transparent !important;
+    background: transparent !important;
+  }
+  
+  /* Hide all direct children of body when scanner is active */
+  body.qr-scanner-active > * {
+    display: none;
+  }
+  
+  /* Make the scanner UI visible again */
+  body.qr-scanner-active [data-qr-scanner-ui] {
+    display: flex;
   }
 }

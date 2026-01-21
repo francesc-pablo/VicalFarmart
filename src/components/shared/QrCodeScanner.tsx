@@ -177,6 +177,7 @@ export function QrCodeScannerDialog() {
       startNativeScan();
     } else {
       setIsOpen(true);
+      // Give the dialog time to mount before starting the web scanner
       const timer = setTimeout(() => startWebScan(), 100);
       return () => clearTimeout(timer);
     }
@@ -184,7 +185,7 @@ export function QrCodeScannerDialog() {
   
   if (isScanning && isNative) {
     return (
-      <div className="fixed top-0 left-0 w-full h-full z-[100] bg-transparent flex flex-col justify-end items-center p-8">
+      <div data-qr-scanner-ui className="fixed top-0 left-0 w-full h-full z-[100] bg-transparent flex flex-col justify-end items-center p-8">
         <Button onClick={() => {
           stopAllScans();
           setIsOpen(false);
