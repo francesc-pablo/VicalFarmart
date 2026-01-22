@@ -4,7 +4,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.vicalfarmart.app',
   appName: 'Vical Farmart',
-  webDir: '.next',
+  webDir: 'out',
   server: {
     // =================================================================
     // IMPORTANT FOR LOCAL DEVELOPMENT!
