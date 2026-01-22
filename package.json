@@ -12,8 +12,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "capacitor:sync": "npm run build && npx cap sync",
-    "capacitor:android": "npx cap run android",
-    "capacitor:ios": "npx cap run ios",
+    "capacitor:android": "npm run capacitor:sync && npx cap run android",
+    "capacitor:ios": "npm run capacitor:sync && npx cap run ios",
     "capacitor:add:android": "npx cap add android",
     "capacitor:add:ios": "npx cap add ios"
   },
