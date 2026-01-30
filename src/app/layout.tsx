@@ -2,6 +2,10 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { PT_Sans } from 'next/font/google';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import { CartProvider } from '@/context/CartContext';
+import { Suspense } from 'react';
 
 const ptSans = PT_Sans({
   subsets: ['latin'],
@@ -64,8 +68,20 @@ export default function RootLayout({
   
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${ptSans.className} antialiased min-h-screen flex flex-col`}>
-        {children}
+      <body className={`${ptSans.className} antialiased`}>
+        <CartProvider>
+          <div className="flex flex-col min-h-screen">
+            <Suspense>
+              <Header />
+            </Suspense>
+            <main className="flex-grow container mx-auto px-4 sm:px-6 md:px-12 py-8">
+              <Suspense>
+                {children}
+              </Suspense>
+            </main>
+            <Footer />
+          </div>
+        </CartProvider>
         <Toaster />
       </body>
     </html>
