@@ -36,7 +36,6 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText: string, result: Html5QrcodeResult) => {
-            // Do not call stop() here, let the cleanup effect handle it.
             onScanSuccess(decodedText);
           },
           (errorMessage: string, error: Html5QrcodeError) => {
@@ -44,8 +43,14 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
           }
         );
       } catch (err) {
-         console.error("Web Scanner Start Error:", err);
-         onError("Could not start camera. Please check permissions.");
+         // This specific string error is a known race condition in the library during hot-reloads.
+         // We can safely ignore it to prevent a crash.
+         if (typeof err === 'string' && err.includes('Cannot transition to a new state, already under transition')) {
+            console.warn("Ignoring a non-fatal QR scanner race condition:", err);
+         } else {
+            console.error("Web Scanner Start Error:", err);
+            onError("Could not start camera. Please check permissions.");
+         }
       }
     };
     startScanner();
@@ -54,7 +59,7 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
       if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
         html5QrCodeRef.current.stop()
           .catch(err => {
-            // This error is expected when the component unmounts quickly after a scan.
+            // This error is expected when the component unmounts quickly after a scan or during hot-reloads.
             // We can safely ignore it.
             if (String(err).includes("Cannot transition to a new state, already under transition")) {
               console.warn("Ignoring expected scanner stop error during cleanup.");
