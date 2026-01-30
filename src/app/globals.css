@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -87,8 +88,13 @@
 }
 
 /* Custom rule for QR Scanner Video */
+#web-qr-reader,
+#web-qr-reader > div,
 #web-qr-reader video {
   width: 100% !important;
   height: 100% !important;
+}
+
+#web-qr-reader video {
   object-fit: cover;
 }

@@ -45,7 +45,7 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
       } catch (err) {
          const errorMessage = typeof err === 'string' ? err : (err as Error).message;
          if (errorMessage.includes('Cannot transition to a new state, already under transition')) {
-            console.warn("Ignoring a non-fatal QR scanner race condition:", err);
+            // This is a non-fatal race condition on hot-reload, ignore it.
          } else {
             console.error("Web Scanner Start Error:", err);
             onError("Could not start camera. Please check permissions.");
@@ -60,9 +60,8 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
             html5QrCodeRef.current.stop()
          } catch(err) {
             const errorMessage = typeof err === 'string' ? err : (err as Error).message;
-            if (errorMessage.includes("Cannot transition to a new state, already under transition")) {
-              console.warn("Ignoring expected scanner stop error during cleanup.");
-            } else {
+            if (!errorMessage.includes("Cannot transition to a new state, already under transition")) {
+              // Only log errors that are not the known race condition.
               console.error("Error stopping scanner:", err);
             }
          }
