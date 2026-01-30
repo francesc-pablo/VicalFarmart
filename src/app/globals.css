@@ -85,3 +85,10 @@
     background-color: transparent !important;
   }
 }
+
+/* Custom rule for QR Scanner Video */
+#web-qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
