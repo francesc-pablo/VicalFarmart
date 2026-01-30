@@ -34,7 +34,7 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
       try {
         await html5QrCode.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          { fps: 10 }, // Removed qrbox to scan the full region
           (decodedText: string, result: Html5QrcodeResult) => {
             onScanSuccess(decodedText);
           },
@@ -45,7 +45,8 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
       } catch (err) {
          // This specific string error is a known race condition in the library during hot-reloads.
          // We can safely ignore it to prevent a crash.
-         if (typeof err === 'string' && err.includes('Cannot transition to a new state, already under transition')) {
+         const errorMessage = typeof err === 'string' ? err : (err as Error).message;
+         if (errorMessage.includes('Cannot transition to a new state, already under transition')) {
             console.warn("Ignoring a non-fatal QR scanner race condition:", err);
          } else {
             console.error("Web Scanner Start Error:", err);
@@ -59,9 +60,8 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
       if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
         html5QrCodeRef.current.stop()
           .catch(err => {
-            // This error is expected when the component unmounts quickly after a scan or during hot-reloads.
-            // We can safely ignore it.
-            if (String(err).includes("Cannot transition to a new state, already under transition")) {
+            const errorMessage = typeof err === 'string' ? err : (err as Error).message;
+            if (errorMessage.includes("Cannot transition to a new state, already under transition")) {
               console.warn("Ignoring expected scanner stop error during cleanup.");
             } else {
               console.error("Error stopping scanner:", err);
@@ -87,9 +87,9 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-4 w-full">
       {/* Container for the camera feed */}
-      <div id={scannerRegionId} className="w-full rounded-md bg-muted min-h-[250px]" />
+      <div id={scannerRegionId} className="w-full rounded-lg bg-muted aspect-square" />
       
       <input
         type="file"
@@ -164,7 +164,7 @@ export function QrCodeScannerDialog() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Scan Product QR Code</DialogTitle>
-            <DialogDescription>Position the QR code inside the box or upload an image file.</DialogDescription>
+            <DialogDescription>Position the QR code inside the camera view or upload an image file.</DialogDescription>
           </DialogHeader>
           <div className="p-0 sm:p-4 flex flex-col items-center justify-center min-h-[300px]">
             {isDialogOpen && <WebScanner onScanSuccess={handleScanResult} onError={onWebScanError} />}
