@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -36,9 +37,7 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
         (decodedText: string, result: Html5QrcodeResult) => {
-          if (html5QrCode.isScanning) {
-            html5QrCode.pause(true);
-          }
+          // No need to pause; component unmount will trigger stop.
           onScanSuccess(decodedText);
         },
         (errorMessage: string, error: Html5QrcodeError) => {
@@ -53,6 +52,8 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
     return () => {
       if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop().catch(err => {
+          // The library can throw a string on rapid stops, which causes a fatal error.
+          // We log it but don't re-throw to prevent the app from crashing.
           console.error("Web Scanner Stop Error:", err);
         });
       }
