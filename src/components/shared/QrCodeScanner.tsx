@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -11,57 +10,97 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { QrCode } from 'lucide-react';
+import { QrCode, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeError, Html5QrcodeResult } from 'html5-qrcode';
 import { Capacitor } from '@capacitor/core';
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner';
 
-// This component is only for the web-based scanner.
-const WebScanner = ({ onScanSuccess }: { onScanSuccess: (result: string) => void }) => {
+// This component is for the web-based scanner, including camera and file upload.
+const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string) => void; onError: (message: string) => void }) => {
   const scannerRegionId = "web-qr-reader";
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Effect for camera scanning
   useEffect(() => {
-    // Ensure the scanner only initializes once
+    // Initialize scanner only once
     if (!scannerRef.current) {
-        const scanner = new Html5Qrcode(scannerRegionId, false);
-        scannerRef.current = scanner;
-        
-        scanner.start(
-            { facingMode: "environment" },
-            { 
-                fps: 10, 
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0,
-            },
-            (decodedText) => {
-                // Pause scanner on success to prevent multiple calls
-                if(scannerRef.current?.isScanning) {
-                    scannerRef.current.pause(true);
-                }
-                onScanSuccess(decodedText);
-            },
-            (errorMessage) => {
-                // handle scan error, usually ignore
-            }
-        ).catch(err => {
-            console.error("Web Scanner Start Error:", err);
-        });
+      scannerRef.current = new Html5Qrcode(scannerRegionId, false);
+    }
+    const html5QrCode = scannerRef.current;
+    
+    if (html5QrCode && !html5QrCode.isScanning) {
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+        (decodedText: string, result: Html5QrcodeResult) => {
+          if (html5QrCode.isScanning) {
+            html5QrCode.pause(true);
+          }
+          onScanSuccess(decodedText);
+        },
+        (errorMessage: string, error: Html5QrcodeError) => {
+          // ignore scan errors
+        }
+      ).catch(err => {
+        console.error("Web Scanner Start Error:", err);
+        onError("Could not start camera. Please check permissions.");
+      });
     }
 
-    // Cleanup function to stop the scanner
     return () => {
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop().catch(err => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(err => {
           console.error("Web Scanner Stop Error:", err);
         });
       }
     };
-  }, [onScanSuccess]);
+  }, [onScanSuccess, onError]);
 
-  return <div id={scannerRegionId} className="w-full rounded-md" />;
+  // Handler for file scanning
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (!scannerRef.current) return;
+      try {
+        const result = await scannerRef.current.scanFile(file, false);
+        onScanSuccess(result);
+      } catch (err) {
+        console.error("File scan error:", err);
+        onError("Could not scan the QR code from the selected file. It might not be a valid QR code image.");
+      }
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {/* Container for the camera feed */}
+      <div id={scannerRegionId} className="w-full rounded-md bg-muted min-h-[250px]" />
+      
+      {/* Hidden file input */}
+      <input
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      
+      <div className="relative flex items-center w-full my-1">
+        <div className="flex-grow border-t border-muted"></div>
+        <span className="flex-shrink mx-4 text-xs text-muted-foreground">OR</span>
+        <div className="flex-grow border-t border-muted"></div>
+      </div>
+      
+      {/* Button to trigger file input */}
+      <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
+        <Upload className="mr-2 h-4 w-4" />
+        Scan from File
+      </Button>
+    </div>
+  );
 };
 
 
@@ -141,6 +180,14 @@ export function QrCodeScannerDialog() {
     handleScanResult(result);
   };
   
+  const onWebScanError = (message: string) => {
+      toast({
+          title: "Scan Failed",
+          description: message,
+          variant: "destructive"
+      });
+  };
+
   useEffect(() => {
     const handler = () => stopNativeScan();
     if (isNative) {
@@ -175,10 +222,10 @@ export function QrCodeScannerDialog() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Scan Product QR Code</DialogTitle>
-              <DialogDescription>Position the QR code inside the box.</DialogDescription>
+              <DialogDescription>Position the QR code inside the box or upload an image file.</DialogDescription>
             </DialogHeader>
-            <div className="p-4 flex flex-col items-center justify-center min-h-[300px]">
-              {isDialogOpen && <WebScanner onScanSuccess={onWebScanSuccess} />}
+            <div className="p-0 sm:p-4 flex flex-col items-center justify-center min-h-[300px]">
+              {isDialogOpen && <WebScanner onScanSuccess={onWebScanSuccess} onError={onWebScanError} />}
             </div>
             <DialogFooter>
               <Button variant="secondary" onClick={() => setIsDialogOpen(false)}>Close</Button>
