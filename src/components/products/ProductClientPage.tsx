@@ -126,7 +126,7 @@ export default function ProductClientPage() {
           </div>
           <h1 className="text-4xl font-bold font-headline mb-3">{product.name}</h1>
 
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-4">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className={`h-5 w-5 ${i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
@@ -145,21 +145,21 @@ export default function ProductClientPage() {
             <p className="text-sm text-muted-foreground mb-1">Sold by: <span className="font-medium text-accent">{product.sellerName}</span></p>
           )}
 
-          <div className="flex items-center gap-4 mt-auto pt-6 border-t">
+          <div className="flex flex-wrap items-center gap-2 mt-auto pt-6 border-t">
             <Input
               type="number"
               value={quantity}
               onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
               min="1"
               max={product.stock > 0 ? product.stock : 1}
-              className="w-20 text-center"
+              className="w-20 text-center h-11"
               disabled={product.stock === 0}
               aria-label="Quantity"
             />
             <Button size="lg" className="flex-grow shadow-md" disabled={product.stock === 0} onClick={handleAddToCart}>
               <ShoppingCart className="mr-2 h-5 w-5" /> {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
             </Button>
-            <Button variant="outline" size="lg" title="Contact Seller">
+            <Button variant="outline" size="icon" className="h-11 w-11" title="Contact Seller">
               <MessageSquare className="h-5 w-5" />
             </Button>
           </div>
