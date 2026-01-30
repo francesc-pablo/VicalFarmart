@@ -55,11 +55,11 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
         try {
             html5QrCode.stop().catch(err => {
                 // This catches promise rejections, which might also happen
-                console.error("Web Scanner Stop Promise Rejection:", err);
+                console.warn("Web Scanner Stop Promise Rejection:", err);
             });
         } catch (err) {
             // This catches synchronous errors, like the string being thrown
-            console.error("Web Scanner Stop Sync Error:", err);
+            console.warn("Web Scanner Stop Sync Error:", err);
         }
       }
     };
