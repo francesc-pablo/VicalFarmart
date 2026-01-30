@@ -37,7 +37,6 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
         (decodedText: string, result: Html5QrcodeResult) => {
-          // No need to pause; component unmount will trigger stop.
           onScanSuccess(decodedText);
         },
         (errorMessage: string, error: Html5QrcodeError) => {
@@ -51,11 +50,17 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
 
     return () => {
       if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(err => {
-          // The library can throw a string on rapid stops, which causes a fatal error.
-          // We log it but don't re-throw to prevent the app from crashing.
-          console.error("Web Scanner Stop Error:", err);
-        });
+        // The library can throw an error if it's already stopping.
+        // We'll wrap this in a try-catch to suppress the crash.
+        try {
+            html5QrCode.stop().catch(err => {
+                // This catches promise rejections, which might also happen
+                console.error("Web Scanner Stop Promise Rejection:", err);
+            });
+        } catch (err) {
+            // This catches synchronous errors, like the string being thrown
+            console.error("Web Scanner Stop Sync Error:", err);
+        }
       }
     };
   }, [onScanSuccess, onError]);
