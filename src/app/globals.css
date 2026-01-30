@@ -81,4 +81,7 @@
   body {
     @apply bg-background text-foreground;
   }
+  body.scanner-active {
+    background-color: transparent !important;
+  }
 }
