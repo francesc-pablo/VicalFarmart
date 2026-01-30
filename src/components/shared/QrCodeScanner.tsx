@@ -34,7 +34,7 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
       try {
         await html5QrCode.start(
           { facingMode: "environment" },
-          { fps: 10 }, // Removed qrbox to scan the full region
+          { fps: 10 },
           (decodedText: string, result: Html5QrcodeResult) => {
             onScanSuccess(decodedText);
           },
@@ -43,8 +43,6 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
           }
         );
       } catch (err) {
-         // This specific string error is a known race condition in the library during hot-reloads.
-         // We can safely ignore it to prevent a crash.
          const errorMessage = typeof err === 'string' ? err : (err as Error).message;
          if (errorMessage.includes('Cannot transition to a new state, already under transition')) {
             console.warn("Ignoring a non-fatal QR scanner race condition:", err);
@@ -58,15 +56,16 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
 
     return () => {
       if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        html5QrCodeRef.current.stop()
-          .catch(err => {
+         try {
+            html5QrCodeRef.current.stop()
+         } catch(err) {
             const errorMessage = typeof err === 'string' ? err : (err as Error).message;
             if (errorMessage.includes("Cannot transition to a new state, already under transition")) {
               console.warn("Ignoring expected scanner stop error during cleanup.");
             } else {
               console.error("Error stopping scanner:", err);
             }
-          });
+         }
       }
     };
   }, [onScanSuccess, onError]);
@@ -88,8 +87,21 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
-      {/* Container for the camera feed */}
-      <div id={scannerRegionId} className="w-full rounded-lg bg-muted aspect-square" />
+      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 shadow-inner">
+        <div id={scannerRegionId} className="absolute inset-0" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4">
+          <div className="relative w-2/3 max-w-[250px] aspect-square">
+            {/* Corner brackets */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg"></div>
+          </div>
+          <p className="mt-4 text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-md shadow-lg">
+            Place QR code here
+          </p>
+        </div>
+      </div>
       
       <input
         type="file"
@@ -101,13 +113,13 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
       
       <div className="relative flex items-center w-full my-1">
         <div className="flex-grow border-t border-muted"></div>
-        <span className="flex-shrink mx-4 text-xs text-muted-foreground">OR</span>
+        <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase">Or</span>
         <div className="flex-grow border-t border-muted"></div>
       </div>
       
       <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
         <Upload className="mr-2 h-4 w-4" />
-        Scan from File
+        Upload from File
       </Button>
     </div>
   );
@@ -145,13 +157,13 @@ export function QrCodeScannerDialog() {
     }, 100);
   }, [router, toast]);
   
-  const onWebScanError = (message: string) => {
+  const onWebScanError = useCallback((message: string) => {
       toast({
           title: "Scan Failed",
           description: message,
           variant: "destructive"
       });
-  };
+  }, [toast]);
 
   return (
     <>
