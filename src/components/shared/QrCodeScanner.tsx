@@ -81,7 +81,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
 
   // The actual UI for the native scanner overlay
   return (
-    <div className="fixed inset-0 z-50 bg-transparent">
+    <div id="native-scanner-ui" className="fixed inset-0 z-50 bg-transparent">
       {/* Cancel Button */}
       <div className="absolute top-4 right-4 z-10">
         <Button variant="ghost" size="icon" onClick={onCancel} className="text-white hover:text-white hover:bg-white/20 rounded-full h-10 w-10">
@@ -126,11 +126,14 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
           (errorMessage: string, error: Html5QrcodeError) => { /* ignore verbose scan errors */ }
         );
       } catch (err: any) {
-        const errorMessage = typeof err === 'string' ? err : err.message;
-        if (errorMessage && !errorMessage.includes('already under transition')) {
-          console.error("Web Scanner Start Error:", err);
-          onError("Could not start camera. Please check permissions.");
+        // This specific string is a non-fatal error from the library on fast re-renders.
+        // We can safely ignore it to prevent the app from crashing.
+        if (typeof err === 'string' && err.includes('Cannot transition to a new state, already under transition')) {
+            console.warn("Ignoring non-fatal scanner transition error.");
+            return;
         }
+        console.error("Web Scanner Start Error:", err);
+        onError("Could not start camera. Please check permissions.");
       }
     };
     startScanner();
@@ -140,10 +143,11 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
         try {
           html5QrCodeRef.current.stop();
         } catch (err: any) {
-          const errorMessage = typeof err === 'string' ? err : err.message;
-          if (errorMessage && !errorMessage.includes("Cannot transition to a new state, already under transition")) {
-            console.error("Error stopping web scanner:", err);
+          if (typeof err === 'string' && err.includes('Cannot transition to a new state, already under transition')) {
+            console.warn("Ignoring non-fatal scanner transition error on cleanup.");
+            return;
           }
+          console.error("Error stopping web scanner:", err);
         }
       }
     };
@@ -164,6 +168,17 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
     <div className="flex flex-col items-center gap-4 w-full">
       <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 shadow-inner">
         <div id={scannerRegionId} />
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4">
+          <div className="relative w-2/3 max-w-[250px] aspect-square">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white/50 rounded-tl-lg"></div>
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white/50 rounded-tr-lg"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white/50 rounded-bl-lg"></div>
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white/50 rounded-br-lg"></div>
+          </div>
+           <p className="mt-4 text-white/90 text-xs font-medium bg-black/40 px-2 py-1 rounded-md">
+            Place QR code here
+          </p>
+        </div>
       </div>
       <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
       <div className="relative flex items-center w-full my-1">

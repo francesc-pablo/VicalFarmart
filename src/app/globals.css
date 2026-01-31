@@ -83,10 +83,15 @@
     @apply bg-background text-foreground;
   }
   body.scanner-active {
-    background: transparent;
-    opacity: 0;
+    background: transparent !important;
+    visibility: hidden;
   }
 }
+
+#native-scanner-ui {
+  visibility: visible;
+}
+
 
 /* Custom rule for QR Scanner Video */
 #web-qr-reader,
