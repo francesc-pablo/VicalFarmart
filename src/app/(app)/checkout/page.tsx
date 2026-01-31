@@ -30,11 +30,13 @@ import { createOrder } from '@/services/orderService';
 import { getUsers, getUserById } from '@/services/userService';
 import { sendNewOrderEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { sendEmail } from '@/services/emailService';
+import { handleNativePayment } from '@/services/nativePaymentService';
 import { auth } from '@/lib/firebase';
 import type { Order, User, OrderItem, PaymentMethod as PaymentMethodType } from '@/types';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { v4 as uuidv4 } from 'uuid';
+import { Capacitor } from '@capacitor/core';
 
 
 const getCurrencyForFlutterwave = (currencyCode?: string) => {
@@ -144,6 +146,11 @@ export default function CheckoutPage() {
   const { cartItems, updateCartItemQuantity, removeFromCart, clearCart } = useCart();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isNative, setIsNative] = useState(false);
+
+  useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform());
+  }, []);
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -382,36 +389,72 @@ export default function CheckoutPage() {
         await handleCreateOrderInDB(data, 'Pending', 'Pay on Delivery');
     } else {
         setIsProcessing(true); // Set processing early for online payment
-        handleFlutterwavePayment({
-            callback: async (response) => {
-                closePaymentModal(); // Close the modal immediately
-                if (response.status === 'successful') {
-                    await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {
-                        transactionId: response.transaction_id,
-                        status: response.status,
-                        gateway: 'Flutterwave',
-                    });
-                } else {
-                    toast({
-                        title: "Payment Not Completed",
-                        description: "Your payment was not completed successfully. Please try again.",
-                        variant: "destructive"
-                    });
-                     setIsProcessing(false);
-                }
-            },
-            onClose: () => {
-                // Check if still processing. If an order was created, isProcessing would still be true.
-                // This prevents showing "Canceled" toast after a successful payment.
-                if (form.formState.isSubmitting) return;
+        
+        if (isNative) {
+            const nativeConfig = {
+                public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '',
+                tx_ref: `vicalfarmart-${uuidv4()}`,
+                amount: total,
+                currency: mainCurrency,
+                payment_options: 'card,mobilemoney,ussd',
+                redirect_url: `${window.location.origin}/payment-callback`,
+                customer: {
+                    email: data.email,
+                    phone_number: data.phone,
+                    name: data.fullName,
+                },
+                customizations: {
+                    title: 'Vical Farmart',
+                    description: 'Payment for items in cart',
+                    logo: 'https://res.cloudinary.com/ddvlexmvj/image/upload/v1751434079/VF_logo-removebg-preview_kgzusq.png',
+                },
+            };
+            const response = await handleNativePayment(nativeConfig);
 
+            if (response.status === 'successful') {
+                await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {
+                    transactionId: response.transaction_id,
+                    status: 'successful',
+                    gateway: 'Flutterwave (Native)',
+                });
+            } else {
                 toast({
-                    title: "Payment Canceled",
-                    description: "You closed the payment window.",
+                    title: response.status === 'cancelled' ? "Payment Canceled" : "Payment Not Completed",
+                    description: response.status === 'cancelled' ? "You closed the payment window." : "Your payment was not completed. Please try again.",
+                    variant: response.status === 'cancelled' ? 'default' : 'destructive',
                 });
                 setIsProcessing(false);
-            },
-        });
+            }
+        } else {
+            handleFlutterwavePayment({
+                callback: async (response) => {
+                    closePaymentModal(); // Close the modal immediately
+                    if (response.status === 'successful') {
+                        await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {
+                            transactionId: response.transaction_id,
+                            status: response.status,
+                            gateway: 'Flutterwave',
+                        });
+                    } else {
+                        toast({
+                            title: "Payment Not Completed",
+                            description: "Your payment was not completed successfully. Please try again.",
+                            variant: "destructive"
+                        });
+                         setIsProcessing(false);
+                    }
+                },
+                onClose: () => {
+                    if (form.formState.isSubmitting) return;
+
+                    toast({
+                        title: "Payment Canceled",
+                        description: "You closed the payment window.",
+                    });
+                    setIsProcessing(false);
+                },
+            });
+        }
     }
   };
   
