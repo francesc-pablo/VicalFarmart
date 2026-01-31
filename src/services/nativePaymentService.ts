@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Browser } from '@capacitor/browser';
@@ -70,7 +71,7 @@ export const handleNativePayment = (config: FlutterwaveConfig): Promise<PaymentR
         });
 
         pageLoadedListener = await Browser.addListener('browserPageLoaded', (info) => {
-            if (info.url.startsWith(config.redirect_url)) {
+            if (info && info.url && info.url.startsWith(config.redirect_url)) {
                 cleanupListeners();
                 Browser.close();
 
@@ -88,7 +89,7 @@ export const handleNativePayment = (config: FlutterwaveConfig): Promise<PaymentR
         });
 
         try {
-            await Browser.open({ url: paymentUrl, presentationStyle: 'popover' });
+            await Browser.open({ url: paymentUrl });
         } catch (error) {
             console.error("Error opening In-App Browser:", error);
             cleanupListeners();
