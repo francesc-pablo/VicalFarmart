@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -192,11 +193,13 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
 export function QrCodeScannerDialog() {
   const [mode, setMode] = useState<'closed' | 'web' | 'native'>('closed');
   const [isNativePlatform, setIsNativePlatform] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     setIsNativePlatform(Capacitor.isNativePlatform());
+    setIsClient(true);
   }, []);
 
   const handleOpenScanner = () => {
@@ -234,11 +237,12 @@ export function QrCodeScannerDialog() {
         <span className="sr-only">Scan Product QR Code</span>
       </Button>
 
-      {mode === 'native' && (
+      {isClient && mode === 'native' && createPortal(
         <NativeScanner
           onScanSuccess={handleScanResult}
           onCancel={handleClose}
-        />
+        />,
+        document.body
       )}
 
       <Dialog open={mode === 'web'} onOpenChange={(open) => !open && handleClose()}>
