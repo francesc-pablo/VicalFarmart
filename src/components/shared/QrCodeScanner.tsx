@@ -27,12 +27,17 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
 
     const startScan = async () => {
       try {
+        // Add class to body to hide web content
         document.body.classList.add('scanner-active');
+        // Check permission
         await BarcodeScanner.checkPermission({ force: true });
+        // Make webview background transparent
         await BarcodeScanner.hideBackground();
         
+        // Start scanning
         const result = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] });
 
+        // if the result has content
         if (result.hasContent && !didCancel) {
           onScanSuccess(result.content);
         }
@@ -40,11 +45,12 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
         if (!didCancel) {
             const message = (e.message || 'unknown error').toLowerCase();
             if (message.includes('cancelled')) {
+                // This is the normal flow for pressing the back button or the cancel button.
                 onCancel();
             } else if (message.includes('permission was denied')) {
                 setError('Camera permission is required. Please grant permission in your app settings and try again.');
             } else {
-                setError(`An error occurred: ${e.message}`);
+                setError(`An error occurred during scanning: ${e.message}`);
             }
         }
       }
@@ -52,6 +58,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
 
     startScan();
 
+    // Cleanup function
     return () => {
       didCancel = true;
       document.body.classList.remove('scanner-active');
@@ -60,29 +67,36 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
     };
   }, [onScanSuccess, onCancel]);
 
+  // The UI is an overlay for the native camera view
+  if (error) {
+    // Error state UI
+    return (
+       <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 p-8 text-center text-white">
+          <h3 className="text-xl font-bold text-destructive mb-2">Scanning Error</h3>
+          <p className="mb-4">{error}</p>
+          <Button onClick={onCancel} variant="secondary">Close</Button>
+       </div>
+    );
+  }
+
+  // Scanning state UI
   return (
-      <div id="native-scanner-ui">
-          {error ? (
-              <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-8 text-center text-white">
-                  <h3 className="text-xl font-bold text-destructive mb-2">Scanning Error</h3>
-                  <p className="mb-4">{error}</p>
-                  <Button onClick={onCancel} variant="secondary">Close</Button>
-              </div>
-          ) : (
-              <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-transparent text-white">
-                  <div className="relative w-64 h-64">
-                      <div className="absolute top-0 left-0 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-white/80"></div>
-                      <div className="absolute top-0 right-0 h-12 w-12 rounded-tr-lg border-t-4 border-r-4 border-white/80"></div>
-                      <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white/80"></div>
-                      <div className="absolute bottom-0 right-0 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white/80"></div>
-                  </div>
-                  <p className="mt-4 text-lg font-medium">Position the QR code inside the box</p>
-                  <div className="absolute bottom-8 w-full px-8">
-                      <Button onClick={onCancel} variant="secondary" size="lg" className="w-full">Cancel Scan</Button>
-                  </div>
-              </div>
-          )}
+    <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 text-white p-8">
+      {/* This is a visual guide, not the actual scanner area */}
+      <p className="text-lg font-medium text-center mb-4">Position the QR code inside the box</p>
+      <div className="relative w-64 h-64 rounded-lg overflow-hidden">
+        {/* Animated scanning line */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 animate-scan-line rounded-full"></div>
+        {/* Corner brackets */}
+        <div className="absolute top-0 left-0 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-white/90"></div>
+        <div className="absolute top-0 right-0 h-12 w-12 rounded-tr-lg border-t-4 border-r-4 border-white/90"></div>
+        <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white/90"></div>
+        <div className="absolute bottom-0 right-0 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white/90"></div>
       </div>
+      <div className="absolute bottom-8 w-full px-8">
+        <Button onClick={onCancel} variant="secondary" size="lg" className="w-full">Cancel Scan</Button>
+      </div>
+    </div>
   );
 };
 

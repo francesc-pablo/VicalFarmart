@@ -88,10 +88,16 @@ export default {
             height: '0',
           },
         },
+        'scan-line-animation': {
+          '0%': { transform: 'translateY(0)', opacity: '0.5' },
+          '50%': { transform: 'translateY(256px)', opacity: '1' }, // 256px = h-64
+          '100%': { transform: 'translateY(0)', opacity: '0.5' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'scan-line': 'scan-line-animation 2.5s infinite ease-in-out',
       },
     },
   },
