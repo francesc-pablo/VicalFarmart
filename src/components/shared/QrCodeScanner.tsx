@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -18,7 +17,7 @@ import { Html5Qrcode, Html5QrcodeError, Html5QrcodeResult } from 'html5-qrcode';
 import { Capacitor } from '@capacitor/core';
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner';
 
-// --- Native Scanner Component (Fullscreen Modal-like Overlay) ---
+// --- Native Scanner Component (Renders no UI, just controls the native plugin) ---
 const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: string) => void; onCancel: () => void }) => {
   const [error, setError] = useState<string | null>(null);
 
@@ -30,25 +29,27 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
         // 1. Check permission, force grant dialog if not yet determined
         await BarcodeScanner.checkPermission({ force: true });
         
-        // 2. Make WebView transparent
+        // 2. Make WebView transparent and add class to hide web content
         await BarcodeScanner.hideBackground();
         document.body.classList.add('scanner-active');
 
-        // 3. Start scanning for QR codes
+        // 3. Start scanning. The plugin provides its own UI (camera, cancel button, etc.)
         const result = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] });
 
         // 4. Handle result if we haven't cancelled
         if (result.hasContent && !didCancel) {
           onScanSuccess(result.content);
         }
+        // If the user cancels (e.g., with the native back button), the promise rejects.
       } catch (e: any) {
         console.error('Native Scanner Error:', e);
         if (!didCancel) {
-          if (e.message.toLowerCase().includes('cancelled')) {
-             // This can happen if the user presses the hardware back button
+          const message = e.message.toLowerCase();
+          if (message.includes('cancelled')) {
+             // This is a normal cancellation, e.g., user pressed the back button.
              onCancel();
-          } else if (e.message.toLowerCase().includes('permission was denied')) {
-             setError('Camera permission is required to scan QR codes. Please grant permission in your app settings.');
+          } else if (message.includes('permission was denied')) {
+             setError('Camera permission is required. Please grant permission in your app settings and try again.');
           } else {
              setError(e.message || 'An unknown error occurred during scanning.');
           }
@@ -65,10 +66,9 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
       BarcodeScanner.showBackground();
       BarcodeScanner.stopScan();
     };
-    // onScanSuccess and onCancel are wrapped in useCallback, so they are stable.
   }, [onScanSuccess, onCancel]);
 
-  // Display an error message if something went wrong (e.g., permissions)
+  // Display a full-screen error message if something went wrong
   if (error) {
     return (
       <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center text-white p-8 text-center">
@@ -79,30 +79,8 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
     );
   }
 
-  // The actual UI for the native scanner overlay
-  return (
-    <div id="native-scanner-ui" className="fixed inset-0 z-50 bg-transparent">
-      {/* Cancel Button */}
-      <div className="absolute top-4 right-4 z-10">
-        <Button variant="ghost" size="icon" onClick={onCancel} className="text-white hover:text-white hover:bg-white/20 rounded-full h-10 w-10">
-          <X className="h-6 w-6" />
-          <span className="sr-only">Cancel Scan</span>
-        </Button>
-      </div>
-      {/* Scanning Reticle and Guide Text */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4">
-        <div className="relative w-2/3 max-w-[250px] aspect-square">
-          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg shadow-lg"></div>
-          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg shadow-lg"></div>
-          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg shadow-lg"></div>
-          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg shadow-lg"></div>
-        </div>
-        <p className="mt-4 text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-md shadow-lg">
-          Scan Product QR Code
-        </p>
-      </div>
-    </div>
-  );
+  // The native plugin provides its own UI, so we render nothing from this component.
+  return null;
 };
 
 // --- Web Scanner Component (for Dialog) ---
@@ -126,8 +104,6 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
           (errorMessage: string, error: Html5QrcodeError) => { /* ignore verbose scan errors */ }
         );
       } catch (err: any) {
-        // This specific string is a non-fatal error from the library on fast re-renders.
-        // We can safely ignore it to prevent the app from crashing.
         if (typeof err === 'string' && err.includes('Cannot transition to a new state, already under transition')) {
             console.warn("Ignoring non-fatal scanner transition error.");
             return;
@@ -240,7 +216,7 @@ export function QrCodeScannerDialog() {
         <span className="sr-only">Scan Product QR Code</span>
       </Button>
 
-      {/* Render Native UI when native scanning is active */}
+      {/* Conditionally render the native scanner component, which handles its own UI/lifecycle */}
       {mode === 'native' && (
         <NativeScanner
           onScanSuccess={handleScanResult}

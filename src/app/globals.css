@@ -84,14 +84,10 @@
   }
   body.scanner-active {
     background: transparent !important;
-    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
   }
 }
-
-#native-scanner-ui {
-  visibility: visible;
-}
-
 
 /* Custom rule for QR Scanner Video */
 #web-qr-reader,
