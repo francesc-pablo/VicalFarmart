@@ -84,8 +84,12 @@
   }
   body.scanner-active {
     background: transparent !important;
-    opacity: 0;
-    pointer-events: none;
+    visibility: hidden;
+    overflow: hidden; /* Prevent scrolling/swiping gestures */
+  }
+  /* This ensures the native scanner UI, which is inside the body, remains visible */
+  #native-scanner-ui {
+    visibility: visible;
   }
 }
 

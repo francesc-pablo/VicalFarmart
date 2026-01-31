@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -10,14 +11,14 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { QrCode, Upload, X } from 'lucide-react';
+import { QrCode, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Html5Qrcode, Html5QrcodeError, Html5QrcodeResult } from 'html5-qrcode';
 import { Capacitor } from '@capacitor/core';
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner';
 
-// --- Native Scanner Component (Renders no UI, just controls the native plugin) ---
+// --- Native Scanner UI Component ---
 const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: string) => void; onCancel: () => void }) => {
   const [error, setError] = useState<string | null>(null);
 
@@ -26,40 +27,31 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
 
     const startScan = async () => {
       try {
-        // 1. Check permission, force grant dialog if not yet determined
-        await BarcodeScanner.checkPermission({ force: true });
-        
-        // 2. Make WebView transparent and add class to hide web content
-        await BarcodeScanner.hideBackground();
         document.body.classList.add('scanner-active');
-
-        // 3. Start scanning. The plugin provides its own UI (camera, cancel button, etc.)
+        await BarcodeScanner.checkPermission({ force: true });
+        await BarcodeScanner.hideBackground();
+        
         const result = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] });
 
-        // 4. Handle result if we haven't cancelled
         if (result.hasContent && !didCancel) {
           onScanSuccess(result.content);
         }
-        // If the user cancels (e.g., with the native back button), the promise rejects.
       } catch (e: any) {
-        console.error('Native Scanner Error:', e);
         if (!didCancel) {
-          const message = e.message.toLowerCase();
-          if (message.includes('cancelled')) {
-             // This is a normal cancellation, e.g., user pressed the back button.
-             onCancel();
-          } else if (message.includes('permission was denied')) {
-             setError('Camera permission is required. Please grant permission in your app settings and try again.');
-          } else {
-             setError(e.message || 'An unknown error occurred during scanning.');
-          }
+            const message = (e.message || 'unknown error').toLowerCase();
+            if (message.includes('cancelled')) {
+                onCancel();
+            } else if (message.includes('permission was denied')) {
+                setError('Camera permission is required. Please grant permission in your app settings and try again.');
+            } else {
+                setError(`An error occurred: ${e.message}`);
+            }
         }
       }
     };
 
     startScan();
 
-    // Cleanup function to be called on component unmount
     return () => {
       didCancel = true;
       document.body.classList.remove('scanner-active');
@@ -68,20 +60,32 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
     };
   }, [onScanSuccess, onCancel]);
 
-  // Display a full-screen error message if something went wrong
-  if (error) {
-    return (
-      <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center text-white p-8 text-center">
-        <h3 className="text-xl font-bold mb-2 text-destructive">Scanning Error</h3>
-        <p className="mb-4">{error}</p>
-        <Button onClick={onCancel} variant="secondary">Close</Button>
+  return (
+      <div id="native-scanner-ui">
+          {error ? (
+              <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-8 text-center text-white">
+                  <h3 className="text-xl font-bold text-destructive mb-2">Scanning Error</h3>
+                  <p className="mb-4">{error}</p>
+                  <Button onClick={onCancel} variant="secondary">Close</Button>
+              </div>
+          ) : (
+              <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-transparent text-white">
+                  <div className="relative w-64 h-64">
+                      <div className="absolute top-0 left-0 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-white/80"></div>
+                      <div className="absolute top-0 right-0 h-12 w-12 rounded-tr-lg border-t-4 border-r-4 border-white/80"></div>
+                      <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white/80"></div>
+                      <div className="absolute bottom-0 right-0 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white/80"></div>
+                  </div>
+                  <p className="mt-4 text-lg font-medium">Position the QR code inside the box</p>
+                  <div className="absolute bottom-8 w-full px-8">
+                      <Button onClick={onCancel} variant="secondary" size="lg" className="w-full">Cancel Scan</Button>
+                  </div>
+              </div>
+          )}
       </div>
-    );
-  }
-
-  // The native plugin provides its own UI, so we render nothing from this component.
-  return null;
+  );
 };
+
 
 // --- Web Scanner Component (for Dialog) ---
 const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string) => void; onError: (message: string) => void }) => {
@@ -185,9 +189,9 @@ export function QrCodeScannerDialog() {
     setMode(isNativePlatform ? 'native' : 'web');
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setMode('closed');
-  };
+  }, []);
 
   const handleScanResult = useCallback((result: string) => {
     setMode('closed');
@@ -202,7 +206,7 @@ export function QrCodeScannerDialog() {
       } else {
         toast({ title: "Invalid QR Code", description: "This QR code does not appear to be a valid Vical Farmart product link.", variant: "destructive" });
       }
-    }, 150); // Small delay to allow UI to close smoothly
+    }, 150);
   }, [router, toast]);
   
   const onWebScanError = useCallback((message: string) => {
@@ -216,7 +220,6 @@ export function QrCodeScannerDialog() {
         <span className="sr-only">Scan Product QR Code</span>
       </Button>
 
-      {/* Conditionally render the native scanner component, which handles its own UI/lifecycle */}
       {mode === 'native' && (
         <NativeScanner
           onScanSuccess={handleScanResult}
@@ -224,7 +227,6 @@ export function QrCodeScannerDialog() {
         />
       )}
 
-      {/* Render Web Dialog UI when web dialog is open */}
       <Dialog open={mode === 'web'} onOpenChange={(open) => !open && handleClose()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
