@@ -391,13 +391,10 @@ export default function CheckoutPage() {
         setIsProcessing(true); // Set processing early for online payment
         
         if (isNative) {
-            const nativeConfig = {
-                public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '',
-                tx_ref: `vicalfarmart-${uuidv4()}`,
+            const paymentDetails = {
                 amount: total,
                 currency: mainCurrency,
-                payment_options: 'card,mobilemoney,ussd',
-                redirect_url: `${window.location.origin}/payment-callback`,
+                tx_ref: `vicalfarmart-${uuidv4()}`,
                 customer: {
                     email: data.email,
                     phone_number: data.phone,
@@ -409,7 +406,8 @@ export default function CheckoutPage() {
                     logo: 'https://res.cloudinary.com/ddvlexmvj/image/upload/v1751434079/VF_logo-removebg-preview_kgzusq.png',
                 },
             };
-            const response = await handleNativePayment(nativeConfig);
+
+            const response = await handleNativePayment(paymentDetails);
 
             if (response.status === 'successful') {
                 await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {

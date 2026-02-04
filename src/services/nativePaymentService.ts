@@ -5,13 +5,10 @@ import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import type { PluginListenerHandle } from '@capacitor/core';
 
-interface FlutterwaveConfig {
-    public_key: string;
+export interface PaymentInitiationDetails {
     tx_ref: string;
     amount: number;
     currency: string;
-    payment_options: string;
-    redirect_url: string; // Important for native flow
     customer: {
         email: string;
         phone_number: string;
@@ -24,38 +21,42 @@ interface FlutterwaveConfig {
     };
 }
 
-// Define the shape of the successful response
 interface PaymentResponse {
     status: 'successful' | 'cancelled' | 'failed';
     transaction_id?: string;
     tx_ref?: string;
 }
 
-export const handleNativePayment = (config: FlutterwaveConfig): Promise<PaymentResponse> => {
+export const handleNativePayment = (details: PaymentInitiationDetails): Promise<PaymentResponse> => {
     return new Promise(async (resolve) => {
         if (!Capacitor.isNativePlatform()) {
-             resolve({ status: 'failed' }); // Should not be called on web
+             resolve({ status: 'failed' });
              return;
         }
 
-        const baseUrl = "https://checkout.flutterwave.com/v3/hosted/pay";
-        // Create URLSearchParams from the config object
-        const params = new URLSearchParams({
-            public_key: config.public_key,
-            tx_ref: config.tx_ref,
-            amount: String(config.amount),
-            currency: config.currency,
-            payment_options: config.payment_options,
-            redirect_url: config.redirect_url, // This is key
-            'customer[email]': config.customer.email,
-            'customer[name]': config.customer.name,
-            'customer[phone_number]': config.customer.phone_number,
-            'customizations[title]': config.customizations.title,
-            'customizations[description]': config.customizations.description,
-            'customizations[logo]': config.customizations.logo,
-        });
+        const redirect_url = `${window.location.origin}/payment-callback`;
+        
+        let paymentLink = '';
 
-        const paymentUrl = `${baseUrl}?${params.toString()}`;
+        try {
+            // 1. Call your backend to get the payment link
+            const response = await fetch('/api/payments/initiate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...details, redirect_url }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data.success || !data.paymentLink) {
+                throw new Error(data.message || 'Failed to initiate payment.');
+            }
+            paymentLink = data.paymentLink;
+
+        } catch (error) {
+            console.error("Error initiating payment:", error);
+            resolve({ status: 'failed' });
+            return;
+        }
 
         let pageLoadedListener: PluginListenerHandle | null = null;
         let browserFinishedListener: PluginListenerHandle | null = null;
@@ -71,7 +72,7 @@ export const handleNativePayment = (config: FlutterwaveConfig): Promise<PaymentR
         });
 
         pageLoadedListener = await Browser.addListener('browserPageLoaded', (info) => {
-            if (info && info.url && info.url.startsWith(config.redirect_url)) {
+            if (info && info.url && info.url.startsWith(redirect_url)) {
                 cleanupListeners();
                 Browser.close();
 
@@ -89,7 +90,8 @@ export const handleNativePayment = (config: FlutterwaveConfig): Promise<PaymentR
         });
 
         try {
-            await Browser.open({ url: paymentUrl });
+            // 2. Open the official link from your backend
+            await Browser.open({ url: paymentLink });
         } catch (error) {
             console.error("Error opening In-App Browser:", error);
             cleanupListeners();
