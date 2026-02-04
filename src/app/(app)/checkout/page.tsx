@@ -407,19 +407,28 @@ export default function CheckoutPage() {
                 },
             };
 
-            const response = await handleNativePayment(paymentDetails);
+            try {
+              const response = await handleNativePayment(paymentDetails);
 
-            if (response.status === 'successful') {
-                await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {
-                    transactionId: response.transaction_id,
-                    status: 'successful',
-                    gateway: 'Flutterwave (Native)',
-                });
-            } else {
+              if (response.status === 'successful') {
+                  await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {
+                      transactionId: response.transaction_id,
+                      status: 'successful',
+                      gateway: 'Flutterwave (Native)',
+                  });
+              } else {
+                  toast({
+                      title: response.status === 'cancelled' ? "Payment Canceled" : "Payment Not Completed",
+                      description: response.status === 'cancelled' ? "You closed the payment window." : "Your payment was not completed. Please try again.",
+                      variant: response.status === 'cancelled' ? 'default' : 'destructive',
+                  });
+                  setIsProcessing(false);
+              }
+            } catch (error: any) {
                 toast({
-                    title: response.status === 'cancelled' ? "Payment Canceled" : "Payment Not Completed",
-                    description: response.status === 'cancelled' ? "You closed the payment window." : "Your payment was not completed. Please try again.",
-                    variant: response.status === 'cancelled' ? 'default' : 'destructive',
+                    title: "Payment Error",
+                    description: error.message || "Could not connect to the payment provider.",
+                    variant: "destructive",
                 });
                 setIsProcessing(false);
             }
