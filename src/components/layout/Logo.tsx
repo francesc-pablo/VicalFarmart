@@ -11,7 +11,7 @@ export function Logo({ className }: { className?: string }) {
         height={32}
         className="h-8 w-8"
       />
-      <span className="font-headline text-base sm:text-lg">Vical Farmart</span>
+      <span className="hidden sm:inline font-headline text-lg">Vical Farmart</span>
     </Link>
   );
 }
