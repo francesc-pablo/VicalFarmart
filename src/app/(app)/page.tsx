@@ -141,11 +141,11 @@ export default function HomePage() {
         <div className="container mx-auto px-4 sm:px-12">
           <h2 className="text-3xl font-bold font-headline text-center mb-10 text-foreground">Featured Products</h2>
           {isLoading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
               {Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)}
             </div>
           ) : featuredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
               {featuredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
