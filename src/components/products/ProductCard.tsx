@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from 'next/image';
@@ -40,36 +39,35 @@ export function ProductCard({ product }: ProductCardProps) {
             alt={product.name}
             width={400}
             height={300}
-            className="w-full h-56 object-cover"
+            className="w-full h-40 object-cover"
             data-ai-hint={imageHint}
           />
         </CardHeader>
       </Link>
-      <CardContent className="p-4 flex-grow">
-        <Badge variant="secondary" className="mb-2">{product.category}</Badge>
-        <Link href={`/market/${product.id}`} className="block">
-          <CardTitle className="text-xl font-semibold hover:text-primary transition-colors line-clamp-2">{product.name}</CardTitle>
+      <CardContent className="p-3 flex-grow flex flex-col space-y-1">
+        <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-auto w-fit">{product.category}</Badge>
+        <Link href={`/market/${product.id}`} className="block flex-grow">
+          <CardTitle className="text-base font-semibold hover:text-primary transition-colors line-clamp-2">{product.name}</CardTitle>
         </Link>
-        <CardDescription className="mt-1 text-sm line-clamp-3 h-[3.75rem]">{product.description}</CardDescription>
-        
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-2xl font-bold text-primary">{currencySymbol}{product.price.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">{product.currency}</span></p>
+        <div className="pt-1 flex items-center justify-between">
+          <p className="text-lg font-bold text-primary">{currencySymbol}{product.price.toFixed(2)}</p>
           <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-            <span className="text-sm text-muted-foreground">4.5 (20)</span> {/* Mock rating */}
+            <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
+            <span className="text-xs text-muted-foreground">4.5</span>
           </div>
         </div>
-        {product.sellerName && <p className="text-xs text-muted-foreground mt-1">Sold by: {product.sellerName}</p>}
+        {product.sellerName && <p className="text-[10px] text-muted-foreground truncate">Sold by: {product.sellerName}</p>}
       </CardContent>
-      <CardFooter className="p-4 border-t flex items-center gap-2">
-        <Button asChild className="w-full shadow-md">
+      <CardFooter className="p-2 border-t flex items-center gap-2">
+        <Button asChild className="w-full shadow-md" size="sm">
           <Link href={`/market/${product.id}`}>
-            View Product
+            View
           </Link>
         </Button>
         <Button 
           variant="outline" 
-          size="icon" 
+          size="sm"
+          className="px-2"
           onClick={handleAddToCart} 
           disabled={product.stock === 0}
           aria-label="Add to cart"
