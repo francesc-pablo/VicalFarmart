@@ -1,7 +1,9 @@
 
+
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, initializeAuth, indexedDBLocalPersistence, Auth } from "firebase/auth";
+import { Capacitor } from '@capacitor/core';
 
 // =================================================================
 // IMPORTANT: This configuration is now loaded from environment variables.
@@ -39,7 +41,30 @@ if (firebaseConfig.apiKey) {
     };
 }
 
+let auth: Auth;
+
+if (app.name !== 'dummy') {
+  // Check if running on a native platform using Capacitor
+  if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+    // For native platforms, initialize auth with indexedDB persistence to avoid session issues in webviews.
+    // We try/catch because initializeAuth throws if called more than once on the same app instance.
+    try {
+      auth = initializeAuth(app, {
+        persistence: indexedDBLocalPersistence
+      });
+    } catch (e) {
+      // If it's already initialized (e.g. during HMR), just get the instance.
+      auth = getAuth(app);
+    }
+  } else {
+    // For web, use the standard getAuth which uses browserLocalPersistence by default.
+    auth = getAuth(app);
+  }
+} else {
+  auth = {} as any;
+}
+
+
 const db = app.name !== 'dummy' ? getFirestore(app) : ({} as any);
-const auth = app.name !== 'dummy' ? getAuth(app) : ({} as any);
 
 export { db, auth };
