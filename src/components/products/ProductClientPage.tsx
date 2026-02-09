@@ -169,7 +169,7 @@ export default function ProductClientPage() {
       {relatedProducts.length > 0 && (
         <section className="mt-16 pt-8 border-t">
           <h2 className="text-2xl font-semibold mb-6 font-headline">Related Products</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
             {relatedProducts.map(relProduct => {
               const relatedImageHint = relProduct.category.split(/[&\s]+/g).slice(0, 2).join(" ");
               const relCurrencySymbol = getCurrencySymbol(relProduct.currency);
