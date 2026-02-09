@@ -7,9 +7,9 @@ export function Logo({ className }: { className?: string }) {
       <Image 
         src="https://res.cloudinary.com/ddvlexmvj/image/upload/v1751434079/VF_logo-removebg-preview_kgzusq.png" 
         alt="Vical Farmart Logo"
-        width={32}
-        height={32}
-        className="h-8 w-8"
+        width={40}
+        height={40}
+        className="h-10 w-10 sm:h-8 sm:w-8"
       />
       <span className="hidden sm:inline font-headline text-lg">Vical Farmart</span>
     </Link>
