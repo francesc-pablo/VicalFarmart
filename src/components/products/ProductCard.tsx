@@ -39,7 +39,7 @@ export function ProductCard({ product }: ProductCardProps) {
             alt={product.name}
             width={400}
             height={300}
-            className="w-full h-40 object-cover"
+            className="w-full h-32 sm:h-40 object-cover"
             data-ai-hint={imageHint}
           />
         </CardHeader>
