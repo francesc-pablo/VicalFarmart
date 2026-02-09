@@ -68,18 +68,18 @@ export default function HomePage() {
   return (
     <div className="flex flex-col">
       <section className="relative w-full pb-8 md:pb-12 overflow-hidden bg-background">
-        <div className="container mx-auto sm:px-12 flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-full md:w-64 md:shrink-0 border-r border-border/70 pr-0 md:pr-6 pt-2">
+        <div className="container mx-auto px-2 sm:px-6 md:px-12 flex flex-col md:flex-row gap-8 items-start">
+          <div className="w-full md:w-64 md:shrink-0 md:border-r border-border/70 pr-0 md:pr-6 pt-2">
             <h2 className="text-lg font-semibold mb-3 text-left">Browse Categories</h2>
-            <div className="space-y-1.5">
+            <div className="grid grid-cols-3 gap-2 md:block md:space-y-1.5">
               {categoryDisplayData.map((category) => (
                 <Link key={category.name} href={`/market?category=${encodeURIComponent(category.name)}`} passHref>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start text-base font-normal text-muted-foreground hover:text-primary hover:bg-primary/10 focus-visible:text-primary border border-primary py-4"
+                    className="w-full h-auto md:h-auto flex flex-col md:flex-row items-center justify-center md:justify-start text-center md:text-left p-2 md:py-4 text-xs md:text-base font-normal text-muted-foreground hover:text-primary hover:bg-primary/10 focus-visible:text-primary border border-primary"
                   >
-                    <category.IconComponent className={`w-6 h-6 mr-2.5 shrink-0 ${category.color} transition-colors`} />
-                    {category.name}
+                    <category.IconComponent className={`w-5 h-5 md:w-6 md:h-6 mb-1 md:mb-0 md:mr-2.5 shrink-0 ${category.color} transition-colors`} />
+                    <span className="leading-tight">{category.name}</span>
                   </Button>
                 </Link>
               ))}
@@ -137,7 +137,7 @@ export default function HomePage() {
       </section>
 
       <section className="py-12 md:py-16 w-full bg-background">
-        <div className="container mx-auto sm:px-12">
+        <div className="container mx-auto px-2 sm:px-6 md:px-12">
           <h2 className="text-3xl font-bold font-headline text-center mb-10 text-foreground">Featured Products</h2>
           {isLoading ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
