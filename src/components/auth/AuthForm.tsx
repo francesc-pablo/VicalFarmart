@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,12 +27,14 @@ import {
   FirebaseError,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   fetchSignInMethodsForEmail
 } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -106,89 +108,129 @@ export function AuthForm({ type }: AuthFormProps) {
     }
   }, [watchedRegion, form]);
 
+  /**
+   * Shared logic to process a user after a successful Google Sign-In (Popup or Redirect)
+   */
+  const processUserSignIn = useCallback(async (user: any) => {
+    const userDocRef = doc(db, "users", user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    let userRole: UserRole = 'customer';
+
+    if (userDocSnap.exists()) {
+      const userData = userDocSnap.data() as User;
+      if (!userData.isActive) {
+        toast({
+          title: "Login Failed",
+          description: "Your account has been deactivated. Please contact an administrator.",
+          variant: "destructive",
+        });
+        await signOut(auth);
+        return;
+      }
+      userRole = userData.role;
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+    } else {
+      await setDoc(userDocRef, {
+        id: user.uid,
+        name: user.displayName || 'Google User',
+        email: user.email!,
+        phone: user.phoneNumber || "",
+        address: "",
+        region: "",
+        town: "",
+        role: 'customer',
+        isActive: true,
+        createdAt: serverTimestamp(),
+        failedLoginAttempts: 0,
+        lockoutUntil: null,
+        businessName: "",
+        businessOwnerName: "",
+        businessAddress: "",
+        contactNumber: "",
+        businessLocationRegion: "",
+        businessLocationTown: "",
+        geoCoordinatesLat: "",
+        geoCoordinatesLng: "",
+        businessType: "",
+      });
+      
+      try {
+        await sendWelcomeEmail({ name: user.displayName || 'Google User', email: user.email! });
+      } catch (emailError) {
+        console.warn("Welcome email failed to send for Google user:", emailError);
+      }
+
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created via Google.",
+      });
+    }
+    
+    // Redirect based on role
+    if (userRole === 'admin') {
+      router.push("/admin/dashboard");
+    } else if (userRole === 'seller') {
+      router.push("/seller/dashboard");
+    } else if (userRole === 'courier') {
+      router.push("/courier/dashboard");
+    } else if (userRole === 'supervisor') {
+      router.push("/supervisor/dashboard");
+    } else {
+      router.push("/market");
+    }
+  }, [router, toast]);
+
+  // Handle catching the redirect result on mount (Native platforms)
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          await processUserSignIn(result.user);
+        }
+      } catch (error: any) {
+        console.error("Google Redirect Result Error: ", error);
+        // Don't show "missing initial state" as a major error if we just loaded the page
+        if (error.code !== 'auth/redirect-cancelled-by-user') {
+           // We can log or handle specifically if needed
+        }
+      }
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      checkRedirect();
+    }
+  }, [processUserSignIn]);
+
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
+    // Add custom scopes if needed
+    // provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      let userRole: UserRole = 'customer';
-
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data() as User;
-        if (!userData.isActive) {
-          toast({
-            title: "Login Failed",
-            description: "Your account has been deactivated. Please contact an administrator.",
-            variant: "destructive",
-          });
-          await signOut(auth);
-          return;
-        }
-        userRole = userData.role;
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-        });
+      if (Capacitor.isNativePlatform()) {
+        // Use Redirect flow for Capacitor to avoid popup blockers and storage partitioning issues
+        await signInWithRedirect(auth, provider);
       } else {
-        await setDoc(userDocRef, {
-          id: user.uid,
-          name: user.displayName || 'Google User',
-          email: user.email!,
-          phone: user.phoneNumber || "",
-          address: "",
-          region: "",
-          town: "",
-          role: 'customer',
-          isActive: true,
-          createdAt: serverTimestamp(),
-          failedLoginAttempts: 0,
-          lockoutUntil: null,
-          businessName: "",
-          businessOwnerName: "",
-          businessAddress: "",
-          contactNumber: "",
-          businessLocationRegion: "",
-          businessLocationTown: "",
-          geoCoordinatesLat: "",
-          geoCoordinatesLng: "",
-          businessType: "",
-        });
-        
-        try {
-          await sendWelcomeEmail({ name: user.displayName || 'Google User', email: user.email! });
-        } catch (emailError) {
-          console.warn("Welcome email failed to send for Google user:", emailError);
-        }
-
-        toast({
-          title: "Registration Successful",
-          description: "Your account has been created via Google.",
-        });
+        // Use Popup for standard web
+        const result = await signInWithPopup(auth, provider);
+        await processUserSignIn(result.user);
       }
-      
-      if (userRole === 'admin') {
-        router.push("/admin/dashboard");
-      } else if (userRole === 'seller') {
-        router.push("/seller/dashboard");
-      } else if (userRole === 'courier') {
-        router.push("/courier/dashboard");
-      } else if (userRole === 'supervisor') {
-        router.push("/supervisor/dashboard");
-      } else {
-        router.push("/market");
-      }
-
     } catch (error) {
       console.error("Google Sign-In Error: ", error);
       const firebaseError = error as FirebaseError;
       let message = "An error occurred with Google Sign-In. Please try again.";
+      
       if (firebaseError.code === 'auth/popup-closed-by-user') {
         message = 'The sign-in popup was closed before completing. Please try again.';
+      } else if (firebaseError.code === 'auth/internal-error') {
+        message = 'A network error occurred. Please check your connection.';
       }
+      
       toast({
         title: "Google Sign-In Failed",
         description: message,
@@ -236,7 +278,7 @@ export function AuthForm({ type }: AuthFormProps) {
         }
 
         try {
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          await signInWithEmailAndPassword(auth, email, password);
           if (userData.failedLoginAttempts && userData.failedLoginAttempts > 0) {
             await updateDoc(userDocRef, { failedLoginAttempts: 0, lockoutUntil: null });
           }
