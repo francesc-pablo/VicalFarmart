@@ -1,5 +1,3 @@
-
-
 import type { LucideIcon } from 'lucide-react';
 import { LayoutDashboard, ShoppingBasket, ClipboardList, Users, Settings, Package, DollarSign, ShieldCheck, UserCog, Shell, Truck, Briefcase } from 'lucide-react';
 
@@ -45,7 +43,7 @@ export const COURIER_DASHBOARD_NAV_ITEMS: NavItem[] = [
 
 
 export const PRODUCT_CATEGORIES = [
-  "Fruits", "Vegetables", "Grains", "Dairy", "Tubers", "Poultry", "Herbs & Spices", "Meat & Fish", "Groceries & Provisions", "Other"
+  "Fruits", "Vegetables", "Grains", "Dairy", "Tubers", "Poultry", "Herbs & Spices", "Meat & Fish", "Groceries", "Other"
 ];
 
 export const PRODUCT_REGIONS = [

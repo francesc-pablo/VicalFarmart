@@ -30,14 +30,14 @@ const categoryDisplayData = [
   { name: "Poultry", IconComponent: Bird, imageHint: "poultry chicken", color: "text-yellow-500" },
   { name: "Meat & Fish", IconComponent: Fish, imageHint: "meat fish", color: "text-red-500" },
   { name: "Herbs & Spices", IconComponent: Sprout, imageHint: "herbs spices", color: "text-lime-600" },
-  { name: "Groceries & Provisions", IconComponent: Archive, imageHint: "groceries provisions", color: "text-purple-500" },
+  { name: "Groceries", IconComponent: Archive, imageHint: "groceries provisions", color: "text-purple-500" },
   { name: "Other", IconComponent: MoreHorizontal, imageHint: "assorted goods", color: "text-slate-500" },
 ];
 
 const carouselImages = [
   { src: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmcmVzaCUyMGZydWl0c3xlbnwwfHx8fDE3NDk4NjAzOTN8MA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Artisan bread and grains", dataAiHint: "fresh fruits" },
   { src: "https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxncm9jZXJpZXN8ZW58MHx8fHwxNzQ5ODYxNzAxfDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Fresh vegetables at a market stall", dataAiHint: "groceries market" },
-  { src: "https://images.unsplash.com/photo-1592924802543-809bfeee53fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmcmVzaCUyMHZlZ2V0YWJsZXN8ZW58MHx8fHwxNzQ5ODYwNjg4fDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Colorful fruits display", dataAiHint: "fresh vegetables" },
+  { src: "https://images.unsplash.com/photo-1592924802543-809bfeee53fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxmcmVzaCUyMHZlZ2V0YWJsZXN8ZW58MHx8fHwxNzQ5ODYwNjg4fDA&ixlib=rb-4.1.0&q=80&w=1080", alt: "Colorful fruits display", dataAiHint: "fresh vegetables" },
 ];
 
 
