@@ -1,19 +1,12 @@
-
-
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth, initializeAuth, indexedDBLocalPersistence, Auth } from "firebase/auth";
+import { getAuth, initializeAuth, indexedDBLocalPersistence, Auth, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
 import { Capacitor } from '@capacitor/core';
 
 // =================================================================
 // IMPORTANT: This configuration is now loaded from environment variables.
 // Create a `.env.local` file in the root of your project and add your
 // Firebase project's configuration there.
-//
-// See `.env.local.example` for a template.
-//
-// For more information, visit:
-// https://firebase.google.com/docs/web/setup#available-libraries
 // =================================================================
 
 const firebaseConfig = {
@@ -27,43 +20,43 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-// This check prevents re-initializing the app on every hot-reload in development.
 let app;
 if (firebaseConfig.apiKey) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 } else {
     console.warn("Firebase configuration is missing. Firebase services will not be available.");
-    // Create a dummy app object to avoid crashing the app if firebaseConfig is not available
     app = {
       name: "dummy",
       options: {},
       automaticDataCollectionEnabled: false,
-    };
+    } as any;
 }
 
 let auth: Auth;
 
 if (app.name !== 'dummy') {
-  // Check if running on a native platform using Capacitor
-  if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
-    // For native platforms, initialize auth with indexedDB persistence to avoid session issues in webviews.
-    // We try/catch because initializeAuth throws if called more than once on the same app instance.
-    try {
-      auth = initializeAuth(app, {
-        persistence: indexedDBLocalPersistence
-      });
-    } catch (e) {
-      // If it's already initialized (e.g. during HMR), just get the instance.
+  if (typeof window !== 'undefined') {
+    if (Capacitor.isNativePlatform()) {
+      // Use IndexedDB for native platforms to persist auth state between app reloads/webview resets
+      try {
+        auth = initializeAuth(app, {
+          persistence: indexedDBLocalPersistence
+        });
+      } catch (e) {
+        // If already initialized (common during development HMR), get the existing instance
+        auth = getAuth(app);
+      }
+    } else {
+      // Standard web behavior
       auth = getAuth(app);
     }
   } else {
-    // For web, use the standard getAuth which uses browserLocalPersistence by default.
+    // Server-side
     auth = getAuth(app);
   }
 } else {
   auth = {} as any;
 }
-
 
 const db = app.name !== 'dummy' ? getFirestore(app) : ({} as any);
 

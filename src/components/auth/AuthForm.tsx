@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,7 +33,7 @@ import {
 } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Select,
   SelectContent,
@@ -81,6 +80,7 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export function AuthForm({ type }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
+  const hasCheckedRedirect = useRef(false);
 
   const isLogin = type === "login";
   const formSchema = isLogin ? loginSchema : registerSchema;
@@ -108,112 +108,114 @@ export function AuthForm({ type }: AuthFormProps) {
     }
   }, [watchedRegion, form]);
 
-  /**
-   * Shared logic to process a user after a successful Google Sign-In (Popup or Redirect)
-   */
   const processUserSignIn = useCallback(async (user: any) => {
-    const userDocRef = doc(db, "users", user.uid);
-    const userDocSnap = await getDoc(userDocRef);
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-    let userRole: UserRole = 'customer';
+      let userRole: UserRole = 'customer';
 
-    if (userDocSnap.exists()) {
-      const userData = userDocSnap.data() as User;
-      if (!userData.isActive) {
-        toast({
-          title: "Login Failed",
-          description: "Your account has been deactivated. Please contact an administrator.",
-          variant: "destructive",
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data() as User;
+        if (!userData.isActive) {
+          toast({
+            title: "Login Failed",
+            description: "Your account has been deactivated. Please contact an administrator.",
+            variant: "destructive",
+          });
+          await signOut(auth);
+          return;
+        }
+        userRole = userData.role;
+        toast({ title: "Login Successful", description: "Welcome back!" });
+      } else {
+        // Create new user profile
+        await setDoc(userDocRef, {
+          id: user.uid,
+          name: user.displayName || 'Google User',
+          email: user.email!,
+          phone: user.phoneNumber || "",
+          address: "",
+          region: "",
+          town: "",
+          role: 'customer',
+          isActive: true,
+          createdAt: serverTimestamp(),
+          failedLoginAttempts: 0,
+          lockoutUntil: null,
+          businessName: "",
+          businessOwnerName: "",
+          businessAddress: "",
+          contactNumber: "",
+          businessLocationRegion: "",
+          businessLocationTown: "",
+          geoCoordinatesLat: "",
+          geoCoordinatesLng: "",
+          businessType: "",
         });
-        await signOut(auth);
-        return;
-      }
-      userRole = userData.role;
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-    } else {
-      await setDoc(userDocRef, {
-        id: user.uid,
-        name: user.displayName || 'Google User',
-        email: user.email!,
-        phone: user.phoneNumber || "",
-        address: "",
-        region: "",
-        town: "",
-        role: 'customer',
-        isActive: true,
-        createdAt: serverTimestamp(),
-        failedLoginAttempts: 0,
-        lockoutUntil: null,
-        businessName: "",
-        businessOwnerName: "",
-        businessAddress: "",
-        contactNumber: "",
-        businessLocationRegion: "",
-        businessLocationTown: "",
-        geoCoordinatesLat: "",
-        geoCoordinatesLng: "",
-        businessType: "",
-      });
-      
-      try {
-        await sendWelcomeEmail({ name: user.displayName || 'Google User', email: user.email! });
-      } catch (emailError) {
-        console.warn("Welcome email failed to send for Google user:", emailError);
-      }
+        
+        try {
+          await sendWelcomeEmail({ name: user.displayName || 'Google User', email: user.email! });
+        } catch (e) {
+          console.warn("Welcome email failed", e);
+        }
 
+        toast({ title: "Registration Successful", description: "Your account has been created via Google." });
+      }
+      
+      // Redirect based on role
+      const dashboardMap: Record<string, string> = {
+        'admin': '/admin/dashboard',
+        'seller': '/seller/dashboard',
+        'courier': '/courier/dashboard',
+        'supervisor': '/supervisor/dashboard',
+        'customer': '/market'
+      };
+      router.push(dashboardMap[userRole] || '/market');
+    } catch (error) {
+      console.error("Error processing user sign in:", error);
       toast({
-        title: "Registration Successful",
-        description: "Your account has been created via Google.",
+        title: "Sign-In Error",
+        description: "Successfully authenticated with Google, but failed to load your profile.",
+        variant: "destructive",
       });
-    }
-    
-    // Redirect based on role
-    if (userRole === 'admin') {
-      router.push("/admin/dashboard");
-    } else if (userRole === 'seller') {
-      router.push("/seller/dashboard");
-    } else if (userRole === 'courier') {
-      router.push("/courier/dashboard");
-    } else if (userRole === 'supervisor') {
-      router.push("/supervisor/dashboard");
-    } else {
-      router.push("/market");
     }
   }, [router, toast]);
 
-  // Handle catching the redirect result on mount (Native platforms)
+  // Handle catching the redirect result on mount
   useEffect(() => {
+    if (hasCheckedRedirect.current) return;
+    
     const checkRedirect = async () => {
       try {
         const result = await getRedirectResult(auth);
         if (result && result.user) {
+          hasCheckedRedirect.current = true;
           await processUserSignIn(result.user);
         }
       } catch (error: any) {
         console.error("Google Redirect Result Error: ", error);
-        // Don't show "missing initial state" as a major error if we just loaded the page
+        // Common errors in Capacitor: auth/missing-initial-state
         if (error.code !== 'auth/redirect-cancelled-by-user') {
-           // We can log or handle specifically if needed
+           toast({
+             title: "Login Interrupted",
+             description: "We couldn't finish your Google sign-in. Please try again or use your email.",
+             variant: "destructive"
+           });
         }
       }
     };
 
-    if (Capacitor.isNativePlatform()) {
-      checkRedirect();
-    }
-  }, [processUserSignIn]);
+    checkRedirect();
+  }, [processUserSignIn, toast]);
 
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
-    // Add custom scopes if needed
-    // provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+    provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
       if (Capacitor.isNativePlatform()) {
-        // Use Redirect flow for Capacitor to avoid popup blockers and storage partitioning issues
+        // Use Redirect flow for Capacitor
         await signInWithRedirect(auth, provider);
       } else {
         // Use Popup for standard web
@@ -221,14 +223,16 @@ export function AuthForm({ type }: AuthFormProps) {
         await processUserSignIn(result.user);
       }
     } catch (error) {
-      console.error("Google Sign-In Error: ", error);
+      console.error("Google Sign-In Initiation Error: ", error);
       const firebaseError = error as FirebaseError;
-      let message = "An error occurred with Google Sign-In. Please try again.";
       
+      let message = "An error occurred with Google Sign-In. Please try again.";
       if (firebaseError.code === 'auth/popup-closed-by-user') {
-        message = 'The sign-in popup was closed before completing. Please try again.';
+        message = 'The sign-in window was closed.';
       } else if (firebaseError.code === 'auth/internal-error') {
         message = 'A network error occurred. Please check your connection.';
+      } else if (firebaseError.code === 'auth/operation-not-supported-in-this-environment') {
+        message = 'This browser does not support Google Sign-In in this way.';
       }
       
       toast({
@@ -242,7 +246,6 @@ export function AuthForm({ type }: AuthFormProps) {
 
   async function onSubmit(values: LoginFormValues | RegisterFormValues) {
     if (isLogin) {
-      // Handle Login
       const { email, password } = values as LoginFormValues;
       try {
         const usersRef = collection(db, "users");
@@ -259,21 +262,13 @@ export function AuthForm({ type }: AuthFormProps) {
         const userDocRef = userDoc.ref;
 
         if (!userData.isActive) {
-          toast({
-            title: "Login Failed",
-            description: "Your account has been deactivated. Please contact an administrator.",
-            variant: "destructive",
-          });
+          toast({ title: "Login Failed", description: "Your account has been deactivated.", variant: "destructive" });
           return;
         }
         
         if (userData.lockoutUntil && userData.lockoutUntil > Date.now()) {
           const remainingMinutes = Math.ceil((userData.lockoutUntil - Date.now()) / 60000);
-          toast({
-            title: "Account Locked",
-            description: `Too many failed login attempts. Please try again in ${remainingMinutes} minutes.`,
-            variant: "destructive",
-          });
+          toast({ title: "Account Locked", description: `Try again in ${remainingMinutes} minutes.`, variant: "destructive" });
           return;
         }
 
@@ -284,63 +279,45 @@ export function AuthForm({ type }: AuthFormProps) {
           }
           
           toast({ title: "Login Successful", description: "Welcome back!" });
-          if (userData.role === "admin") {
-              router.push("/admin/dashboard");
-          } else if (userData.role === "supervisor") {
-              router.push("/supervisor/dashboard");
-          } else if (userData.role === "seller") {
-              router.push("/seller/dashboard");
-          } else if (userData.role === 'courier') {
-              router.push("/courier/dashboard");
-          } else {
-              router.push("/market");
-          }
+          const dashboardMap: Record<string, string> = {
+            'admin': '/admin/dashboard',
+            'seller': '/seller/dashboard',
+            'courier': '/courier/dashboard',
+            'supervisor': '/supervisor/dashboard',
+            'customer': '/market'
+          };
+          router.push(dashboardMap[userData.role] || '/market');
         } catch (authError) {
           const failedAttempts = (userData.failedLoginAttempts || 0) + 1;
           let newLockoutUntil: number | null = userData.lockoutUntil || null;
           let lockoutMessage = "";
 
           if (failedAttempts >= 12) {
-            newLockoutUntil = Date.now() + 2 * 60 * 60 * 1000; // 2 hours
-            lockoutMessage = "Your account has been locked for 2 hours due to too many failed login attempts.";
+            newLockoutUntil = Date.now() + 2 * 60 * 60 * 1000;
+            lockoutMessage = "Account locked for 2 hours.";
           } else if (failedAttempts >= 6) {
-            newLockoutUntil = Date.now() + 30 * 60 * 1000; // 30 minutes
-            lockoutMessage = "Your account has been locked for 30 minutes due to too many failed login attempts.";
+            newLockoutUntil = Date.now() + 30 * 60 * 1000;
+            lockoutMessage = "Account locked for 30 minutes.";
           }
           
           await updateDoc(userDocRef, { failedLoginAttempts: failedAttempts, lockoutUntil: newLockoutUntil });
-
-          if (lockoutMessage) {
-            toast({ title: "Account Locked", description: lockoutMessage, variant: "destructive" });
-          } else {
-            toast({ title: "Login Failed", description: "The password you entered is incorrect. Please try again.", variant: "destructive" });
-          }
+          toast({ title: "Login Failed", description: lockoutMessage || "Incorrect password.", variant: "destructive" });
         }
       } catch (error) {
-        console.error("Login process error: ", error);
         toast({ title: "Login Failed", description: "An unexpected error occurred.", variant: "destructive" });
       }
 
     } else { 
-      // Handle Registration
       const { name, email, password, phone, address, region, town } = values as RegisterFormValues;
-      const role: UserRole = "customer"; // All self-registrations are customers
-
       try {
-        // Proactively check if the email is already in use
         const signInMethods = await fetchSignInMethodsForEmail(auth, email);
         if (signInMethods.length > 0) {
-          toast({
-            title: "Registration Failed",
-            description: "This email address is already registered.",
-            variant: "destructive",
-          });
+          toast({ title: "Registration Failed", description: "This email is already registered.", variant: "destructive" });
           return;
         }
 
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
         await updateProfile(user, { displayName: name });
         
         await setDoc(doc(db, "users", user.uid), {
@@ -351,7 +328,7 @@ export function AuthForm({ type }: AuthFormProps) {
             address: address,
             region: region,
             town: town,
-            role: role,
+            role: "customer",
             isActive: true,
             createdAt: serverTimestamp(),
             failedLoginAttempts: 0,
@@ -367,33 +344,11 @@ export function AuthForm({ type }: AuthFormProps) {
             businessType: "",
         });
 
-        try {
-            await sendWelcomeEmail({ name, email });
-        } catch (emailError) {
-            console.warn("Welcome email could not be sent. This will not affect your registration.", emailError);
-            // Optionally inform the user, but don't block the flow
-            toast({
-                title: "Registration Complete",
-                description: "Your account is ready, but we couldn't send the welcome email just now.",
-                variant: "default",
-            });
-        }
-
-        toast({
-          title: "Registration Successful",
-          description: "Your customer account has been created.",
-        });
-
+        try { await sendWelcomeEmail({ name, email }); } catch (e) {}
+        toast({ title: "Registration Successful", description: "Your customer account has been created." });
         router.push("/market");
-
       } catch (error) {
-        console.error("Registration error: ", error);
-        const errorCode = (error as FirebaseError).code;
-        let errorMessage = "An unknown error occurred during registration.";
-        if (errorCode === 'auth/email-already-in-use') {
-            errorMessage = "This email address is already registered.";
-        }
-        toast({ title: "Registration Failed", description: errorMessage, variant: "destructive" });
+        toast({ title: "Registration Failed", description: "An unknown error occurred.", variant: "destructive" });
       }
     }
   }
@@ -577,7 +532,7 @@ export function AuthForm({ type }: AuthFormProps) {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn}>
+          <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn} disabled={form.formState.isSubmitting}>
             <GoogleIcon className="mr-2 h-5 w-5" />
             Continue with Google
           </Button>
