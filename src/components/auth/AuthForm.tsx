@@ -81,6 +81,7 @@ export function AuthForm({ type }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const hasCheckedRedirect = useRef(false);
+  const [isProcessingGoogle, setIsProcessingGoogle] = useState(false);
 
   const isLogin = type === "login";
   const formSchema = isLogin ? loginSchema : registerSchema;
@@ -179,6 +180,8 @@ export function AuthForm({ type }: AuthFormProps) {
         description: "Successfully authenticated with Google, but failed to load your profile.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessingGoogle(false);
     }
   }, [router, toast]);
 
@@ -188,20 +191,26 @@ export function AuthForm({ type }: AuthFormProps) {
     
     const checkRedirect = async () => {
       try {
+        // Small delay to ensure IndexedDB/LocalStorage is fully ready in the webview context
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const result = await getRedirectResult(auth);
         if (result && result.user) {
           hasCheckedRedirect.current = true;
+          setIsProcessingGoogle(true);
           await processUserSignIn(result.user);
         }
       } catch (error: any) {
         console.error("Google Redirect Result Error: ", error);
         // Common errors in Capacitor: auth/missing-initial-state
         if (error.code !== 'auth/redirect-cancelled-by-user') {
-           toast({
-             title: "Login Interrupted",
-             description: "We couldn't finish your Google sign-in. Please try again or use your email.",
-             variant: "destructive"
-           });
+           if (!hasCheckedRedirect.current) {
+              toast({
+                title: "Login Interrupted",
+                description: "We couldn't finish your Google sign-in. This often happens on mobile apps when returning from the browser. Please try again or use your email.",
+                variant: "destructive"
+              });
+           }
         }
       }
     };
@@ -214,6 +223,7 @@ export function AuthForm({ type }: AuthFormProps) {
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
+      setIsProcessingGoogle(true);
       if (Capacitor.isNativePlatform()) {
         // Use Redirect flow for Capacitor
         await signInWithRedirect(auth, provider);
@@ -224,6 +234,7 @@ export function AuthForm({ type }: AuthFormProps) {
       }
     } catch (error) {
       console.error("Google Sign-In Initiation Error: ", error);
+      setIsProcessingGoogle(false);
       const firebaseError = error as FirebaseError;
       
       let message = "An error occurred with Google Sign-In. Please try again.";
@@ -515,7 +526,7 @@ export function AuthForm({ type }: AuthFormProps) {
                   />
                 </>
               )}
-              <Button type="submit" className="w-full text-lg py-6 shadow-md" disabled={form.formState.isSubmitting}>
+              <Button type="submit" className="w-full text-lg py-6 shadow-md" disabled={form.formState.isSubmitting || isProcessingGoogle}>
                 {form.formState.isSubmitting ? "Processing..." : (isLogin ? "Login" : "Register as Customer")}
               </Button>
             </form>
@@ -532,9 +543,9 @@ export function AuthForm({ type }: AuthFormProps) {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn} disabled={form.formState.isSubmitting}>
+          <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn} disabled={form.formState.isSubmitting || isProcessingGoogle}>
             <GoogleIcon className="mr-2 h-5 w-5" />
-            Continue with Google
+            {isProcessingGoogle ? "Processing..." : "Continue with Google"}
           </Button>
           
           <div className="mt-6 text-center text-sm">

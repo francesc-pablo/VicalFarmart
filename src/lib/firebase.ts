@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth, initializeAuth, indexedDBLocalPersistence, Auth, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
+import { getAuth, initializeAuth, indexedDBLocalPersistence, Auth, browserLocalPersistence } from "firebase/auth";
 import { Capacitor } from '@capacitor/core';
 
 // =================================================================
@@ -38,9 +38,10 @@ if (app.name !== 'dummy') {
   if (typeof window !== 'undefined') {
     if (Capacitor.isNativePlatform()) {
       // Use IndexedDB for native platforms to persist auth state between app reloads/webview resets
+      // We pass an array to ensure fallback to local storage if IndexedDB fails
       try {
         auth = initializeAuth(app, {
-          persistence: indexedDBLocalPersistence
+          persistence: [indexedDBLocalPersistence, browserLocalPersistence]
         });
       } catch (e) {
         // If already initialized (common during development HMR), get the existing instance
