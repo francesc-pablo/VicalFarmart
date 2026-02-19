@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,14 +27,12 @@ import {
   FirebaseError,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signOut,
   fetchSignInMethodsForEmail
 } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Select,
   SelectContent,
@@ -42,7 +41,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
-import { Capacitor } from '@capacitor/core';
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -80,7 +78,6 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export function AuthForm({ type }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const hasCheckedRedirect = useRef(false);
   const [isProcessingGoogle, setIsProcessingGoogle] = useState(false);
 
   const isLogin = type === "login";
@@ -185,65 +182,22 @@ export function AuthForm({ type }: AuthFormProps) {
     }
   }, [router, toast]);
 
-  // Handle catching the redirect result on mount
-  useEffect(() => {
-    if (hasCheckedRedirect.current) return;
-    
-    const checkRedirect = async () => {
-      try {
-        // Small delay to ensure IndexedDB/LocalStorage is fully ready in the webview context
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          hasCheckedRedirect.current = true;
-          setIsProcessingGoogle(true);
-          await processUserSignIn(result.user);
-        }
-      } catch (error: any) {
-        console.error("Google Redirect Result Error: ", error);
-        // Common errors in Capacitor: auth/missing-initial-state
-        if (error.code !== 'auth/redirect-cancelled-by-user') {
-           if (!hasCheckedRedirect.current) {
-              toast({
-                title: "Login Interrupted",
-                description: "We couldn't finish your Google sign-in. This often happens on mobile apps when returning from the browser. Please try again or use your email.",
-                variant: "destructive"
-              });
-           }
-        }
-      }
-    };
-
-    checkRedirect();
-  }, [processUserSignIn, toast]);
-
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
       setIsProcessingGoogle(true);
-      if (Capacitor.isNativePlatform()) {
-        // Use Redirect flow for Capacitor
-        await signInWithRedirect(auth, provider);
-      } else {
-        // Use Popup for standard web
-        const result = await signInWithPopup(auth, provider);
-        await processUserSignIn(result.user);
-      }
+      const result = await signInWithPopup(auth, provider);
+      await processUserSignIn(result.user);
     } catch (error) {
-      console.error("Google Sign-In Initiation Error: ", error);
+      console.error("Google Sign-In Error: ", error);
       setIsProcessingGoogle(false);
       const firebaseError = error as FirebaseError;
       
       let message = "An error occurred with Google Sign-In. Please try again.";
       if (firebaseError.code === 'auth/popup-closed-by-user') {
         message = 'The sign-in window was closed.';
-      } else if (firebaseError.code === 'auth/internal-error') {
-        message = 'A network error occurred. Please check your connection.';
-      } else if (firebaseError.code === 'auth/operation-not-supported-in-this-environment') {
-        message = 'This browser does not support Google Sign-In in this way.';
       }
       
       toast({
