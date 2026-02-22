@@ -14,8 +14,12 @@ If you are building an APK and Google Sign-In is failing, you must register your
 5. **Android package name**: Enter `com.vicalfarmart.app` (This must match the `appId` in your `capacitor.config.ts`).
 6. Click **Register app**.
 
-### 2. Add SHA-1 Fingerprint
-Once the app is registered, you will see the **Add fingerprint** button in the Android app settings.
+### 2. Download and Place google-services.json
+1. Download the `google-services.json` file provided by Firebase.
+2. Move this file into your project at: **`android/app/google-services.json`**.
+
+### 3. Add SHA-1 Fingerprint
+Once the app is registered, you will see the **Add fingerprint** button in the Android app settings in Firebase Console.
 1. Open a terminal in your project's `android` folder.
 2. Run this command to get your debug key:
    ```bash
@@ -25,7 +29,7 @@ Once the app is registered, you will see the **Add fingerprint** button in the A
 4. Copy that string, go back to Firebase Console, click **Add fingerprint**, and paste it.
 5. Click **Save**.
 
-### 3. Update Web Client ID
+### 4. Update Web Client ID
 Ensure the `serverClientId` in `capacitor.config.ts` and the `server_client_id` in `android/app/src/main/res/values/strings.xml` match the **Web Client ID** found in your Firebase Console (Authentication > Sign-in method > Google > Web SDK configuration).
 
 ## 🛠 Development Commands
