@@ -4,5 +4,5 @@
     <string name="title_activity_main">Vical Farmart</string>
     <string name="package_name">com.vicalfarmart.app</string>
     <string name="custom_url_scheme">com.vicalfarmart.app</string>
-    <string name="server_client_id">YOUR_WEB_CLIENT_ID.apps.googleusercontent.com</string>
+    <string name="server_client_id">318375487368-r1tu57apceaum6q2sevc8rf81jl5rjsm.apps.googleusercontent.com</string>
 </resources>
