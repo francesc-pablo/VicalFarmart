@@ -5,8 +5,6 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     this.init(savedInstanceState, new ArrayList<Class<? extends Plugin>>() {{
-...
 add(GoogleAuth.class);
-...
 }});
 }
