@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,6 +26,7 @@ import {
   FirebaseError,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCredential,
   signOut,
   fetchSignInMethodsForEmail
 } from "firebase/auth";
@@ -41,6 +41,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
+
+interface AuthStatus {
+  isAuthenticated: boolean;
+  user?: User | null;
+}
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -92,6 +99,11 @@ export function AuthForm({ type }: AuthFormProps) {
 
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
   const watchedRegion = (form.watch as (name: string) => any)("region");
+
+  useEffect(() => {
+    // Initialize Google Auth plugin
+    GoogleAuth.initialize();
+  }, []);
 
   useEffect(() => {
     if (watchedRegion) {
@@ -183,20 +195,28 @@ export function AuthForm({ type }: AuthFormProps) {
   }, [router, toast]);
 
   const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-
     try {
       setIsProcessingGoogle(true);
-      const result = await signInWithPopup(auth, provider);
-      await processUserSignIn(result.user);
+      
+      if (Capacitor.isNativePlatform()) {
+        const nativeUser = await GoogleAuth.signIn();
+        const idToken = nativeUser.authentication.idToken;
+        const credential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, credential);
+        await processUserSignIn(result.user);
+      } else {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const result = await signInWithPopup(auth, provider);
+        await processUserSignIn(result.user);
+      }
     } catch (error) {
       console.error("Google Sign-In Error: ", error);
       setIsProcessingGoogle(false);
-      const firebaseError = error as FirebaseError;
+      const firebaseError = error as any;
       
       let message = "An error occurred with Google Sign-In. Please try again.";
-      if (firebaseError.code === 'auth/popup-closed-by-user') {
+      if (firebaseError.code === 'auth/popup-closed-by-user' || firebaseError.message === 'CHOSE_CANCEL') {
         message = 'The sign-in window was closed.';
       }
       

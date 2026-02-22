@@ -38,7 +38,6 @@ if (app.name !== 'dummy') {
   if (typeof window !== 'undefined') {
     if (Capacitor.isNativePlatform()) {
       // Use IndexedDB for native platforms to persist auth state between app reloads/webview resets
-      // We pass an array to ensure fallback to local storage if IndexedDB fails
       try {
         auth = initializeAuth(app, {
           persistence: [indexedDBLocalPersistence, browserLocalPersistence]
