@@ -11,8 +11,9 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Strings and other resources can be stripped if not used
-             // but avoid using the 'arguments' method here as it's prone to syntax errors across AGP versions
+             // Removed problematic arguments() method call that crashes on newer AGP
+             // Standard resources configuration goes here if needed
+             navArgsDefaultParams = true
         }
     }
     buildTypes {
@@ -24,7 +25,7 @@ android {
 }
 
 repositories {
-    flatDir{
+    flatDir {
         dirs 'libs'
     }
 }
@@ -33,7 +34,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$rootProject.ext.androidxCoordinatorLayoutVersion"
-    implementation "androidx.core:core-splashscreen:$rootProject.ext.coreSplashScreenVersion"
+    implementation "androidx.core:core-splashscreen:$rootProject.ext.androidxCoreVersion"
     implementation project(':capacitor-android')
     implementation project(':capacitor-cordova-android-plugins')
     testImplementation "junit:junit:$rootProject.ext.junitVersion"
