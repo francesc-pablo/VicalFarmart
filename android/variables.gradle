@@ -11,6 +11,8 @@ ext {
     androidxJunitVersion = '1.1.5'
     androidxEspressoCoreVersion = '3.5.1'
     cordovaAndroidVersion = '10.1.1'
-    // Required for @capacitor-firebase/authentication Google Sign-In
+    coreSplashScreenVersion = '1.0.1'
+    androidxWebkitVersion = '1.9.0'
+    // Required for @capacitor-firebase/authentication to enable Google Sign-In
     rgcfaIncludeGoogle = true
 }
