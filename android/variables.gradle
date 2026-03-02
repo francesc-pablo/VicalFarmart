@@ -1,8 +1,5 @@
-
 ext {
-    minSdkVersion = 22
-    compileSdkVersion = 34
-    targetSdkVersion = 34
+    coreSplashScreenVersion = '1.0.1'
     androidxActivityVersion = '1.8.0'
     androidxAppCompatVersion = '1.6.1'
     androidxCoordinatorLayoutVersion = '1.2.0'
@@ -12,7 +9,5 @@ ext {
     androidxJunitVersion = '1.1.5'
     androidxEspressoCoreVersion = '3.5.1'
     cordovaAndroidVersion = '10.1.1'
-    
-    // Capacitor Firebase Authentication specific configuration
     rgcfaIncludeGoogle = true
 }
