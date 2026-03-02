@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,7 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
 
 interface AuthFormProps {
@@ -94,17 +93,6 @@ export function AuthForm({ type }: AuthFormProps) {
 
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
   const watchedRegion = (form.watch as (name: string) => any)("region");
-
-  useEffect(() => {
-    // Initialize Google Auth plugin specifically for the platform
-    if (Capacitor.isNativePlatform()) {
-      try {
-        GoogleAuth.initialize();
-      } catch (e) {
-        console.warn("Google Auth plugin already initialized or failed:", e);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     if (watchedRegion) {
@@ -199,19 +187,18 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(true);
       
       if (Capacitor.isNativePlatform()) {
-        // Trigger native Google selector
-        const nativeUser = await GoogleAuth.signIn();
+        // 1. Sign in natively using the Capacitor plugin
+        const result = await FirebaseAuthentication.signInWithGoogle();
         
-        if (!nativeUser?.authentication?.idToken) {
-          throw new Error("No ID Token received from Google. Please ensure your SHA-1 key is correctly registered in Firebase.");
+        if (!result.credential?.idToken) {
+          throw new Error("No identity token received from Google. Ensure your SHA-1 key is correct in Firebase.");
         }
 
-        // Exchange native token for Firebase credential
-        const idToken = nativeUser.authentication.idToken;
-        const credential = GoogleAuthProvider.credential(idToken);
-        const result = await signInWithCredential(auth, credential);
+        // 2. Use the ID token to sign in on the web layer (Firebase JS SDK)
+        const credential = GoogleAuthProvider.credential(result.credential.idToken);
+        const fbResult = await signInWithCredential(auth, credential);
         
-        await processUserSignIn(result.user);
+        await processUserSignIn(fbResult.user);
       } else {
         // Standard Web Popup
         const provider = new GoogleAuthProvider();
@@ -224,16 +211,12 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(false);
       
       let message = "An error occurred with Google Sign-In. Please try again.";
-      
-      // Handle native Capacitor/Android error codes
       const errorMsg = String(error.message || error).toLowerCase();
       
-      if (errorMsg.includes('cancel') || errorMsg.includes('12501')) {
+      if (errorMsg.includes('cancel')) {
         message = 'The sign-in window was closed.';
       } else if (errorMsg.includes('10') || errorMsg.includes('12500')) {
-        message = 'Native Sign-In failed (Error 10/12500). This usually means the SHA-1 fingerprint in Firebase doesn\'t match this APK\'s signature.';
-      } else if (errorMsg.includes('not_initialized')) {
-        message = 'Google Auth plugin is not initialized. Please restart the app.';
+        message = 'Native Sign-In failed (SHA-1 fingerprint mismatch). Please check Firebase Console.';
       }
       
       toast({
