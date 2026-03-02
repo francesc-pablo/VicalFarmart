@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,11 +45,6 @@ import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 
-interface AuthStatus {
-  isAuthenticated: boolean;
-  user?: User | null;
-}
-
 interface AuthFormProps {
   type: "login" | "register";
 }
@@ -81,7 +77,6 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-
 export function AuthForm({ type }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
@@ -101,8 +96,14 @@ export function AuthForm({ type }: AuthFormProps) {
   const watchedRegion = (form.watch as (name: string) => any)("region");
 
   useEffect(() => {
-    // Initialize Google Auth plugin
-    GoogleAuth.initialize();
+    // Initialize Google Auth plugin specifically for the platform
+    if (Capacitor.isNativePlatform()) {
+      try {
+        GoogleAuth.initialize();
+      } catch (e) {
+        console.warn("Google Auth plugin already initialized or failed:", e);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -173,7 +174,6 @@ export function AuthForm({ type }: AuthFormProps) {
         toast({ title: "Registration Successful", description: "Your account has been created via Google." });
       }
       
-      // Redirect based on role
       const dashboardMap: Record<string, string> = {
         'admin': '/admin/dashboard',
         'seller': '/seller/dashboard',
@@ -199,25 +199,41 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(true);
       
       if (Capacitor.isNativePlatform()) {
+        // Trigger native Google selector
         const nativeUser = await GoogleAuth.signIn();
+        
+        if (!nativeUser?.authentication?.idToken) {
+          throw new Error("No ID Token received from Google. Please ensure your SHA-1 key is correctly registered in Firebase.");
+        }
+
+        // Exchange native token for Firebase credential
         const idToken = nativeUser.authentication.idToken;
         const credential = GoogleAuthProvider.credential(idToken);
         const result = await signInWithCredential(auth, credential);
+        
         await processUserSignIn(result.user);
       } else {
+        // Standard Web Popup
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
         const result = await signInWithPopup(auth, provider);
         await processUserSignIn(result.user);
       }
-    } catch (error) {
-      console.error("Google Sign-In Error: ", error);
+    } catch (error: any) {
+      console.error("Google Sign-In Detailed Error: ", error);
       setIsProcessingGoogle(false);
-      const firebaseError = error as any;
       
       let message = "An error occurred with Google Sign-In. Please try again.";
-      if (firebaseError.code === 'auth/popup-closed-by-user' || firebaseError.message === 'CHOSE_CANCEL') {
+      
+      // Handle native Capacitor/Android error codes
+      const errorMsg = String(error.message || error).toLowerCase();
+      
+      if (errorMsg.includes('cancel') || errorMsg.includes('12501')) {
         message = 'The sign-in window was closed.';
+      } else if (errorMsg.includes('10') || errorMsg.includes('12500')) {
+        message = 'Native Sign-In failed (Error 10/12500). This usually means the SHA-1 fingerprint in Firebase doesn\'t match this APK\'s signature.';
+      } else if (errorMsg.includes('not_initialized')) {
+        message = 'Google Auth plugin is not initialized. Please restart the app.';
       }
       
       toast({
@@ -227,7 +243,6 @@ export function AuthForm({ type }: AuthFormProps) {
       });
     }
   };
-
 
   async function onSubmit(values: LoginFormValues | RegisterFormValues) {
     if (isLogin) {
