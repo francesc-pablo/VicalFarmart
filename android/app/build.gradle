@@ -11,9 +11,9 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
         aaptOptions {
-             // Blocks float resources from the build since they are not supported in 32-bit devices
-             arguments "--format", "utf8"
+             // Capacitor optimizes res with utf8 by default
         }
     }
     buildTypes {
@@ -22,11 +22,16 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
 }
 
 repositories {
-    flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    flatDir {
+        dirs 'libs'
     }
 }
 
