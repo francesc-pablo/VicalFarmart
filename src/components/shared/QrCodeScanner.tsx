@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -12,7 +11,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { QrCode, Upload } from 'lucide-react';
+import { QrCode, Upload, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Html5Qrcode, Html5QrcodeError, Html5QrcodeResult } from 'html5-qrcode';
@@ -21,74 +20,76 @@ import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-sc
 
 // --- Native Scanner UI Component ---
 const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: string) => void; onCancel: () => void }) => {
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; showSettings: boolean } | null>(null);
 
-  useEffect(() => {
-    let didCancel = false;
-
-    const startScan = async () => {
-      try {
-        // Add class to body to hide web content
-        document.body.classList.add('scanner-active');
-        // Check permission
-        await BarcodeScanner.checkPermission({ force: true });
+  const startScan = useCallback(async () => {
+    try {
+      setError(null);
+      // Add class to body to hide web content
+      document.body.classList.add('scanner-active');
+      
+      // Check permission
+      const status = await BarcodeScanner.checkPermission({ force: true });
+      
+      if (status.granted) {
         // Make webview background transparent
         await BarcodeScanner.hideBackground();
         
         // Start scanning
         const result = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] });
 
-        // if the result has content
-        if (result.hasContent && !didCancel) {
+        if (result.hasContent) {
           onScanSuccess(result.content);
         }
-      } catch (e: any) {
-        if (!didCancel) {
-            const message = (e.message || 'unknown error').toLowerCase();
-            if (message.includes('cancelled')) {
-                // This is the normal flow for pressing the back button or the cancel button.
-                onCancel();
-            } else if (message.includes('permission was denied')) {
-                setError('Camera permission is required. Please grant permission in your app settings and try again.');
-            } else {
-                setError(`An error occurred during scanning: ${e.message}`);
-            }
-        }
+      } else if (status.denied || status.neverAsked === false) {
+        setError({ message: 'Camera permission is required. Please grant permission in your app settings.', showSettings: true });
+      } else {
+        setError({ message: 'Camera access is required to scan QR codes.', showSettings: false });
       }
-    };
+    } catch (e: any) {
+      const message = (e.message || 'unknown error').toLowerCase();
+      if (message.includes('cancelled')) {
+          onCancel();
+      } else {
+          setError({ message: `An error occurred during scanning: ${e.message}`, showSettings: false });
+      }
+    }
+  }, [onScanSuccess, onCancel]);
 
+  useEffect(() => {
     startScan();
 
     // Cleanup function
     return () => {
-      didCancel = true;
       document.body.classList.remove('scanner-active');
       BarcodeScanner.showBackground();
       BarcodeScanner.stopScan();
     };
-  }, [onScanSuccess, onCancel]);
+  }, [startScan]);
 
-  // The UI is an overlay for the native camera view
   if (error) {
-    // Error state UI
     return (
        <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 p-8 text-center text-white">
           <h3 className="text-xl font-bold text-destructive mb-2">Scanning Error</h3>
-          <p className="mb-4">{error}</p>
-          <Button onClick={onCancel} variant="secondary">Close</Button>
+          <p className="mb-6">{error.message}</p>
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            {error.showSettings && (
+              <Button onClick={() => BarcodeScanner.openAppSettings()} variant="default">
+                <Settings className="mr-2 h-4 w-4" /> Open App Settings
+              </Button>
+            )}
+            <Button onClick={startScan} variant="outline">Try Again</Button>
+            <Button onClick={onCancel} variant="secondary">Cancel</Button>
+          </div>
        </div>
     );
   }
 
-  // Scanning state UI
   return (
     <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 text-white p-8">
-      {/* This is a visual guide, not the actual scanner area */}
       <p className="text-lg font-medium text-center mb-4">Position the QR code inside the box</p>
       <div className="relative w-64 h-64 rounded-lg overflow-hidden">
-        {/* Animated scanning line */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 animate-scan-line rounded-full"></div>
-        {/* Corner brackets */}
         <div className="absolute top-0 left-0 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-white/90"></div>
         <div className="absolute top-0 right-0 h-12 w-12 rounded-tr-lg border-t-4 border-r-4 border-white/90"></div>
         <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white/90"></div>
@@ -102,7 +103,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
 };
 
 
-// --- Web Scanner Component (for Dialog) ---
+// --- Web Scanner Component ---
 const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string) => void; onError: (message: string) => void }) => {
   const scannerRegionId = "web-qr-reader";
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
@@ -120,13 +121,10 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText: string, result: Html5QrcodeResult) => onScanSuccess(decodedText),
-          (errorMessage: string, error: Html5QrcodeError) => { /* ignore verbose scan errors */ }
+          (errorMessage: string, error: Html5QrcodeError) => { }
         );
       } catch (err: any) {
-        if (typeof err === 'string' && err.includes('Cannot transition to a new state, already under transition')) {
-            console.warn("Ignoring non-fatal scanner transition error.");
-            return;
-        }
+        if (typeof err === 'string' && err.includes('transition')) return;
         console.error("Web Scanner Start Error:", err);
         onError("Could not start camera. Please check permissions.");
       }
@@ -137,13 +135,7 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
       if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
         try {
           html5QrCodeRef.current.stop();
-        } catch (err: any) {
-          if (typeof err === 'string' && err.includes('Cannot transition to a new state, already under transition')) {
-            console.warn("Ignoring non-fatal scanner transition error on cleanup.");
-            return;
-          }
-          console.error("Error stopping web scanner:", err);
-        }
+        } catch (err: any) {}
       }
     };
   }, [onScanSuccess, onError]);
@@ -189,7 +181,6 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
 };
 
 
-// --- Main Exported Component ---
 export function QrCodeScannerDialog() {
   const [mode, setMode] = useState<'closed' | 'web' | 'native'>('closed');
   const [isNativePlatform, setIsNativePlatform] = useState(false);

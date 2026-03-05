@@ -187,20 +187,17 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(true);
       
       if (Capacitor.isNativePlatform()) {
-        // 1. Sign in natively using the Capacitor plugin
         const result = await FirebaseAuthentication.signInWithGoogle();
         
         if (!result.credential?.idToken) {
-          throw new Error("No identity token received from Google. Ensure your SHA-1 key is correct in Firebase.");
+          throw new Error("No identity token received from Google. This usually happens if the SHA-1 key is not registered in the Firebase console.");
         }
 
-        // 2. Use the ID token to sign in on the web layer (Firebase JS SDK)
         const credential = GoogleAuthProvider.credential(result.credential.idToken);
         const fbResult = await signInWithCredential(auth, credential);
         
         await processUserSignIn(fbResult.user);
       } else {
-        // Standard Web Popup
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
         const result = await signInWithPopup(auth, provider);
@@ -210,13 +207,15 @@ export function AuthForm({ type }: AuthFormProps) {
       console.error("Google Sign-In Detailed Error: ", error);
       setIsProcessingGoogle(false);
       
-      let message = "An error occurred with Google Sign-In. Please try again.";
-      const errorMsg = String(error.message || error).toLowerCase();
+      let message = error.message || "An unexpected error occurred.";
+      const errorStr = String(error).toLowerCase();
       
-      if (errorMsg.includes('cancel')) {
-        message = 'The sign-in window was closed.';
-      } else if (errorMsg.includes('10') || errorMsg.includes('12500')) {
-        message = 'Native Sign-In failed (SHA-1 fingerprint mismatch). Please check Firebase Console.';
+      if (errorStr.includes('10') || errorStr.includes('developer_error')) {
+        message = "Configuration Error (10): Ensure your Android SHA-1 fingerprint is added to Firebase and matches your google-services.json.";
+      } else if (errorStr.includes('12500')) {
+        message = "Sign-In Error (12500): Check your app's package name and Firebase Console settings.";
+      } else if (errorStr.includes('cancel')) {
+        message = "The sign-in window was closed.";
       }
       
       toast({
