@@ -187,10 +187,19 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(true);
       
       if (Capacitor.isNativePlatform()) {
+        // Log basic info to help debug bridge issues
+        console.log("Starting Native Google Sign-In with FirebaseAuthentication plugin...");
+        
+        // Ensure the plugin is available
+        if (!FirebaseAuthentication) {
+          throw new Error("Native FirebaseAuthentication plugin is not available. Please ensure 'npm run capacitor:sync' was run.");
+        }
+
         const result = await FirebaseAuthentication.signInWithGoogle();
+        console.log("Native Sign-In Result received:", !!result);
         
         if (!result.credential?.idToken) {
-          throw new Error("No identity token received from Google. This usually happens if the SHA-1 key is not registered in the Firebase console.");
+          throw new Error("Google Sign-In was successful, but no identity token was returned. Check SHA-1 in Firebase console.");
         }
 
         const credential = GoogleAuthProvider.credential(result.credential.idToken);
@@ -204,16 +213,16 @@ export function AuthForm({ type }: AuthFormProps) {
         await processUserSignIn(result.user);
       }
     } catch (error: any) {
-      console.error("Google Sign-In Detailed Error: ", error);
+      console.error("Google Sign-In Error Detail: ", error);
       setIsProcessingGoogle(false);
       
       let message = error.message || "An unexpected error occurred.";
       const errorStr = String(error).toLowerCase();
       
-      if (errorStr.includes('10') || errorStr.includes('developer_error')) {
+      if (errorStr.includes('null object reference')) {
+        message = "Plugin Initialization Error: The native bridge failed to connect. Try rebuilding the APK.";
+      } else if (errorStr.includes('10') || errorStr.includes('developer_error')) {
         message = "Configuration Error (10): Ensure your Android SHA-1 fingerprint is added to Firebase and matches your google-services.json.";
-      } else if (errorStr.includes('12500')) {
-        message = "Sign-In Error (12500): Check your app's package name and Firebase Console settings.";
       } else if (errorStr.includes('cancel')) {
         message = "The sign-in window was closed.";
       }
