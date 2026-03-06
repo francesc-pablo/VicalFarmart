@@ -176,10 +176,11 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(true);
       
       if (Capacitor.isNativePlatform()) {
+        // Use the native plugin to get the ID token
         const result = await FirebaseAuthentication.signInWithGoogle();
         
         if (!result.credential?.idToken) {
-          throw new Error("No identity token returned from Google. Please ensure SHA-1 is correct.");
+          throw new Error("No identity token returned from Google. Please ensure your SHA-1 is correct in Firebase.");
         }
 
         const credential = GoogleAuthProvider.credential(result.credential.idToken);
@@ -197,7 +198,9 @@ export function AuthForm({ type }: AuthFormProps) {
       
       let message = error.message || "An unexpected error occurred.";
       if (message.toLowerCase().includes('null object reference')) {
-        message = "Plugin Connection Error: Please ensure you ran 'npx cap sync' and built the APK correctly.";
+        message = "Plugin Connection Error: Please ensure you ran 'npm run capacitor:sync' and built the APK correctly.";
+      } else if (message.includes('10')) {
+        message = "Developer Error (10): This usually means your SHA-1 fingerprint is missing from the Firebase Console.";
       }
       
       toast({

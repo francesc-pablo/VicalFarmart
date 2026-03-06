@@ -25,15 +25,18 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
   const startScan = useCallback(async () => {
     try {
       setError(null);
-      // Check permission first
+      
+      // Request permissions explicitly
       const status = await BarcodeScanner.checkPermission({ force: true });
       
       if (status.granted) {
-        // Prepare UI
+        // Native UI preparation
         document.body.classList.add('scanner-active');
         await BarcodeScanner.hideBackground();
         
-        const result = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] });
+        const result = await BarcodeScanner.startScan({ 
+          targetedFormats: [SupportedFormat.QR_CODE] 
+        });
 
         if (result.hasContent) {
           onScanSuccess(result.content);
@@ -84,8 +87,8 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
   return (
     <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 text-white p-8">
       <p className="text-lg font-medium text-center mb-4">Focus the QR code within the frame</p>
-      <div className="relative w-64 h-64 rounded-lg overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 animate-scan-line rounded-full"></div>
+      <div className="relative w-64 h-64 rounded-lg overflow-hidden border-2 border-white/20 shadow-2xl">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 animate-scan-line rounded-full shadow-[0_0_15px_rgba(var(--primary),0.8)]"></div>
         <div className="absolute top-0 left-0 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-white/90"></div>
         <div className="absolute top-0 right-0 h-12 w-12 rounded-tr-lg border-t-4 border-r-4 border-white/90"></div>
         <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white/90"></div>
@@ -194,7 +197,7 @@ export function QrCodeScannerDialog() {
   const handleScanResult = useCallback((result: string) => {
     setMode('closed');
     setTimeout(() => {
-      // Handle both full URLs and internal deep links
+      // Logic to parse the QR code
       const urlPattern = /^(https?:\/\/[^\s$.?#].[^\s]*\/market\/|vicalfarmart:\/\/product\/)([a-zA-Z0-9_-]+)$/;
       const match = result.match(urlPattern);
       const productId = match ? match[2] : result.split('/').pop();

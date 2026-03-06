@@ -12,7 +12,6 @@ ext {
     androidxEspressoCoreVersion = '3.5.1'
     cordovaAndroidVersion = '10.1.1'
     coreSplashScreenVersion = '1.0.1'
-    androidxWebkitVersion = '1.8.0'
-    // Specifically required for @capacitor-firebase/authentication
+    androidxWebkitVersion = '1.9.0'
     firebaseAuthenticationIncludeGoogle = true
 }
