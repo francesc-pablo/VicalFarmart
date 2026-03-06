@@ -25,7 +25,6 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithCredential,
   signOut,
   fetchSignInMethodsForEmail
 } from "firebase/auth";
@@ -40,8 +39,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
-import { Capacitor } from '@capacitor/core';
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -174,33 +171,19 @@ export function AuthForm({ type }: AuthFormProps) {
   const handleGoogleSignIn = async () => {
     try {
       setIsProcessingGoogle(true);
-      
-      if (Capacitor.isNativePlatform()) {
-        // Use the native plugin to get the ID token
-        const result = await FirebaseAuthentication.signInWithGoogle();
-        
-        if (!result.credential?.idToken) {
-          throw new Error("No identity token returned from Google. Please ensure your SHA-1 is correct in Firebase.");
-        }
-
-        const credential = GoogleAuthProvider.credential(result.credential.idToken);
-        const fbResult = await signInWithCredential(auth, credential);
-        await processUserSignIn(fbResult.user);
-      } else {
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        const result = await signInWithPopup(auth, provider);
-        await processUserSignIn(result.user);
-      }
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(auth, provider);
+      await processUserSignIn(result.user);
     } catch (error: any) {
       console.error("Google Sign-In Error: ", error);
       setIsProcessingGoogle(false);
       
       let message = error.message || "An unexpected error occurred.";
-      if (message.toLowerCase().includes('null object reference')) {
-        message = "Plugin Connection Error: Please ensure you ran 'npm run capacitor:sync' and built the APK correctly.";
-      } else if (message.includes('10')) {
-        message = "Developer Error (10): This usually means your SHA-1 fingerprint is missing from the Firebase Console.";
+      if (message.includes("auth/popup-closed-by-user")) {
+        message = "Login cancelled. You closed the Google sign-in window.";
+      } else if (message.includes("auth/unauthorized-domain")) {
+        message = "Domain not authorized. Please check Firebase settings.";
       }
       
       toast({
