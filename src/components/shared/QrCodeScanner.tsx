@@ -25,24 +25,21 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
   const startScan = useCallback(async () => {
     try {
       setError(null);
-      // Add class to body to hide web content
-      document.body.classList.add('scanner-active');
-      
-      // Check permission
+      // Check permission first
       const status = await BarcodeScanner.checkPermission({ force: true });
       
       if (status.granted) {
-        // Make webview background transparent
+        // Prepare UI
+        document.body.classList.add('scanner-active');
         await BarcodeScanner.hideBackground();
         
-        // Start scanning
         const result = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] });
 
         if (result.hasContent) {
           onScanSuccess(result.content);
         }
-      } else if (status.denied || status.neverAsked === false) {
-        setError({ message: 'Camera permission is required. Please grant permission in your app settings.', showSettings: true });
+      } else if (status.denied) {
+        setError({ message: 'Camera permission was denied. Please enable it in your app settings.', showSettings: true });
       } else {
         setError({ message: 'Camera access is required to scan QR codes.', showSettings: false });
       }
@@ -51,7 +48,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
       if (message.includes('cancelled')) {
           onCancel();
       } else {
-          setError({ message: `An error occurred during scanning: ${e.message}`, showSettings: false });
+          setError({ message: `Scanning failed: ${e.message}`, showSettings: false });
       }
     }
   }, [onScanSuccess, onCancel]);
@@ -59,7 +56,6 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
   useEffect(() => {
     startScan();
 
-    // Cleanup function
     return () => {
       document.body.classList.remove('scanner-active');
       BarcodeScanner.showBackground();
@@ -70,7 +66,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
   if (error) {
     return (
        <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 p-8 text-center text-white">
-          <h3 className="text-xl font-bold text-destructive mb-2">Scanning Error</h3>
+          <h3 className="text-xl font-bold text-destructive mb-2">Permission Required</h3>
           <p className="mb-6">{error.message}</p>
           <div className="flex flex-col gap-3 w-full max-w-xs">
             {error.showSettings && (
@@ -78,7 +74,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
                 <Settings className="mr-2 h-4 w-4" /> Open App Settings
               </Button>
             )}
-            <Button onClick={startScan} variant="outline">Try Again</Button>
+            <Button onClick={startScan} variant="outline">Retry Permission</Button>
             <Button onClick={onCancel} variant="secondary">Cancel</Button>
           </div>
        </div>
@@ -87,7 +83,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
 
   return (
     <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 text-white p-8">
-      <p className="text-lg font-medium text-center mb-4">Position the QR code inside the box</p>
+      <p className="text-lg font-medium text-center mb-4">Focus the QR code within the frame</p>
       <div className="relative w-64 h-64 rounded-lg overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 animate-scan-line rounded-full"></div>
         <div className="absolute top-0 left-0 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-white/90"></div>
@@ -96,7 +92,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
         <div className="absolute bottom-0 right-0 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white/90"></div>
       </div>
       <div className="absolute bottom-8 w-full px-8">
-        <Button onClick={onCancel} variant="secondary" size="lg" className="w-full">Cancel Scan</Button>
+        <Button onClick={onCancel} variant="secondary" size="lg" className="w-full">Stop Scanning</Button>
       </div>
     </div>
   );
@@ -124,9 +120,8 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
           (errorMessage: string, error: Html5QrcodeError) => { }
         );
       } catch (err: any) {
-        if (typeof err === 'string' && err.includes('transition')) return;
-        console.error("Web Scanner Start Error:", err);
-        onError("Could not start camera. Please check permissions.");
+        console.error("Web Scanner Error:", err);
+        onError("Could not access camera. Please check browser permissions.");
       }
     };
     startScanner();
@@ -146,7 +141,7 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
         const result = await html5QrCodeRef.current.scanFile(e.target.files[0], false);
         onScanSuccess(result);
       } catch (err) {
-        onError("Could not scan the QR code from the selected file.");
+        onError("Could not read QR code from file.");
       }
     }
   };
@@ -162,9 +157,6 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
             <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white/50 rounded-bl-lg"></div>
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white/50 rounded-br-lg"></div>
           </div>
-           <p className="mt-4 text-white/90 text-xs font-medium bg-black/40 px-2 py-1 rounded-md">
-            Place QR code here
-          </p>
         </div>
       </div>
       <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
@@ -174,7 +166,7 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
         <div className="flex-grow border-t border-muted"></div>
       </div>
       <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-        <Upload className="mr-2 h-4 w-4" /> Upload from File
+        <Upload className="mr-2 h-4 w-4" /> Upload from Gallery
       </Button>
     </div>
   );
@@ -184,13 +176,11 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
 export function QrCodeScannerDialog() {
   const [mode, setMode] = useState<'closed' | 'web' | 'native'>('closed');
   const [isNativePlatform, setIsNativePlatform] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     setIsNativePlatform(Capacitor.isNativePlatform());
-    setIsClient(true);
   }, []);
 
   const handleOpenScanner = () => {
@@ -204,31 +194,32 @@ export function QrCodeScannerDialog() {
   const handleScanResult = useCallback((result: string) => {
     setMode('closed');
     setTimeout(() => {
+      // Handle both full URLs and internal deep links
       const urlPattern = /^(https?:\/\/[^\s$.?#].[^\s]*\/market\/|vicalfarmart:\/\/product\/)([a-zA-Z0-9_-]+)$/;
       const match = result.match(urlPattern);
       const productId = match ? match[2] : result.split('/').pop();
 
       if (productId && productId.length > 3) {
-        toast({ title: "QR Code Scanned", description: `Product found. Redirecting...` });
+        toast({ title: "Product Found", description: `Loading details...` });
         router.push(`/market/${productId}`);
       } else {
-        toast({ title: "Invalid QR Code", description: "This QR code does not appear to be a valid Vical Farmart product link.", variant: "destructive" });
+        toast({ title: "Invalid QR Code", description: "The scanned code is not a valid product link.", variant: "destructive" });
       }
     }, 150);
   }, [router, toast]);
   
   const onWebScanError = useCallback((message: string) => {
-      toast({ title: "Scan Failed", description: message, variant: "destructive" });
+      toast({ title: "Scanner Error", description: message, variant: "destructive" });
   }, [toast]);
 
   return (
     <>
       <Button variant="ghost" size="icon" title="Scan QR Code" onClick={handleOpenScanner}>
         <QrCode className="h-5 w-5" />
-        <span className="sr-only">Scan Product QR Code</span>
+        <span className="sr-only">Scan</span>
       </Button>
 
-      {isClient && mode === 'native' && createPortal(
+      {mode === 'native' && createPortal(
         <NativeScanner
           onScanSuccess={handleScanResult}
           onCancel={handleClose}
@@ -240,7 +231,7 @@ export function QrCodeScannerDialog() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Scan Product QR Code</DialogTitle>
-            <DialogDescription>Position the QR code in view or upload an image.</DialogDescription>
+            <DialogDescription>Use your camera to scan or upload an image.</DialogDescription>
           </DialogHeader>
           <div className="p-0 sm:p-4">
             <WebScanner onScanSuccess={handleScanResult} onError={onWebScanError} />

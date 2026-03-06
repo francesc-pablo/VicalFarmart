@@ -23,7 +23,6 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   updateProfile,
-  FirebaseError,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithCredential,
@@ -128,12 +127,11 @@ export function AuthForm({ type }: AuthFormProps) {
         userRole = userData.role;
         toast({ title: "Login Successful", description: "Welcome back!" });
       } else {
-        // Create new user profile
         await setDoc(userDocRef, {
           id: user.uid,
-          name: user.displayName || 'Google User',
+          name: user.displayName || 'User',
           email: user.email!,
-          phone: user.phoneNumber || "",
+          phone: "",
           address: "",
           region: "",
           town: "",
@@ -142,24 +140,15 @@ export function AuthForm({ type }: AuthFormProps) {
           createdAt: serverTimestamp(),
           failedLoginAttempts: 0,
           lockoutUntil: null,
-          businessName: "",
-          businessOwnerName: "",
-          businessAddress: "",
-          contactNumber: "",
-          businessLocationRegion: "",
-          businessLocationTown: "",
-          geoCoordinatesLat: "",
-          geoCoordinatesLng: "",
-          businessType: "",
-        });
+        }, { merge: true });
         
         try {
-          await sendWelcomeEmail({ name: user.displayName || 'Google User', email: user.email! });
+          await sendWelcomeEmail({ name: user.displayName || 'User', email: user.email! });
         } catch (e) {
           console.warn("Welcome email failed", e);
         }
 
-        toast({ title: "Registration Successful", description: "Your account has been created via Google." });
+        toast({ title: "Registration Successful", description: "Your account has been created." });
       }
       
       const dashboardMap: Record<string, string> = {
@@ -174,7 +163,7 @@ export function AuthForm({ type }: AuthFormProps) {
       console.error("Error processing user sign in:", error);
       toast({
         title: "Sign-In Error",
-        description: "Successfully authenticated with Google, but failed to load your profile.",
+        description: "Authentication succeeded, but profile failed to load.",
         variant: "destructive",
       });
     } finally {
@@ -187,24 +176,14 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(true);
       
       if (Capacitor.isNativePlatform()) {
-        // Log basic info to help debug bridge issues
-        console.log("Starting Native Google Sign-In with FirebaseAuthentication plugin...");
-        
-        // Ensure the plugin is available
-        if (!FirebaseAuthentication) {
-          throw new Error("Native FirebaseAuthentication plugin is not available. Please ensure 'npm run capacitor:sync' was run.");
-        }
-
         const result = await FirebaseAuthentication.signInWithGoogle();
-        console.log("Native Sign-In Result received:", !!result);
         
         if (!result.credential?.idToken) {
-          throw new Error("Google Sign-In was successful, but no identity token was returned. Check SHA-1 in Firebase console.");
+          throw new Error("No identity token returned from Google. Please ensure SHA-1 is correct.");
         }
 
         const credential = GoogleAuthProvider.credential(result.credential.idToken);
         const fbResult = await signInWithCredential(auth, credential);
-        
         await processUserSignIn(fbResult.user);
       } else {
         const provider = new GoogleAuthProvider();
@@ -213,18 +192,12 @@ export function AuthForm({ type }: AuthFormProps) {
         await processUserSignIn(result.user);
       }
     } catch (error: any) {
-      console.error("Google Sign-In Error Detail: ", error);
+      console.error("Google Sign-In Error: ", error);
       setIsProcessingGoogle(false);
       
       let message = error.message || "An unexpected error occurred.";
-      const errorStr = String(error).toLowerCase();
-      
-      if (errorStr.includes('null object reference')) {
-        message = "Plugin Initialization Error: The native bridge failed to connect. Try rebuilding the APK.";
-      } else if (errorStr.includes('10') || errorStr.includes('developer_error')) {
-        message = "Configuration Error (10): Ensure your Android SHA-1 fingerprint is added to Firebase and matches your google-services.json.";
-      } else if (errorStr.includes('cancel')) {
-        message = "The sign-in window was closed.";
+      if (message.toLowerCase().includes('null object reference')) {
+        message = "Plugin Connection Error: Please ensure you ran 'npx cap sync' and built the APK correctly.";
       }
       
       toast({
@@ -324,19 +297,10 @@ export function AuthForm({ type }: AuthFormProps) {
             createdAt: serverTimestamp(),
             failedLoginAttempts: 0,
             lockoutUntil: null,
-            businessName: "",
-            businessOwnerName: "",
-            businessAddress: "",
-            contactNumber: "",
-            businessLocationRegion: "",
-            businessLocationTown: "",
-            geoCoordinatesLat: "",
-            geoCoordinatesLng: "",
-            businessType: "",
         });
 
         try { await sendWelcomeEmail({ name, email }); } catch (e) {}
-        toast({ title: "Registration Successful", description: "Your customer account has been created." });
+        toast({ title: "Registration Successful", description: "Your account has been created." });
         router.push("/market");
       } catch (error) {
         toast({ title: "Registration Failed", description: "An unknown error occurred.", variant: "destructive" });
@@ -349,7 +313,7 @@ export function AuthForm({ type }: AuthFormProps) {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-headline">
-            {isLogin ? "Welcome Back!" : "Create Customer Account"}
+            {isLogin ? "Welcome Back!" : "Create Account"}
           </CardTitle>
           <CardDescription>
             {isLogin ? "Login to access your Vical Farmart account." : "Join Vical Farmart to start shopping."}
@@ -424,7 +388,7 @@ export function AuthForm({ type }: AuthFormProps) {
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                   <FormControl>
                                   <SelectTrigger>
-                                      <SelectValue placeholder="Select your region" />
+                                      <SelectValue placeholder="Select region" />
                                   </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
@@ -448,7 +412,7 @@ export function AuthForm({ type }: AuthFormProps) {
                               <Select onValueChange={field.onChange} value={field.value} disabled={availableTowns.length === 0}>
                                   <FormControl>
                                   <SelectTrigger>
-                                      <SelectValue placeholder="Select your town" />
+                                      <SelectValue placeholder="Select town" />
                                   </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
@@ -507,7 +471,7 @@ export function AuthForm({ type }: AuthFormProps) {
                 </>
               )}
               <Button type="submit" className="w-full text-lg py-6 shadow-md" disabled={form.formState.isSubmitting || isProcessingGoogle}>
-                {form.formState.isSubmitting ? "Processing..." : (isLogin ? "Login" : "Register as Customer")}
+                {form.formState.isSubmitting ? "Processing..." : (isLogin ? "Login" : "Register")}
               </Button>
             </form>
           </Form>
