@@ -11,14 +11,14 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Standard options
-             cruncherEnabled = false
+             // Avoid standard aapt options that might conflict with Capacitor
+             navigationQtyResources false
         }
     }
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -37,15 +37,17 @@ dependencies {
     implementation project(':capacitor-android')
     implementation project(':capacitor-cordova-android-plugins')
     
-    // Explicitly add Firebase Auth native dependencies to resolve "null object reference"
+    // Firebase native dependencies for authentication
     implementation platform('com.google.firebase:firebase-bom:32.7.0')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.android.gms:play-services-auth:20.7.0'
 
-    testImplementation "junit:junit:4.13.2"
-    androidTestImplementation "androidx.test.ext:junit:1.1.5"
-    androidTestImplementation "androidx.test.espresso:core:3.5.1"
+    testImplementation "junit:junit:$rootProject.ext.junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$rootProject.ext.androidxEspressoCoreVersion"
 }
+
+apply from: 'capacitor.build.gradle'
 
 try {
     def servicesJSON = file('google-services.json')
@@ -55,6 +57,3 @@ try {
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
-
-// Ensure this is the last line
-apply plugin: 'com.google.gms.google-services'
