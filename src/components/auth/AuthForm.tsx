@@ -173,6 +173,7 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(true);
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
+      // Standard Web SDK popup - works in Capacitor Webview
       const result = await signInWithPopup(auth, provider);
       await processUserSignIn(result.user);
     } catch (error: any) {
