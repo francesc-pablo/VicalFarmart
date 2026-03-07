@@ -2,17 +2,17 @@ apply plugin: 'com.android.application'
 
 android {
     namespace "com.vicalfarmart.app"
-    compileSdk project.ext.compileSdkVersion
+    compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.vicalfarmart.app"
-        minSdk project.ext.minSdkVersion
-        targetSdk project.ext.targetSdkVersion
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Standard options
-             fixedResConfig true
+             // Avoid encoding errors for some types of resources
+             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
     buildTypes {
@@ -28,24 +28,24 @@ android {
 }
 
 repositories {
-    flatDir {
+    flatDir{
         dirs 'libs'
     }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "androidx.appcompat:appcompat:$project.ext.androidxAppCompatVersion"
-    implementation "androidx.coordinatorlayout:coordinatorlayout:$project.ext.androidxCoordinatorLayoutVersion"
-    implementation "androidx.core:core-splashscreen:$project.ext.androidxSplashScreenVersion"
+    implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
+    implementation "androidx.core:core-ktx:$rootProject.ext.androidxCoreVersion"
+    implementation "androidx.core:core-splashscreen:$rootProject.ext.androidxSplashScreenVersion"
     implementation project(':capacitor-android')
-    testImplementation "junit:junit:$project.ext.junitVersion"
-    androidTestImplementation "androidx.test.ext:junit:$project.ext.androidxJunitVersion"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$project.ext.androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    testImplementation "junit:junit:$rootProject.ext.junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$rootProject.ext.androidxEspressoCoreVersion"
 }
 
-apply from: 'capacitor.build.gradle'
+apply plugin: 'com.google.gms.google-services'
 
 try {
     def servicesJSON = file('google-services.json')
