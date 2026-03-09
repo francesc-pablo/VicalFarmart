@@ -8,6 +8,12 @@ const config: CapacitorConfig = {
     url: 'https://vicalfarmart.com',
     cleartext: true,
   },
+  plugins: {
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ["google.com"]
+    }
+  }
 };
 
 export default config;

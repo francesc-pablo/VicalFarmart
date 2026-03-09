@@ -25,6 +25,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCredential,
   signOut
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -39,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 import { Capacitor } from "@capacitor/core";
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -161,30 +163,34 @@ export function AuthForm({ type }: AuthFormProps) {
   }, [router, toast]);
 
   const handleGoogleSignIn = async () => {
-    if (!auth || !auth.app) {
-      toast({ title: "Auth Error", description: "Firebase Auth is not initialized correctly.", variant: "destructive" });
-      return;
-    }
-
     try {
       setIsProcessingGoogle(true);
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      
-      // Standard Web popup. 
-      // Note: "missing initial state" is a common WebView issue. 
-      // Persistence was updated in firebase.ts to help mitigate this.
-      const result = await signInWithPopup(auth, provider);
-      await processUserSignIn(result.user);
+
+      if (Capacitor.isNativePlatform()) {
+        // Native Implementation
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        if (result.credential?.idToken || result.idToken) {
+          const idToken = result.credential?.idToken || result.idToken;
+          const credential = GoogleAuthProvider.credential(idToken);
+          const userCredential = await signInWithCredential(auth, credential);
+          await processUserSignIn(userCredential.user);
+        } else {
+          throw new Error("No ID Token received from Google.");
+        }
+      } else {
+        // Web Implementation
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const result = await signInWithPopup(auth, provider);
+        await processUserSignIn(result.user);
+      }
     } catch (error: any) {
       console.error("Google Sign-In Error: ", error);
       setIsProcessingGoogle(false);
       
       let message = error.message || "An unexpected error occurred.";
-      if (error.code === 'auth/popup-closed-by-user') {
+      if (error.code === 'auth/popup-closed-by-user' || error.message?.includes('cancel')) {
         message = "Sign-in cancelled.";
-      } else if (error.code === 'auth/argument-error') {
-        message = "Configuration error. Ensure environment variables are set.";
       }
       
       toast({

@@ -19,9 +19,9 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Optimize persistence for WebView environments
-// indexedDB is much more reliable in Capacitor than default sessionStorage
+// Optimize persistence for Native/WebView environments
 if (typeof window !== "undefined") {
+    // indexedDB is much more reliable in Capacitor than default sessionStorage
     const persistence = Capacitor.isNativePlatform() ? indexedDBLocalPersistence : browserLocalPersistence;
     setPersistence(auth, persistence).catch((err) => {
         console.warn("Firebase persistence error:", err);
