@@ -40,6 +40,11 @@ import {
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 
+interface AuthStatus {
+  isAuthenticated: boolean;
+  user?: User | null;
+}
+
 interface AuthFormProps {
   type: "login" | "register";
 }
@@ -88,20 +93,16 @@ export function AuthForm({ type }: AuthFormProps) {
   });
 
   const [availableTowns, setAvailableTowns] = useState<string[]>([]);
-  const watchedRegion = (form.watch as (name: string) => any)("region");
+  const watchedRegion = (form.watch as any)("region");
 
   useEffect(() => {
     if (watchedRegion) {
       const towns = GHANA_REGIONS_AND_TOWNS[watchedRegion] || [];
       setAvailableTowns(towns);
-      const currentTown = (form.getValues as (name: string) => any)("town");
-      if (currentTown && !towns.includes(currentTown)) {
-        (form.setValue as (name: string, value: any) => void)("town", "");
-      }
     } else {
       setAvailableTowns([]);
     }
-  }, [watchedRegion, form]);
+  }, [watchedRegion]);
 
   const processUserSignIn = useCallback(async (user: any) => {
     try {
@@ -115,7 +116,7 @@ export function AuthForm({ type }: AuthFormProps) {
         if (!userData.isActive) {
           toast({
             title: "Login Failed",
-            description: "Your account has been deactivated. Please contact an administrator.",
+            description: "Your account has been deactivated.",
             variant: "destructive",
           });
           await signOut(auth);
@@ -128,10 +129,6 @@ export function AuthForm({ type }: AuthFormProps) {
           id: user.uid,
           name: user.displayName || 'User',
           email: user.email!,
-          phone: "",
-          address: "",
-          region: "",
-          town: "",
           role: 'customer',
           isActive: true,
           createdAt: serverTimestamp(),
@@ -160,7 +157,7 @@ export function AuthForm({ type }: AuthFormProps) {
       console.error("Error processing user sign in:", error);
       toast({
         title: "Sign-In Error",
-        description: "Authentication succeeded, but profile failed to load.",
+        description: "Profile setup failed. Please check your connection.",
         variant: "destructive",
       });
     } finally {
@@ -169,11 +166,17 @@ export function AuthForm({ type }: AuthFormProps) {
   }, [router, toast]);
 
   const handleGoogleSignIn = async () => {
+    if (!auth || !auth.app) {
+      toast({ title: "Auth Error", description: "Firebase Auth is not initialized. Please restart the app.", variant: "destructive" });
+      return;
+    }
+
     try {
       setIsProcessingGoogle(true);
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      // Standard Web SDK popup - works in Capacitor Webview
+      
+      // Standard Web popup
       const result = await signInWithPopup(auth, provider);
       await processUserSignIn(result.user);
     } catch (error: any) {
@@ -181,10 +184,10 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(false);
       
       let message = error.message || "An unexpected error occurred.";
-      if (message.includes("auth/popup-closed-by-user")) {
-        message = "Login cancelled. You closed the Google sign-in window.";
-      } else if (message.includes("auth/unauthorized-domain")) {
-        message = "Domain not authorized. Please check Firebase settings.";
+      if (error.code === 'auth/argument-error') {
+        message = "Configuration error. Please check your Firebase settings.";
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        message = "Sign-in cancelled.";
       }
       
       toast({
@@ -199,98 +202,45 @@ export function AuthForm({ type }: AuthFormProps) {
     if (isLogin) {
       const { email, password } = values as LoginFormValues;
       try {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("email", "==", email), limit(1));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-          toast({ title: "Login Failed", description: "No account found with this email address.", variant: "destructive" });
-          return;
-        }
-
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data() as User;
-        const userDocRef = userDoc.ref;
-
-        if (!userData.isActive) {
-          toast({ title: "Login Failed", description: "Your account has been deactivated.", variant: "destructive" });
-          return;
-        }
-        
-        if (userData.lockoutUntil && userData.lockoutUntil > Date.now()) {
-          const remainingMinutes = Math.ceil((userData.lockoutUntil - Date.now()) / 60000);
-          toast({ title: "Account Locked", description: `Try again in ${remainingMinutes} minutes.`, variant: "destructive" });
-          return;
-        }
-
-        try {
-          await signInWithEmailAndPassword(auth, email, password);
-          if (userData.failedLoginAttempts && userData.failedLoginAttempts > 0) {
-            await updateDoc(userDocRef, { failedLoginAttempts: 0, lockoutUntil: null });
-          }
+        await signInWithEmailAndPassword(auth, email, password);
+        const user = auth.currentUser;
+        if (user) {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          const userData = userDoc.data() as User;
           
+          if (userData && !userData.isActive) {
+            toast({ title: "Login Failed", description: "Account deactivated.", variant: "destructive" });
+            await signOut(auth);
+            return;
+          }
+
           toast({ title: "Login Successful", description: "Welcome back!" });
           const dashboardMap: Record<string, string> = {
-            'admin': '/admin/dashboard',
-            'seller': '/seller/dashboard',
-            'courier': '/courier/dashboard',
-            'supervisor': '/supervisor/dashboard',
-            'customer': '/market'
+            'admin': '/admin/dashboard', 'seller': '/seller/dashboard', 'courier': '/courier/dashboard', 'supervisor': '/supervisor/dashboard', 'customer': '/market'
           };
-          router.push(dashboardMap[userData.role] || '/market');
-        } catch (authError) {
-          const failedAttempts = (userData.failedLoginAttempts || 0) + 1;
-          let newLockoutUntil: number | null = userData.lockoutUntil || null;
-          let lockoutMessage = "";
-
-          if (failedAttempts >= 12) {
-            newLockoutUntil = Date.now() + 2 * 60 * 60 * 1000;
-            lockoutMessage = "Account locked for 2 hours.";
-          } else if (failedAttempts >= 6) {
-            newLockoutUntil = Date.now() + 30 * 60 * 1000;
-            lockoutMessage = "Account locked for 30 minutes.";
-          }
-          
-          await updateDoc(userDocRef, { failedLoginAttempts: failedAttempts, lockoutUntil: newLockoutUntil });
-          toast({ title: "Login Failed", description: lockoutMessage || "Incorrect password.", variant: "destructive" });
+          router.push(dashboardMap[userData?.role || 'customer'] || '/market');
         }
-      } catch (error) {
-        toast({ title: "Login Failed", description: "An unexpected error occurred.", variant: "destructive" });
+      } catch (error: any) {
+        toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
       }
-
     } else { 
       const { name, email, password, phone, address, region, town } = values as RegisterFormValues;
       try {
-        const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-        if (signInMethods.length > 0) {
-          toast({ title: "Registration Failed", description: "This email is already registered.", variant: "destructive" });
-          return;
-        }
-
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         await updateProfile(user, { displayName: name });
         
         await setDoc(doc(db, "users", user.uid), {
-            id: user.uid,
-            name: name,
-            email: email,
-            phone: phone,
-            address: address,
-            region: region,
-            town: town,
-            role: "customer",
-            isActive: true,
-            createdAt: serverTimestamp(),
-            failedLoginAttempts: 0,
-            lockoutUntil: null,
+            id: user.uid, name, email, phone, address, region, town,
+            role: "customer", isActive: true, createdAt: serverTimestamp(),
+            failedLoginAttempts: 0, lockoutUntil: null,
         });
 
         try { await sendWelcomeEmail({ name, email }); } catch (e) {}
-        toast({ title: "Registration Successful", description: "Your account has been created." });
+        toast({ title: "Registration Successful", description: "Account created." });
         router.push("/market");
-      } catch (error) {
-        toast({ title: "Registration Failed", description: "An unknown error occurred.", variant: "destructive" });
+      } catch (error: any) {
+        toast({ title: "Registration Failed", description: error.message, variant: "destructive" });
       }
     }
   }
