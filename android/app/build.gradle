@@ -12,8 +12,8 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Capacitor optimizes images by default
-             // avoids compressing some extensions
-             noCompress 'png', 'jpg', 'jpeg', 'gif', 'svg'
+             // https://capacitorjs.com/docs/android/configuration#configuring-aaptoptions
+             cruncherEnabled = false
         }
     }
     buildTypes {
@@ -22,14 +22,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
 }
 
 repositories {
-    flatDir {
+    flatDir{
         dirs 'libs'
     }
 }
@@ -37,6 +33,7 @@ repositories {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$rootProject.ext.androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$rootProject.ext.androidxSplashScreenVersion"
     implementation project(':capacitor-android')
     implementation project(':capacitor-cordova-android-plugins')
@@ -45,7 +42,7 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$rootProject.ext.androidxEspressoCoreVersion"
 }
 
-apply plugin: 'com.google.gms.google-services'
+apply from: 'capacitor.build.gradle'
 
 try {
     def servicesJSON = file('google-services.json')

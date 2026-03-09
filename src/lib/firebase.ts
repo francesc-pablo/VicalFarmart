@@ -1,9 +1,9 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth, Auth, indexedDBLocalPersistence, initializeAuth, browserLocalPersistence } from "firebase/auth";
-import { Capacitor } from '@capacitor/core';
+import { getAuth } from "firebase/auth";
 
 // Configuration is loaded from environment variables.
+// Ensure these are correctly set in your environment during build.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -17,28 +17,8 @@ const firebaseConfig = {
 // Initialize Firebase App
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-let auth: Auth;
-
-// Simplified Auth initialization to avoid auth/argument-error
-if (typeof window !== 'undefined') {
-  if (Capacitor.isNativePlatform()) {
-    // Native platforms require specific persistence handling
-    try {
-      auth = initializeAuth(app, {
-        persistence: [indexedDBLocalPersistence, browserLocalPersistence]
-      });
-    } catch (e) {
-      // Fallback if already initialized
-      auth = getAuth(app);
-    }
-  } else {
-    auth = getAuth(app);
-  }
-} else {
-  // Server-side
-  auth = getAuth(app);
-}
-
+// Use the standard getAuth() which is the most reliable for WebView-based apps.
+const auth = getAuth(app);
 const db = getFirestore(app);
 
-export { db, auth };
+export { db, auth, app };
