@@ -25,10 +25,9 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
-  signOut,
-  fetchSignInMethodsForEmail
+  signOut
 } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 import React, { useState, useEffect, useCallback } from "react";
 import {
@@ -39,11 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
-
-interface AuthStatus {
-  isAuthenticated: boolean;
-  user?: User | null;
-}
+import { Capacitor } from "@capacitor/core";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -167,7 +162,7 @@ export function AuthForm({ type }: AuthFormProps) {
 
   const handleGoogleSignIn = async () => {
     if (!auth || !auth.app) {
-      toast({ title: "Auth Error", description: "Firebase Auth is not initialized. Please restart the app.", variant: "destructive" });
+      toast({ title: "Auth Error", description: "Firebase Auth is not initialized correctly.", variant: "destructive" });
       return;
     }
 
@@ -176,7 +171,9 @@ export function AuthForm({ type }: AuthFormProps) {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       
-      // Standard Web popup
+      // Standard Web popup. 
+      // Note: "missing initial state" is a common WebView issue. 
+      // Persistence was updated in firebase.ts to help mitigate this.
       const result = await signInWithPopup(auth, provider);
       await processUserSignIn(result.user);
     } catch (error: any) {
@@ -184,10 +181,10 @@ export function AuthForm({ type }: AuthFormProps) {
       setIsProcessingGoogle(false);
       
       let message = error.message || "An unexpected error occurred.";
-      if (error.code === 'auth/argument-error') {
-        message = "Configuration error. Please check your Firebase settings.";
-      } else if (error.code === 'auth/popup-closed-by-user') {
+      if (error.code === 'auth/popup-closed-by-user') {
         message = "Sign-in cancelled.";
+      } else if (error.code === 'auth/argument-error') {
+        message = "Configuration error. Ensure environment variables are set.";
       }
       
       toast({

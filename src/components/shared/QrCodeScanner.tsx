@@ -26,6 +26,11 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
     try {
       setError(null);
       
+      // Verification check for the plugin implementation
+      if (typeof BarcodeScanner.checkPermission !== 'function') {
+          throw new Error('BarcodeScanner plugin bridge is not available. Try running "npx cap sync".');
+      }
+
       // Request permissions explicitly
       const status = await BarcodeScanner.checkPermission({ force: true });
       
@@ -47,6 +52,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
         setError({ message: 'Camera access is required to scan QR codes.', showSettings: false });
       }
     } catch (e: any) {
+      console.error("Native Scanner Error:", e);
       const message = (e.message || 'unknown error').toLowerCase();
       if (message.includes('cancelled')) {
           onCancel();
@@ -61,15 +67,17 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
 
     return () => {
       document.body.classList.remove('scanner-active');
-      BarcodeScanner.showBackground();
-      BarcodeScanner.stopScan();
+      try {
+          BarcodeScanner.showBackground();
+          BarcodeScanner.stopScan();
+      } catch (e) {}
     };
   }, [startScan]);
 
   if (error) {
     return (
        <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 p-8 text-center text-white">
-          <h3 className="text-xl font-bold text-destructive mb-2">Permission Required</h3>
+          <h3 className="text-xl font-bold text-destructive mb-2">Scanner Issue</h3>
           <p className="mb-6">{error.message}</p>
           <div className="flex flex-col gap-3 w-full max-w-xs">
             {error.showSettings && (
@@ -77,7 +85,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
                 <Settings className="mr-2 h-4 w-4" /> Open App Settings
               </Button>
             )}
-            <Button onClick={startScan} variant="outline">Retry Permission</Button>
+            <Button onClick={startScan} variant="outline">Retry</Button>
             <Button onClick={onCancel} variant="secondary">Cancel</Button>
           </div>
        </div>
@@ -94,8 +102,9 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
         <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white/90"></div>
         <div className="absolute bottom-0 right-0 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white/90"></div>
       </div>
-      <div className="absolute bottom-8 w-full px-8">
+      <div className="absolute bottom-8 w-full px-8 text-center">
         <Button onClick={onCancel} variant="secondary" size="lg" className="w-full">Stop Scanning</Button>
+        <p className="text-xs text-white/50 mt-4">Scanner Active</p>
       </div>
     </div>
   );
@@ -178,16 +187,16 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
 
 export function QrCodeScannerDialog() {
   const [mode, setMode] = useState<'closed' | 'web' | 'native'>('closed');
-  const [isNativePlatform, setIsNativePlatform] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
-    setIsNativePlatform(Capacitor.isNativePlatform());
-  }, []);
-
   const handleOpenScanner = () => {
-    setMode(isNativePlatform ? 'native' : 'web');
+    // Check for native platform at runtime
+    if (Capacitor.isNativePlatform()) {
+        setMode('native');
+    } else {
+        setMode('web');
+    }
   };
 
   const handleClose = useCallback(() => {
