@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     namespace "com.vicalfarmart.app"
@@ -11,8 +12,9 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Fragments and resources
-             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+             // Fragments allowed to have more than 255 resources.
+             // https://developer.android.com/studio/build/configure-apk-splitting#configure-apk-splitting
+             namespaced = false
         }
     }
     buildTypes {
@@ -28,7 +30,7 @@ android {
 }
 
 repositories {
-    flatDir {
+    flatDir{
         dirs 'libs'
     }
 }
@@ -37,23 +39,26 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$rootProject.ext.androidxCoordinatorLayoutVersion"
-    implementation "androidx.core:core-splashscreen:1.0.1"
+    implementation "androidx.core:core-ktx:$rootProject.ext.androidxCoreVersion"
+    implementation "androidx.core:core-splashscreen:1.0.0"
     implementation project(':capacitor-android')
     implementation project(':capacitor-cordova-android-plugins')
     
-    // Corrected dependency name: espresso-core
     testImplementation "junit:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$rootProject.ext.androidxEspressoCoreVersion"
 }
 
-apply from: 'capacitor.build.gradle'
-
 try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
+    def servicesConfigLayer = Array.newInstance(String.class, 0)
+    if (project.hasProperty('servicesConfig')) {
+        servicesConfigLayer = project.servicesConfig.split(',')
     }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+    for (String layer : servicesConfigLayer) {
+        if (layer.trim() != "") {
+            apply from: "../${layer.trim()}.gradle"
+        }
+    }
+} catch (Exception e) {
+    logger.warn("google-services plugin could not locate google-services.json, which will cause a build error. Please create it at android/app/google-services.json")
 }
