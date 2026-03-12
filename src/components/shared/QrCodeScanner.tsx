@@ -22,20 +22,25 @@ import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-sc
 const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: string) => void; onCancel: () => void }) => {
   const [error, setError] = useState<{ message: string; showSettings: boolean } | null>(null);
 
+  const stopScanner = useCallback(async () => {
+    try {
+      document.body.classList.remove('scanner-active');
+      await BarcodeScanner.showBackground();
+      await BarcodeScanner.stopScan();
+    } catch (e) {
+      console.warn("Cleanup error:", e);
+    }
+  }, []);
+
   const startScan = useCallback(async () => {
     try {
       setError(null);
       
-      // Verification check for the plugin implementation
-      if (typeof BarcodeScanner.checkPermission !== 'function') {
-          throw new Error('BarcodeScanner plugin bridge is not available. Try running "npx cap sync".');
-      }
-
-      // Request permissions explicitly
+      // Check/Request permissions explicitly
       const status = await BarcodeScanner.checkPermission({ force: true });
       
       if (status.granted) {
-        // Native UI preparation
+        // Native UI preparation: make body transparent to see camera through webview
         document.body.classList.add('scanner-active');
         await BarcodeScanner.hideBackground();
         
@@ -43,8 +48,14 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
           targetedFormats: [SupportedFormat.QR_CODE] 
         });
 
+        // Scan ended, restore UI
+        await stopScanner();
+
         if (result.hasContent) {
           onScanSuccess(result.content);
+        } else {
+          // Result with no content usually means cancelled by user or stopScan called
+          onCancel();
         }
       } else if (status.denied) {
         setError({ message: 'Camera permission was denied. Please enable it in your app settings.', showSettings: true });
@@ -53,26 +64,21 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
       }
     } catch (e: any) {
       console.error("Native Scanner Error:", e);
-      const message = (e.message || 'unknown error').toLowerCase();
-      if (message.includes('cancelled')) {
-          onCancel();
+      // "plugin not implemented" handling
+      if (e.message?.includes('not implemented')) {
+          setError({ message: 'The scanner plugin is not currently ready on your device. Please ensure you have synced the native project.', showSettings: false });
       } else {
-          setError({ message: `Scanning failed: ${e.message}`, showSettings: false });
+          setError({ message: `Scanning failed: ${e.message || 'Unknown error'}`, showSettings: false });
       }
     }
-  }, [onScanSuccess, onCancel]);
+  }, [onScanSuccess, onCancel, stopScanner]);
 
   useEffect(() => {
     startScan();
-
     return () => {
-      document.body.classList.remove('scanner-active');
-      try {
-          BarcodeScanner.showBackground();
-          BarcodeScanner.stopScan();
-      } catch (e) {}
+      stopScanner();
     };
-  }, [startScan]);
+  }, [startScan, stopScanner]);
 
   if (error) {
     return (
@@ -191,7 +197,6 @@ export function QrCodeScannerDialog() {
   const { toast } = useToast();
 
   const handleOpenScanner = () => {
-    // Check for native platform at runtime
     if (Capacitor.isNativePlatform()) {
         setMode('native');
     } else {
@@ -205,8 +210,8 @@ export function QrCodeScannerDialog() {
 
   const handleScanResult = useCallback((result: string) => {
     setMode('closed');
+    // Short timeout to let the dialog close or UI clean up
     setTimeout(() => {
-      // Logic to parse the QR code
       const urlPattern = /^(https?:\/\/[^\s$.?#].[^\s]*\/market\/|vicalfarmart:\/\/product\/)([a-zA-Z0-9_-]+)$/;
       const match = result.match(urlPattern);
       const productId = match ? match[2] : result.split('/').pop();
@@ -217,7 +222,7 @@ export function QrCodeScannerDialog() {
       } else {
         toast({ title: "Invalid QR Code", description: "The scanned code is not a valid product link.", variant: "destructive" });
       }
-    }, 150);
+    }, 300);
   }, [router, toast]);
   
   const onWebScanError = useCallback((message: string) => {
