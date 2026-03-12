@@ -8,4 +8,5 @@ ext {
     androidxJunitVersion = '1.1.5'
     androidxEspressoCoreVersion = '3.5.1'
     junitVersion = '4.13.2'
+    materialVersion = '1.10.0'
 }
