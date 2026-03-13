@@ -11,8 +11,8 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Standard aaptOptions. Removed invalid 'navArgsAvailable' property.
-             cruncherEnabled = true
+             // Capacitor optimizes natives by default
+             setIgnoreAssetsPattern("!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~")
         }
     }
     buildTypes {
@@ -25,14 +25,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = '17'
-    }
 }
 
 repositories {
     flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+        dirs 'libs'
     }
 }
 
@@ -40,15 +37,15 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.core:core-ktx:$androidxCoreVersion"
-    implementation "androidx.core:core-splashscreen:$androidxSplashScreenVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     implementation project(':capacitor-cordova-android-plugins')
     testImplementation "junit:junit:$junitVersion"
-    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxTestExtJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
 }
 
-apply plugin: 'com.google.gms.google-services'
+apply from: 'capacitor.build.gradle'
 
 try {
     def servicesJSON = file('google-services.json')
@@ -56,5 +53,5 @@ try {
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied.")
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
