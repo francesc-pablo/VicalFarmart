@@ -25,7 +25,6 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithCredential,
   signOut
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -39,8 +38,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
-import { Capacitor } from "@capacitor/core";
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -165,25 +162,14 @@ export function AuthForm({ type }: AuthFormProps) {
   const handleGoogleSignIn = async () => {
     try {
       setIsProcessingGoogle(true);
-
-      if (Capacitor.isNativePlatform()) {
-        // Native Implementation
-        const result = await FirebaseAuthentication.signInWithGoogle();
-        if (result.credential?.idToken || result.idToken) {
-          const idToken = result.credential?.idToken || result.idToken;
-          const credential = GoogleAuthProvider.credential(idToken);
-          const userCredential = await signInWithCredential(auth, credential);
-          await processUserSignIn(userCredential.user);
-        } else {
-          throw new Error("No ID Token received from Google.");
-        }
-      } else {
-        // Web Implementation
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        const result = await signInWithPopup(auth, provider);
-        await processUserSignIn(result.user);
-      }
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
+      // Standard Firebase Web SDK popup flow.
+      // This works in Capacitor when server.url is configured to your production domain.
+      const result = await signInWithPopup(auth, provider);
+      await processUserSignIn(result.user);
+      
     } catch (error: any) {
       console.error("Google Sign-In Error: ", error);
       setIsProcessingGoogle(false);
