@@ -169,11 +169,12 @@ export function AuthForm({ type }: AuthFormProps) {
     
     if (Capacitor.isNativePlatform()) {
       // WEB-BASED FLOW FOR ANDROID/IOS using system browser
-      const webClientId = "634911613231-1aru2nidrmpgabeaeiltttglui1gdfcp.apps.googleusercontent.com";
+      // This ID should be the one you created as "iOS" type in Google Cloud Console
+      const clientId = "318375487368-r1tu57apceaum6q2sevc8rf81jl5rjsm.apps.googleusercontent.com";
       const redirectUri = "com.vicalfarmart.app:/oauth_callback";
       
       // 1. Build the Google OAuth URL (requesting id_token)
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${webClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=openid%20profile%20email&nonce=${Math.random().toString(36).substring(2)}`;
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=openid%20profile%20email&nonce=${Math.random().toString(36).substring(2)}`;
 
       // 2. Listen for the redirect back to the app
       const urlListener = await App.addListener('appUrlOpen', async (event) => {
