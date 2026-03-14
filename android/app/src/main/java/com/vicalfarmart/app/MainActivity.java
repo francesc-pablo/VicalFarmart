@@ -7,7 +7,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Handle the splash screen transition.
+        // Install the splash screen transition BEFORE calling super.onCreate
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
     }
