@@ -1,3 +1,4 @@
+
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
@@ -7,7 +8,13 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://vicalfarmart.com',
     cleartext: true,
-  }
+  },
+  plugins: {
+    FirebaseAuthentication: {
+      providers: ['google.com'],
+      skipNativeAuth: false,
+    },
+  },
 };
 
 export default config;
