@@ -1,4 +1,3 @@
-
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
@@ -8,6 +7,9 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://vicalfarmart.com',
     cleartext: true,
+  },
+  plugins: {
+    // Standard plugins configuration
   }
 };
 

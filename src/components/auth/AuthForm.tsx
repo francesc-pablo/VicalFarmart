@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -168,11 +167,7 @@ export function AuthForm({ type }: AuthFormProps) {
 
   const handleGoogleSignIn = async () => {
     if (isNative) {
-        toast({
-            title: "Unavailable",
-            description: "Google Sign-In is currently only available on the web.",
-            variant: "destructive"
-        });
+        // Google sign-in is disabled for native platforms to resolve crashing issues
         return;
     }
 
