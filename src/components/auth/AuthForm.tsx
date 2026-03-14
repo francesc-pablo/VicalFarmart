@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,8 +26,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
-  signOut,
-  signInWithCredential
+  signOut
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
 import { Capacitor } from '@capacitor/core';
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -78,6 +77,11 @@ export function AuthForm({ type }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isProcessingGoogle, setIsProcessingGoogle] = useState(false);
+  const [isNative, setIsNative] = useState(false);
+
+  useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform());
+  }, []);
 
   const isLogin = type === "login";
   const formSchema = isLogin ? loginSchema : registerSchema;
@@ -163,42 +167,29 @@ export function AuthForm({ type }: AuthFormProps) {
   }, [router, toast]);
 
   const handleGoogleSignIn = async () => {
+    if (isNative) {
+        toast({
+            title: "Unavailable",
+            description: "Google Sign-In is currently only available on the web.",
+            variant: "destructive"
+        });
+        return;
+    }
+
     setIsProcessingGoogle(true);
-    
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const result = await FirebaseAuthentication.signInWithGoogle();
-        if (result.credential?.idToken) {
-          const credential = GoogleAuthProvider.credential(result.credential.idToken);
-          const userCredential = await signInWithCredential(auth, credential);
-          await processUserSignIn(userCredential.user);
-        } else {
-          throw new Error("No ID token received from native provider.");
-        }
-      } catch (error: any) {
-        console.error("Native Google Sign-In Error: ", error);
-        setIsProcessingGoogle(false);
-        toast({
-          title: "Google Sign-In Failed",
-          description: error.message || "Native authentication failed. Ensure SHA-1 is correct in Firebase Console.",
-          variant: "destructive",
-        });
-      }
-    } else {
-      try {
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        const result = await signInWithPopup(auth, provider);
-        await processUserSignIn(result.user);
-      } catch (error: any) {
-        console.error("Google Sign-In Error: ", error);
-        setIsProcessingGoogle(false);
-        toast({
-          title: "Google Sign-In Failed",
-          description: "Could not open sign-in window.",
-          variant: "destructive",
-        });
-      }
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(auth, provider);
+      await processUserSignIn(result.user);
+    } catch (error: any) {
+      console.error("Google Sign-In Error: ", error);
+      setIsProcessingGoogle(false);
+      toast({
+        title: "Google Sign-In Failed",
+        description: "Could not open sign-in window.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -417,21 +408,25 @@ export function AuthForm({ type }: AuthFormProps) {
             </form>
           </Form>
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
+          {!isNative && (
+            <>
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                        Or continue with
+                    </span>
+                    </div>
+                </div>
 
-          <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn} disabled={form.formState.isSubmitting || isProcessingGoogle}>
-            <GoogleIcon className="mr-2 h-5 w-5" />
-            {isProcessingGoogle ? "Processing..." : "Continue with Google"}
-          </Button>
+                <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn} disabled={form.formState.isSubmitting || isProcessingGoogle}>
+                    <GoogleIcon className="mr-2 h-5 w-5" />
+                    {isProcessingGoogle ? "Processing..." : "Continue with Google"}
+                </Button>
+            </>
+          )}
           
           <div className="mt-6 text-center text-sm">
             {isLogin ? (

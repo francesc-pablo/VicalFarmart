@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@capacitor-community/barcode-scanner": "^4.0.1",
-    "@capacitor-firebase/authentication": "^5.4.1",
     "@capacitor/android": "^5.7.0",
     "@capacitor/app": "^5.0.7",
     "@capacitor/browser": "^5.2.0",
