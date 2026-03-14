@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +26,8 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
-  signOut
+  signOut,
+  signInWithCredential
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
@@ -38,6 +40,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_REGIONS, GHANA_REGIONS_AND_TOWNS } from '@/lib/constants';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+import { App } from '@capacitor/app';
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -160,30 +165,68 @@ export function AuthForm({ type }: AuthFormProps) {
   }, [router, toast]);
 
   const handleGoogleSignIn = async () => {
-    try {
-      setIsProcessingGoogle(true);
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
+    setIsProcessingGoogle(true);
+    
+    if (Capacitor.isNativePlatform()) {
+      // WEB-BASED FLOW FOR ANDROID/IOS using system browser
+      const webClientId = "318375487368-r1tu57apceaum6q2sevc8rf81jl5rjsm.apps.googleusercontent.com";
+      const redirectUri = "com.vicalfarmart.app:/oauth_callback";
       
-      // Standard Firebase Web SDK popup flow.
-      // This works in Capacitor when server.url is configured to your production domain.
-      const result = await signInWithPopup(auth, provider);
-      await processUserSignIn(result.user);
-      
-    } catch (error: any) {
-      console.error("Google Sign-In Error: ", error);
-      setIsProcessingGoogle(false);
-      
-      let message = error.message || "An unexpected error occurred.";
-      if (error.code === 'auth/popup-closed-by-user' || error.message?.includes('cancel')) {
-        message = "Sign-in cancelled.";
-      }
-      
-      toast({
-        title: "Google Sign-In Failed",
-        description: message,
-        variant: "destructive",
+      // 1. Build the Google OAuth URL (requesting id_token)
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${webClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=openid%20profile%20email&nonce=${Math.random().toString(36).substring(2)}`;
+
+      // 2. Listen for the redirect back to the app
+      const urlListener = await App.addListener('appUrlOpen', async (event) => {
+        if (event.url.includes('oauth_callback')) {
+          await Browser.close();
+          urlListener.remove();
+
+          // Extract id_token from the URL hash
+          const url = new URL(event.url.replace('#', '?'));
+          const idToken = url.searchParams.get('id_token');
+
+          if (idToken) {
+            try {
+              const credential = GoogleAuthProvider.credential(idToken);
+              const result = await signInWithCredential(auth, credential);
+              await processUserSignIn(result.user);
+            } catch (err: any) {
+              console.error("Firebase Auth Error:", err);
+              toast({ title: "Auth Error", description: err.message, variant: "destructive" });
+              setIsProcessingGoogle(false);
+            }
+          } else {
+            console.error("No ID token found in redirect URL");
+            setIsProcessingGoogle(false);
+          }
+        }
       });
+
+      // 3. Open the system browser
+      try {
+        await Browser.open({ url: authUrl });
+      } catch (err) {
+        console.error("Browser Open Error:", err);
+        setIsProcessingGoogle(false);
+        urlListener.remove();
+      }
+
+    } else {
+      // STANDARD WEB POPUP
+      try {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const result = await signInWithPopup(auth, provider);
+        await processUserSignIn(result.user);
+      } catch (error: any) {
+        console.error("Google Sign-In Error: ", error);
+        setIsProcessingGoogle(false);
+        toast({
+          title: "Google Sign-In Failed",
+          description: error.message || "An unexpected error occurred.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
