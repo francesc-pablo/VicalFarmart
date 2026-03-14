@@ -1,8 +1,9 @@
+apply from: "variables.gradle"
 apply plugin: 'com.android.application'
 
 android {
     namespace "com.vicalfarmart.app"
-    compileSdk rootProject.ext.compileSdkVersion
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.vicalfarmart.app"
         minSdk rootProject.ext.minSdkVersion
