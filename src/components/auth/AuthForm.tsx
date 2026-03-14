@@ -173,14 +173,14 @@ export function AuthForm({ type }: AuthFormProps) {
           const userCredential = await signInWithCredential(auth, credential);
           await processUserSignIn(userCredential.user);
         } else {
-          throw new Error("No ID token received.");
+          throw new Error("No ID token received from native provider.");
         }
       } catch (error: any) {
         console.error("Native Google Sign-In Error: ", error);
         setIsProcessingGoogle(false);
         toast({
           title: "Google Sign-In Failed",
-          description: error.message || "Native authentication failed.",
+          description: error.message || "Native authentication failed. Ensure SHA-1 is correct in Firebase Console.",
           variant: "destructive",
         });
       }
