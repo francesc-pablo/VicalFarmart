@@ -13,7 +13,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Fragments allowed queries
-             namespacedRClass false
+             
         }
     }
     buildTypes {
