@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -168,16 +167,13 @@ export function AuthForm({ type }: AuthFormProps) {
     
     if (Capacitor.isNativePlatform()) {
       try {
-        // Trigger native Android Google account picker
         const result = await FirebaseAuthentication.signInWithGoogle();
-
-        // Sync the result with Firebase JS SDK
         if (result.credential?.idToken) {
           const credential = GoogleAuthProvider.credential(result.credential.idToken);
           const userCredential = await signInWithCredential(auth, credential);
           await processUserSignIn(userCredential.user);
         } else {
-          throw new Error("No ID token received from native provider.");
+          throw new Error("No ID token received.");
         }
       } catch (error: any) {
         console.error("Native Google Sign-In Error: ", error);
@@ -189,7 +185,6 @@ export function AuthForm({ type }: AuthFormProps) {
         });
       }
     } else {
-      // STANDARD WEB POPUP
       try {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
@@ -200,7 +195,7 @@ export function AuthForm({ type }: AuthFormProps) {
         setIsProcessingGoogle(false);
         toast({
           title: "Google Sign-In Failed",
-          description: error.message || "An unexpected error occurred.",
+          description: "Could not open sign-in window.",
           variant: "destructive",
         });
       }
