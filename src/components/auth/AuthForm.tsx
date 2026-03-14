@@ -170,7 +170,7 @@ export function AuthForm({ type }: AuthFormProps) {
     if (Capacitor.isNativePlatform()) {
       // WEB-BASED FLOW FOR ANDROID/IOS using system browser
       // This ID should be the one you created as "iOS" type in Google Cloud Console
-      const clientId = "318375487368-r1tu57apceaum6q2sevc8rf81jl5rjsm.apps.googleusercontent.com";
+      const clientId = "634911613231-1aru2nidrmpgabeaeiltttglui1gdfcp.apps.googleusercontent.com";
       const redirectUri = "com.vicalfarmart.app:/oauth_callback";
       
       // 1. Build the Google OAuth URL (requesting id_token)
