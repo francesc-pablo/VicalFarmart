@@ -167,7 +167,13 @@ export function AuthForm({ type }: AuthFormProps) {
 
   const handleGoogleSignIn = async () => {
     if (isNative) {
-        // Google sign-in is disabled for native platforms to resolve crashing issues
+        // Native Google sign-in removed to prevent build crashes.
+        // Use standard email login on Android.
+        toast({
+            title: "Unavailable on Android",
+            description: "Google Sign-In is temporarily disabled on mobile. Please use email/password.",
+            variant: "destructive"
+        });
         return;
     }
 

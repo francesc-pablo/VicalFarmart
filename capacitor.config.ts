@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
     cleartext: true,
   },
   plugins: {
-    // Removed Firebase Authentication to prevent build conflicts on Android
+    // Native auth plugins removed to prevent Android build conflicts
   }
 };
 
