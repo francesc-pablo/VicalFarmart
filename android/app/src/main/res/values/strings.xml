@@ -5,7 +5,7 @@
     <string name="package_name">com.vicalfarmart.app</string>
     <string name="custom_url_scheme">com.vicalfarmart.app</string>
     
-    <!-- IMPORTANT: Your Web Client ID from Google Cloud Console (Web Application Type) -->
+    <!-- IMPORTANT: Your Web Client ID from Google Cloud Console -->
     <string name="default_web_client_id">318375487368-clehl3fpgv03p8vurlrcrnmdlb7amokf.apps.googleusercontent.com</string>
     <string name="server_client_id">318375487368-clehl3fpgv03p8vurlrcrnmdlb7amokf.apps.googleusercontent.com</string>
 </resources>
