@@ -8,41 +8,60 @@ interface EmailOptions {
   htmlBody: string;
 }
 
-// Create a Nodemailer transporter using SMTP
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT || 587),
-  secure: Number(process.env.EMAIL_PORT || 587) === 465, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
 /**
  * Sends an email using Nodemailer.
- * @param {EmailOptions} options - The email options.
+ * If SMTP credentials are not found in environment variables, it logs the email to the 
+ * server console instead of throwing an error, allowing for testing in environments 
+ * without a configured mail server.
+ * 
+ * @param {EmailOptions} options - The email options including recipient, subject, and HTML content.
  * @returns {Promise<void>}
  */
 export async function sendEmail({ to, subject, htmlBody }: EmailOptions): Promise<void> {
-    // Throw error if configuration is missing so UI can handle it
-    if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.error("Email service is not configured. Please check your .env.local file.");
-        throw new Error('The email server is not configured. Please contact support.');
+    const host = process.env.EMAIL_HOST;
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+    const port = Number(process.env.EMAIL_PORT || 587);
+    const from = process.env.EMAIL_FROM || `"Vical Farmart" <noreply@vicalfarmart.com>`;
+
+    // Check if configuration is missing and provide a helpful fallback for development
+    if (!host || !user || !pass) {
+        console.warn('⚠️ EMAIL SERVICE NOT CONFIGURED: Environment variables (EMAIL_HOST, EMAIL_USER, EMAIL_PASS) are missing.');
+        console.warn('Simulation Mode Active. Logging email details to console:');
+        console.log('------------------------------------------------------------');
+        console.log(`FROM:    ${from}`);
+        console.log(`TO:      ${to}`);
+        console.log(`SUBJECT: ${subject}`);
+        console.log(`BODY:    [HTML content of ${htmlBody.length} characters]`);
+        console.log('------------------------------------------------------------');
+        return; // Exit successfully to allow the application flow to continue
     }
-    
-    const mailOptions = {
-        from: process.env.EMAIL_FROM || `"Vical Farmart" <noreply@vicalfarmart.com>`,
-        to: to,
-        subject: subject,
-        html: htmlBody,
-    };
 
     try {
+        // Initialize transporter inside the function to ensure env vars are available
+        const transporter = nodemailer.createTransport({
+            host,
+            port,
+            secure: port === 465,
+            auth: {
+                user,
+                pass,
+            },
+        });
+
+        const mailOptions = {
+            from,
+            to,
+            subject,
+            html: htmlBody,
+        };
+
         const info = await transporter.sendMail(mailOptions);
-        console.log('Email sent successfully:', info.messageId);
+        console.log('✅ Email sent successfully:', info.messageId);
     } catch (error) {
-        console.error('Error sending email:', error);
-        throw new Error('Failed to send email. Please try again later.');
+        console.error('❌ Error sending email via SMTP:', error);
+        // Provide a clearer error message back to the UI
+        const technicalDetails = error instanceof Error ? error.message : 'Unknown SMTP error';
+        throw new Error(`Email delivery failed: ${technicalDetails}. Please check your SMTP settings in .env.local.`);
     }
 }
