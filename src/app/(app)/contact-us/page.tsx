@@ -163,7 +163,6 @@ export default function ContactUsPage() {
               </div>
               <div>
                 <h3 className="font-semibold">Email</h3>
-                <p className="text-muted-foreground">support@vicalfarmart.com</p>
                 <p className="text-muted-foreground">info@vicalfarmart.com</p>
               </div>
             </div>
@@ -174,7 +173,6 @@ export default function ContactUsPage() {
               <div>
                 <h3 className="font-semibold">Phone</h3>
                 <p className="text-muted-foreground">+233302958685</p>
-                {/* <p className="text-muted-foreground">(+254) 711 111 111</p> */}
               </div>
             </div>
             <div className="flex items-start space-x-3">
@@ -184,23 +182,8 @@ export default function ContactUsPage() {
               <div>
                 <h3 className="font-semibold">Office Address</h3>
                 <p className="text-muted-foreground">Lakeside Estate</p>
-                {/* <p className="text-muted-foreground">Nairobi, Kenya</p> */}
               </div>
             </div>
-            {/* You can add a map embed here if needed */}
-            {/* <div className="aspect-video w-full">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d..."
-                width="100%"
-                height="100%"
-                style={{ border:0 }}
-                allowFullScreen={false}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Vical Farmart Location"
-                className="rounded-md"
-              ></iframe>
-            </div> */}
           </CardContent>
         </Card>
       </div>
