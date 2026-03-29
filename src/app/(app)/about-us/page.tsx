@@ -74,7 +74,7 @@ export default function AboutUsPage() {
             <CardTitle className="text-2xl font-headline text-center">Meet the Team</CardTitle>
             <p className="text-muted-foreground text-center">The passionate individuals behind Vical Farmart.</p>
           </CardHeader>
-          <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
              <div className="text-center">
                 <Image src="https://res.cloudinary.com/ddvlexmvj/image/upload/v1760401383/photo_2025-10-14_00-20-26_jar8kp.jpg" alt="Mr. Victor Atsu Alorbu" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md object-cover aspect-square" data-ai-hint="person face portrait"/>
                 <h3 className="font-semibold text-lg leading-tight">Mr. Victor Atsu Alorbu</h3>
@@ -94,6 +94,11 @@ export default function AboutUsPage() {
                 <Image src="https://res.cloudinary.com/ddvlexmvj/image/upload/v1773358223/photo_2026-03-12_23-29-53_w7dofi.jpg" alt="Mr. Emmanuel Blessing" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md object-cover aspect-square" data-ai-hint="person face portrait"/>
                 <h3 className="font-semibold text-lg leading-tight">Mr. Emmanuel Blessing</h3>
                 <p className="text-primary text-sm mt-1">Technical Advisor</p>
+             </div>
+             <div className="text-center">
+                <Image src="https://res.cloudinary.com/ddvlexmvj/image/upload/v1774820211/photo_2026-03-29_21-33-42_i5blrl.jpg" alt="Margaret Oppong" width={128} height={128} className="rounded-full mx-auto mb-4 shadow-md object-cover aspect-square" data-ai-hint="person face portrait"/>
+                <h3 className="font-semibold text-lg leading-tight">Margaret Oppong</h3>
+                <p className="text-primary text-sm mt-1">Women and Gender advocate</p>
              </div>
           </CardContent>
         </Card>
