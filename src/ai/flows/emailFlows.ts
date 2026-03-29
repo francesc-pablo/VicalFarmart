@@ -1,5 +1,3 @@
-
-
 'use server';
 /**
  * @fileOverview AI flows for generating and sending transactional emails.
@@ -351,11 +349,8 @@ const sendContactFormEmailFlow = ai.defineFlow(
     outputSchema: z.void(),
   },
   async (input) => {
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-    if (!adminEmail) {
-      console.error('Admin email is not configured. Cannot send contact form submission.');
-      throw new Error('The server is not configured to receive contact messages.');
-    }
+    // Hardcoded destination as per requirement
+    const adminEmail = 'info@vicalfarmart.com';
 
     console.log(`Generating contact form email from ${input.email}`);
     const { output } = await contactFormEmailPrompt(input);

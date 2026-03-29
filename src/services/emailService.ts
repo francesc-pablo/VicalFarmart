@@ -9,7 +9,6 @@ interface EmailOptions {
 }
 
 // Create a Nodemailer transporter using SMTP
-// These details should be stored in environment variables
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: Number(process.env.EMAIL_PORT || 587),
@@ -26,16 +25,14 @@ const transporter = nodemailer.createTransport({
  * @returns {Promise<void>}
  */
 export async function sendEmail({ to, subject, htmlBody }: EmailOptions): Promise<void> {
-    // Basic check for required env vars
+    // Throw error if configuration is missing so UI can handle it
     if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.error("Email service is not configured. Please check your .env.local file.");
-        // In a real app, you might want to throw an error or handle this differently
-        // For development, we can log this and prevent a crash.
-        return;
+        throw new Error('The email server is not configured. Please contact support.');
     }
     
     const mailOptions = {
-        from: process.env.EMAIL_FROM || `"Vical Farmart" <noreply@yourdomain.com>`,
+        from: process.env.EMAIL_FROM || `"Vical Farmart" <noreply@vicalfarmart.com>`,
         to: to,
         subject: subject,
         html: htmlBody,
@@ -46,7 +43,6 @@ export async function sendEmail({ to, subject, htmlBody }: EmailOptions): Promis
         console.log('Email sent successfully:', info.messageId);
     } catch (error) {
         console.error('Error sending email:', error);
-        // Optionally, re-throw the error to be handled by the caller
-        throw new Error('Failed to send email.');
+        throw new Error('Failed to send email. Please try again later.');
     }
 }
