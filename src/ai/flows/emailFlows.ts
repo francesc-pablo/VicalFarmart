@@ -1,374 +1,301 @@
 'use server';
 /**
- * @fileOverview AI flows for generating and sending transactional emails.
+ * @fileOverview Standard TypeScript functions for generating and sending transactional emails.
+ * This file replaces the previous Genkit AI flows with predictable HTML templates.
  */
 
-import { ai } from '@/ai/genkit';
 import { sendEmail } from '@/services/emailService';
-import { z } from 'zod';
 
-// == Schemas & Types ==
+// == Helper: Currency Symbol ==
+const getCurrencySymbol = (currencyCode?: string) => {
+  if (currencyCode === "GHS") return "₵";
+  if (currencyCode === "USD") return "$";
+  return "$"; 
+};
 
-const EmailOutputSchema = z.object({
-  subject: z.string(),
-  body: z.string().describe('The HTML body of the email.'),
-});
+// == 1. Welcome Email ==
 
-const ShippingAddressSchema = z.object({
-    address: z.string(),
-    city: z.string(),
-    zipCode: z.string(),
-});
-
-const ItemSchema = z.object({
-    productName: z.string(),
-    quantity: z.number(),
-    price: z.number(),
-});
-
-
-// == 1. Welcome Email Flow ==
-
-const WelcomeEmailInputSchema = z.object({
-  name: z.string().describe('The name of the new user.'),
-  email: z.string().email().describe('The email address of the new user.'),
-});
-type WelcomeEmailInput = z.infer<typeof WelcomeEmailInputSchema>;
-
-
-const welcomePrompt = ai.definePrompt({
-  name: 'welcomeEmailPrompt',
-  input: { schema: WelcomeEmailInputSchema },
-  output: { schema: EmailOutputSchema },
-  prompt: `
-    You are the voice of Vical Farmart, a friendly online marketplace for agricultural goods.
-    Generate a warm and welcoming email for a new user who just registered.
-
-    User's name: {{{name}}}
-
-    The subject should be "Welcome to Vical Farmart!".
-    The body should be brief, friendly, and thank them for joining.
-    It should encourage them to start exploring the market.
-    Use simple HTML for formatting (e.g., <p>, <strong>, <a>).
-    Do not include CSS or a <style> block.
-  `,
-});
-
-const sendWelcomeEmailFlow = ai.defineFlow(
-  {
-    name: 'sendWelcomeEmailFlow',
-    inputSchema: WelcomeEmailInputSchema,
-    outputSchema: z.void(),
-  },
-  async (input) => {
-    console.log(`Generating welcome email for ${input.email}`);
-    const { output } = await welcomePrompt(input);
-    if (!output) {
-      console.error('Failed to generate welcome email content.');
-      throw new Error('Email content generation failed.');
-    }
-    
-    console.log(`Sending welcome email to ${input.email}`);
-    await sendEmail({
-      to: input.email,
-      subject: output.subject,
-      htmlBody: output.body,
-    });
-    console.log('Welcome email sent successfully.');
-  }
-);
+interface WelcomeEmailInput {
+  name: string;
+  email: string;
+}
 
 export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> {
-  return sendWelcomeEmailFlow(input);
+  const subject = "Welcome to Vical Farmart!";
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #8FBC8F;">Welcome to Vical Farmart, ${input.name}!</h2>
+      <p>We are thrilled to have you join our community of farmers and food enthusiasts.</p>
+      <p>Vical Farmart is your direct link to high-quality agricultural produce and artisanal goods. Start exploring our marketplace today to find the freshest items from local sellers.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://vicalfarmart.com/market" style="background-color: #8FBC8F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Explore the Market</a>
+      </div>
+      <p>If you have any questions, feel free to reply to this email.</p>
+      <p>Happy shopping!<br><strong>The Vical Farmart Team</strong></p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: input.email,
+    subject,
+    htmlBody,
+  });
 }
 
 
-// == 2. New Order Notification Flow ==
+// == 2. New Order Notification (Admin/Seller) ==
 
-const NewOrderEmailInputSchema = z.object({
-  recipientEmail: z.string().email(),
-  recipientName: z.string(),
-  recipientRole: z.enum(['admin', 'seller']),
-  orderId: z.string(),
-  customerName: z.string(),
-  totalAmount: z.number(),
-  items: z.array(z.object({
-    productName: z.string(),
-    quantity: z.number(),
-    price: z.number(),
-  })),
-});
-type NewOrderEmailInput = z.infer<typeof NewOrderEmailInputSchema>;
-
-const newOrderPrompt = ai.definePrompt({
-    name: 'newOrderEmailPrompt',
-    input: { schema: NewOrderEmailInputSchema },
-    output: { schema: EmailOutputSchema },
-    prompt: `
-      You are the notification system for Vical Farmart.
-      Generate a new order notification email. The tone should be professional and informative.
-
-      The recipient is {{recipientName}}, who is a(n) {{recipientRole}}.
-
-      Order Details:
-      - Order ID: {{{orderId}}}
-      - Customer Name: {{{customerName}}}
-      - Total Amount: \${{{totalAmount}}}
-
-      Items:
-      {{#each items}}
-      - {{this.quantity}}x {{this.productName}} at \${{this.price}} each
-      {{/each}}
-
-      Generate a subject line appropriate for the recipient's role.
-      For an admin, it should be "New Order Placed on Vical Farmart (#{{{orderId}}})".
-      For a seller, it should be "You have a new order! (#{{{orderId}}})".
-
-      Generate an HTML body that clearly presents all the order details.
-      If the recipient is a seller, tell them to prepare the items for shipment.
-      If the recipient is an admin, provide a link to the admin dashboard orders page: /admin/dashboard/orders
-    `,
-});
-
-const sendNewOrderEmailFlow = ai.defineFlow(
-    {
-        name: 'sendNewOrderEmailFlow',
-        inputSchema: NewOrderEmailInputSchema,
-        outputSchema: z.void(),
-    },
-    async (input) => {
-        console.log(`Generating new order email for ${input.recipientEmail}`);
-        const { output } = await newOrderPrompt(input);
-        if (!output) {
-            console.error('Failed to generate new order email content for order ' + input.orderId);
-            throw new Error('New order email content generation failed.');
-        }
-        await sendEmail({
-            to: input.recipientEmail,
-            subject: output.subject,
-            htmlBody: output.body,
-        });
-        console.log(`New order email sent to ${input.recipientEmail}`);
-    }
-);
+interface NewOrderEmailInput {
+  recipientEmail: string;
+  recipientName: string;
+  recipientRole: 'admin' | 'seller';
+  orderId: string;
+  customerName: string;
+  totalAmount: number;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+  }>;
+}
 
 export async function sendNewOrderEmail(input: NewOrderEmailInput): Promise<void> {
-    return sendNewOrderEmailFlow(input);
+  const isSeller = input.recipientRole === 'seller';
+  const subject = isSeller 
+    ? `You have a new order! (#${input.orderId.substring(0, 6)})`
+    : `New Order Placed on Vical Farmart (#${input.orderId.substring(0, 6)})`;
+
+  const itemsHtml = input.items.map(item => `
+    <tr style="border-bottom: 1px solid #eee;">
+      <td style="padding: 10px 0;">${item.productName}</td>
+      <td style="padding: 10px 0; text-align: center;">${item.quantity}</td>
+      <td style="padding: 10px 0; text-align: right;">₵${item.price.toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #8FBC8F;">Hello ${input.recipientName},</h2>
+      <p>${isSeller ? "Great news! A customer has purchased your products." : "A new order has been successfully placed on the platform."}</p>
+      
+      <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>Order ID:</strong> #${input.orderId}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Customer:</strong> ${input.customerName}</p>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid #eee;">
+            <th style="text-align: left; padding-bottom: 10px;">Product</th>
+            <th style="text-align: center; padding-bottom: 10px;">Qty</th>
+            <th style="text-align: right; padding-bottom: 10px;">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <p style="text-align: right; font-size: 1.2em; font-weight: bold; margin-top: 20px;">
+        Total: ₵${input.totalAmount.toFixed(2)}
+      </p>
+
+      ${isSeller 
+        ? `<p style="color: #A0522D; font-weight: bold;">Please prepare these items for pickup/shipment.</p>`
+        : `<p><a href="https://vicalfarmart.com/admin/dashboard/orders">View order in Admin Dashboard</a></p>`
+      }
+      
+      <p>Regards,<br>Vical Farmart System</p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: input.recipientEmail,
+    subject,
+    htmlBody,
+  });
 }
 
 
-// == 3. Order Status Update Flow ==
+// == 3. Order Status Update ==
 
-const OrderStatusUpdateInputSchema = z.object({
-    recipientEmail: z.string().email(),
-    recipientRole: z.enum(['customer', 'seller']),
-    customerName: z.string(),
-    orderId: z.string(),
-    newStatus: z.string(),
-    items: z.array(z.object({
-        productName: z.string(),
-        quantity: z.number()
-    })),
-    courierName: z.string().optional(),
-});
-type OrderStatusUpdateInput = z.infer<typeof OrderStatusUpdateInputSchema>;
-
-const orderStatusUpdatePrompt = ai.definePrompt({
-    name: 'orderStatusUpdatePrompt',
-    input: { schema: OrderStatusUpdateInputSchema },
-    output: { schema: EmailOutputSchema },
-    prompt: `
-      You are the notification system for Vical Farmart.
-      Generate an email notifying about an order status update.
-
-      This email is for a {{recipientRole}}.
-      Customer Name: {{{customerName}}}
-      Order ID: {{{orderId}}}
-      New Status: {{{newStatus}}}
-
-      Generate an appropriate subject line.
-      - If for a customer: "Update on your Vical Farmart Order #{{{orderId}}}"
-      - If for a seller: "Order #{{{orderId}}} status has been updated to {{{newStatus}}}"
-
-      Generate a friendly HTML body that informs the recipient about the change.
-      List the items in the order for context.
-      Items:
-      {{#each items}}
-      - {{this.quantity}}x {{this.productName}}
-      {{/each}}
-      
-      Provide a brief, reassuring message based on the status and recipient.
-      - If for a customer and 'Processing': "We're getting your order ready."
-      - If for a customer and 'Shipped': "Your order is on its way! It will be delivered by {{{courierName}}}."
-      - If for a customer and 'Delivered': "Your order has arrived. Enjoy!"
-      - If for a customer and 'Cancelled': "Your order has been cancelled."
-      - If for a seller, simply state the new status and that the customer has been notified.
-    `,
-});
-
-const sendOrderStatusUpdateEmailFlow = ai.defineFlow({
-    name: 'sendOrderStatusUpdateEmailFlow',
-    inputSchema: OrderStatusUpdateInputSchema,
-    outputSchema: z.void(),
-}, async (input) => {
-    console.log(`Generating order status update email for ${input.recipientEmail}`);
-    const { output } = await orderStatusUpdatePrompt(input);
-    if (!output) {
-        console.error('Failed to generate order status update email content for order ' + input.orderId);
-        throw new Error('Order status update email content generation failed.');
-    }
-    await sendEmail({
-        to: input.recipientEmail,
-        subject: output.subject,
-        htmlBody: output.body,
-    });
-    console.log(`Order status update email sent to ${input.recipientEmail}`);
-});
-
+interface OrderStatusUpdateInput {
+  recipientEmail: string;
+  recipientRole: 'customer' | 'seller';
+  customerName: string;
+  orderId: string;
+  newStatus: string;
+  items: Array<{
+    productName: string;
+    quantity: number;
+  }>;
+  courierName?: string;
+}
 
 export async function sendOrderStatusUpdateEmail(input: OrderStatusUpdateInput): Promise<void> {
-    return sendOrderStatusUpdateEmailFlow(input);
+  const isCustomer = input.recipientRole === 'customer';
+  const subject = isCustomer
+    ? `Update on your Vical Farmart Order #${input.orderId.substring(0, 6)}`
+    : `Order #${input.orderId.substring(0, 6)} status updated to ${input.newStatus}`;
+
+  let statusMessage = "";
+  if (isCustomer) {
+    switch (input.newStatus) {
+      case 'Processing': statusMessage = "We're getting your order ready!"; break;
+      case 'Shipped': statusMessage = `Your order is on its way!${input.courierName ? ` It is being delivered by ${input.courierName}.` : ""}`; break;
+      case 'Delivered': statusMessage = "Your order has been delivered. We hope you enjoy your purchase!"; break;
+      case 'Cancelled': statusMessage = "Your order has been cancelled."; break;
+      default: statusMessage = `The status of your order has been updated to: ${input.newStatus}.`;
+    }
+  } else {
+    statusMessage = `The order status has been updated to ${input.newStatus}. The customer has been notified.`;
+  }
+
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #8FBC8F;">Order Update</h2>
+      <p>Hi ${isCustomer ? input.customerName : "Seller"},</p>
+      <p style="font-size: 1.1em; font-weight: bold; color: #333;">${statusMessage}</p>
+      
+      <p><strong>Order ID:</strong> #${input.orderId}</p>
+      
+      <div style="margin-top: 20px; border-top: 1px solid #eee; pt: 10px;">
+        <p style="margin-bottom: 5px;"><strong>Items included:</strong></p>
+        <ul style="padding-left: 20px;">
+          ${input.items.map(i => `<li>${i.quantity}x ${i.productName}</li>`).join('')}
+        </ul>
+      </div>
+
+      <p style="margin-top: 30px;">Thank you for choosing Vical Farmart.</p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: input.recipientEmail,
+    subject,
+    htmlBody,
+  });
 }
 
 
-// == 4. Order Confirmation/Receipt Email Flow ==
+// == 4. Order Confirmation/Receipt ==
 
-const OrderConfirmationEmailInputSchema = z.object({
-  customerEmail: z.string().email(),
-  customerName: z.string(),
-  orderId: z.string(),
-  totalAmount: z.number(),
-  paymentMethod: z.string(),
-  transactionId: z.string().optional(),
-  items: z.array(ItemSchema),
-  shippingAddress: ShippingAddressSchema,
-});
-type OrderConfirmationEmailInput = z.infer<typeof OrderConfirmationEmailInputSchema>;
-
-
-const orderConfirmationPrompt = ai.definePrompt({
-    name: 'orderConfirmationPrompt',
-    input: { schema: OrderConfirmationEmailInputSchema },
-    output: { schema: EmailOutputSchema },
-    prompt: `
-      You are the friendly automated receipt system for Vical Farmart.
-      Generate a detailed order confirmation and receipt email. This confirms a SUCCESSFUL PAYMENT.
-
-      Customer: {{{customerName}}}
-      Order ID: #{{{orderId}}}
-
-      The subject line must be "Your Vical Farmart Order Confirmation (#{{{orderId}}})".
-
-      Generate a well-formatted HTML email body.
-      - Start with a warm thank you message for the order.
-      - Clearly list all items with quantity, price per item, and subtotal for the line item.
-      - Show the grand total amount.
-      - Display the payment method used. If a transaction ID is provided, show it.
-      - Display the shipping address.
-      - End with a friendly closing note, telling the customer they will be notified when the order ships.
-      
-      Order Details:
-      - Grand Total: \${{{totalAmount}}}
-      - Payment Method: {{{paymentMethod}}}
-      {{#if transactionId}}- Transaction ID: {{{transactionId}}}{{/if}}
-
-      Items Ordered:
-      {{#each items}}
-      - {{this.quantity}}x "{{this.productName}}" @ \${{this.price}} each = \${{multiply this.quantity this.price}}
-      {{/each}}
-
-      Shipping To:
-      {{{shippingAddress.address}}}
-      {{{shippingAddress.city}}}, {{{shippingAddress.zipCode}}}
-    `,
-    helpers: {
-      multiply: (a: number, b: number) => (a * b).toFixed(2),
-    }
-});
-
-
-const sendOrderConfirmationEmailFlow = ai.defineFlow({
-    name: 'sendOrderConfirmationEmailFlow',
-    inputSchema: OrderConfirmationEmailInputSchema,
-    outputSchema: z.void(),
-}, async (input) => {
-    console.log(`Generating order confirmation email for ${input.customerEmail}`);
-    const { output } = await orderConfirmationPrompt(input);
-    if (!output) {
-        console.error('Failed to generate order confirmation email content for order ' + input.orderId);
-        throw new Error('Order confirmation email content generation failed.');
-    }
-    await sendEmail({
-        to: input.customerEmail,
-        subject: output.subject,
-        htmlBody: output.body,
-    });
-    console.log(`Order confirmation email sent to ${input.customerEmail}`);
-});
+interface OrderConfirmationEmailInput {
+  customerEmail: string;
+  customerName: string;
+  orderId: string;
+  totalAmount: number;
+  paymentMethod: string;
+  transactionId?: string;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+  }>;
+  shippingAddress: {
+    address: string;
+    city: string;
+    zipCode: string;
+  };
+}
 
 export async function sendOrderConfirmationEmail(input: OrderConfirmationEmailInput): Promise<void> {
-    return sendOrderConfirmationEmailFlow(input);
+  const subject = `Your Vical Farmart Order Confirmation (#${input.orderId.substring(0, 6)})`;
+
+  const itemsHtml = input.items.map(item => `
+    <tr style="border-bottom: 1px solid #eee;">
+      <td style="padding: 10px 0;">${item.productName} (x${item.quantity})</td>
+      <td style="padding: 10px 0; text-align: right;">₵${(item.price * item.quantity).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="color: #8FBC8F; margin: 0;">Order Receipt</h1>
+        <p style="color: #666;">Thank you for your purchase!</p>
+      </div>
+
+      <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <p style="margin: 0;"><strong>Order Number:</strong> #${input.orderId}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Payment Method:</strong> ${input.paymentMethod}</p>
+        ${input.transactionId ? `<p style="margin: 5px 0 0 0;"><strong>Transaction ID:</strong> ${input.transactionId}</p>` : ''}
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+          <tr style="border-bottom: 2px solid #eee;">
+            <th style="text-align: left; padding-bottom: 10px;">Item</th>
+            <th style="text-align: right; padding-bottom: 10px;">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td style="padding-top: 15px; font-weight: bold;">Grand Total</td>
+            <td style="padding-top: 15px; text-align: right; font-weight: bold; font-size: 1.2em; color: #8FBC8F;">₵${input.totalAmount.toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div style="border-top: 1px solid #eee; padding-top: 15px;">
+        <h3 style="color: #A0522D; margin-bottom: 10px;">Shipping To:</h3>
+        <p style="margin: 0;">${input.customerName}</p>
+        <p style="margin: 0;">${input.shippingAddress.address}</p>
+        <p style="margin: 0;">${input.shippingAddress.city}, ${input.shippingAddress.zipCode}</p>
+      </div>
+
+      <p style="margin-top: 30px; font-size: 0.9em; color: #666; text-align: center;">
+        You will receive another notification once your order has been shipped.
+      </p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: input.customerEmail,
+    subject,
+    htmlBody,
+  });
 }
 
 
-// == 5. Contact Form Submission Email Flow ==
+// == 5. Contact Form Submission ==
 
-const ContactFormEmailInputSchema = z.object({
-  name: z.string(),
-  email: z.string().email(),
-  subject: z.string(),
-  message: z.string(),
-});
-export type ContactFormEmailInput = z.infer<typeof ContactFormEmailInputSchema>;
-
-const contactFormEmailPrompt = ai.definePrompt({
-  name: 'contactFormEmailPrompt',
-  input: { schema: ContactFormEmailInputSchema },
-  output: { schema: EmailOutputSchema },
-  prompt: `
-    You are an email formatting service for Vical Farmart.
-    A user has submitted the contact form. Format the submission into a clean, professional HTML email.
-
-    The subject line should be: "New Contact Form Submission: {{{subject}}}"
-
-    The email body should clearly present the following information:
-    - Name: {{{name}}}
-    - Email: {{{email}}}
-    - Subject: {{{subject}}}
-    - Message:
-      {{{message}}}
-
-    Wrap the message content in a <pre> tag to preserve formatting like line breaks.
-  `,
-});
-
-const sendContactFormEmailFlow = ai.defineFlow(
-  {
-    name: 'sendContactFormEmailFlow',
-    inputSchema: ContactFormEmailInputSchema,
-    outputSchema: z.void(),
-  },
-  async (input) => {
-    // Hardcoded destination as per requirement
-    const adminEmail = 'info@vicalfarmart.com';
-
-    console.log(`Generating contact form email from ${input.email}`);
-    const { output } = await contactFormEmailPrompt(input);
-    if (!output) {
-      console.error('Failed to generate contact form email content.');
-      throw new Error('Email content generation failed.');
-    }
-    
-    console.log(`Sending contact form submission to ${adminEmail}`);
-    await sendEmail({
-      to: adminEmail,
-      subject: output.subject,
-      htmlBody: output.body,
-    });
-    console.log('Contact form email sent successfully.');
-  }
-);
+interface ContactFormEmailInput {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}
 
 export async function sendContactFormEmail(input: ContactFormEmailInput): Promise<void> {
-    return sendContactFormEmailFlow(input);
+  const adminEmail = 'info@vicalfarmart.com';
+  const emailSubject = `New Contact Form Submission: ${input.subject}`;
+
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #A0522D;">New Message Received</h2>
+      <p>You have a new submission from the Vical Farmart contact form.</p>
+      
+      <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>From:</strong> ${input.name} (${input.email})</p>
+        <p style="margin: 10px 0 0 0;"><strong>Subject:</strong> ${input.subject}</p>
+      </div>
+
+      <div style="border: 1px solid #eee; padding: 15px; border-radius: 5px; background-color: #fff;">
+        <p style="margin-top: 0; font-weight: bold;">Message:</p>
+        <div style="white-space: pre-wrap; font-size: 14px; color: #333;">${input.message}</div>
+      </div>
+      
+      <p style="margin-top: 20px; font-size: 0.8em; color: #999;">This message was sent automatically from the Vical Farmart website.</p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: adminEmail,
+    subject: emailSubject,
+    htmlBody,
+  });
 }

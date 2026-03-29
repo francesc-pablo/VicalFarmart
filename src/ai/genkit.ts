@@ -1,11 +1,5 @@
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
-
-export const ai = genkit({
-  plugins: [googleAI()],
-  model: 'googleai/gemini-2.0-flash',
-});
+/**
+ * @fileOverview AI configuration file.
+ * Genkit has been disabled as the app currently uses standard TypeScript logic for emails.
+ */
+export const ai = null;
