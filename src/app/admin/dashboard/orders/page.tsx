@@ -1,5 +1,3 @@
-
-
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -18,7 +16,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getAllOrders, updateOrderStatus, getOrderById, assignCourierToOrder } from '@/services/orderService';
 import { getUserById, getUsers } from '@/services/userService';
-import { sendOrderStatusUpdateEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
+import { sendOrderStatusUpdateEmail, sendOrderConfirmationEmail, sendCourierAssignmentEmail } from '@/ai/flows/emailFlows';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -130,9 +128,28 @@ export default function AdminOrdersPage() {
       try {
           await assignCourierToOrder(orderId, courierId, courierName);
           toast({ title: "Courier Assigned", description: `${courierName} has been assigned to order #${orderId.substring(0, 6)}.` });
+          
+          // Update local state
           setAllOrders(prev => prev.map(o => o.id === orderId ? { ...o, courierId, courierName } : o));
+
+          // Trigger Courier Email
+          const courierDetails = await getUserById(courierId);
+          const orderDetails = allOrders.find(o => o.id === orderId);
+
+          if (courierDetails?.email && orderDetails) {
+              await sendCourierAssignmentEmail({
+                  courierEmail: courierDetails.email,
+                  courierName: courierName,
+                  orderId: orderId,
+                  customerName: orderDetails.customerName,
+                  customerPhone: orderDetails.customerPhone,
+                  shippingAddress: orderDetails.shippingAddress,
+                  items: orderDetails.items.map(i => ({ productName: i.productName, quantity: i.quantity })),
+              });
+          }
       } catch (error) {
-          toast({ title: "Assignment Failed", description: "Could not assign the courier.", variant: "destructive" });
+          console.error("Assignment notification failed:", error);
+          toast({ title: "Assignment Error", description: "Courier was assigned but notification failed.", variant: "destructive" });
       }
   };
 
@@ -294,6 +311,3 @@ export default function AdminOrdersPage() {
     </>
   );
 }
-
-
-

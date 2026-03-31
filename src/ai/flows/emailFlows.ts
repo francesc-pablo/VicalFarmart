@@ -299,3 +299,69 @@ export async function sendContactFormEmail(input: ContactFormEmailInput): Promis
     htmlBody,
   });
 }
+
+// == 6. Courier Assignment Email ==
+
+interface CourierAssignmentEmailInput {
+  courierEmail: string;
+  courierName: string;
+  orderId: string;
+  customerName: string;
+  customerPhone: string;
+  shippingAddress: {
+    address: string;
+    city: string;
+    zipCode: string;
+  };
+  items: Array<{
+    productName: string;
+    quantity: number;
+  }>;
+}
+
+export async function sendCourierAssignmentEmail(input: CourierAssignmentEmailInput): Promise<void> {
+  const subject = `New Delivery Assigned: Order #${input.orderId.substring(0, 6)}`;
+
+  const itemsHtml = input.items.map(item => `
+    <li style="padding: 5px 0;"><strong>${item.quantity}x</strong> ${item.productName}</li>
+  `).join('');
+
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #8FBC8F;">Hello ${input.courierName},</h2>
+      <p>You have been assigned a new delivery task on Vical Farmart.</p>
+      
+      <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>Order ID:</strong> #${input.orderId}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Customer:</strong> ${input.customerName}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Phone:</strong> ${input.customerPhone}</p>
+      </div>
+
+      <div style="border: 1px solid #8FBC8F; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #A0522D;">Delivery Address:</h3>
+        <p style="margin: 0;">${input.shippingAddress.address}</p>
+        <p style="margin: 0;">${input.shippingAddress.city}, ${input.shippingAddress.zipCode}</p>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <p style="font-weight: bold; margin-bottom: 5px;">Items to Deliver:</p>
+        <ul style="padding-left: 20px; margin-top: 0;">
+          ${itemsHtml}
+        </ul>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://vicalfarmart.com/courier/dashboard/orders" style="background-color: #8FBC8F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Details in Dashboard</a>
+      </div>
+
+      <p>Please proceed to pick up the items and complete the delivery as soon as possible.</p>
+      <p>Regards,<br><strong>Vical Farmart Logistics</strong></p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: input.courierEmail,
+    subject,
+    htmlBody,
+  });
+}
