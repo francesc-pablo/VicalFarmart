@@ -1,8 +1,7 @@
 
-
 import { db } from "@/lib/firebase";
 import type { Order, OrderStatus } from "@/types";
-import { collection, getDocs, doc, updateDoc, query, orderBy, where, addDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, where, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 
 const ordersCollectionRef = collection(db, "orders");
 
@@ -17,15 +16,27 @@ const convertTimestamp = (data: any) => {
   return convertedData;
 };
 
+/**
+ * Creates a new order in Firestore.
+ * Follows non-blocking pattern: returns the ID immediately and queues the write.
+ */
 export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): Promise<string | null> {
   try {
-    const docRef = await addDoc(ordersCollectionRef, {
+    const docRef = doc(ordersCollectionRef);
+    const id = docRef.id;
+    
+    // NO await here to leverage optimistic concurrency and offline sync
+    setDoc(docRef, {
       ...orderData,
+      id,
       orderDate: serverTimestamp(),
+    }).catch(error => {
+      console.error("Firestore createOrder background error: ", error);
     });
-    return docRef.id;
+
+    return id;
   } catch (error) {
-    console.error("Error creating order: ", error);
+    console.error("Error initiating order creation: ", error);
     return null;
   }
 }
@@ -94,10 +105,6 @@ export async function getOrdersByCustomerId(customerId: string): Promise<Order[]
 
 export async function getOrdersBySellerId(sellerId: string): Promise<Order[]> {
   try {
-    // Firestore does not support querying array contains on an array of objects directly.
-    // The most scalable solution would be to create a subcollection of sellers on each order.
-    // For this app's scale, we fetch all orders and filter them in the backend.
-    // This is NOT ideal for very large datasets but works for this scope.
     const allOrders = await getAllOrders();
     const sellerOrders = allOrders.filter(order => 
       order.items.some(item => item.sellerId === sellerId)
@@ -111,9 +118,6 @@ export async function getOrdersBySellerId(sellerId: string): Promise<Order[]> {
 
 export async function getOrdersByCourierId(courierId: string): Promise<Order[]> {
   try {
-    // The combination of `where` and `orderBy` requires a composite index in Firestore.
-    // To prevent the app from crashing before the index is created, we'll fetch
-    // without the `orderBy` and then sort the results in the application code.
     const q = query(
       ordersCollectionRef,
       where("courierId", "==", courierId)
@@ -128,7 +132,6 @@ export async function getOrdersByCourierId(courierId: string): Promise<Order[]> 
       } as Order;
     });
 
-    // Sort by orderDate descending in code
     orders.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
 
     return orders;
@@ -138,25 +141,48 @@ export async function getOrdersByCourierId(courierId: string): Promise<Order[]> 
   }
 }
 
-export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
+/**
+ * Updates an order status and optional payment details.
+ * Follows non-blocking pattern.
+ */
+export async function updateOrderStatus(
+    orderId: string, 
+    status: OrderStatus, 
+    paymentDetails?: Order['paymentDetails']
+): Promise<void> {
   try {
     const orderDocRef = doc(db, "orders", orderId);
-    await updateDoc(orderDocRef, { status });
+    const updateData: any = { status };
+    if (paymentDetails) {
+        updateData.paymentDetails = paymentDetails;
+    }
+    
+    // NO await here
+    updateDoc(orderDocRef, updateData).catch(error => {
+        console.error("Firestore updateOrderStatus background error: ", error);
+    });
   } catch (error) {
-    console.error("Error updating order status: ", error);
-    throw error; // Re-throw to be caught in the component
+    console.error("Error initiating order status update: ", error);
+    throw error;
   }
 }
 
+/**
+ * Assigns a courier to an order.
+ * Follows non-blocking pattern.
+ */
 export async function assignCourierToOrder(orderId: string, courierId: string, courierName: string): Promise<void> {
     try {
         const orderDocRef = doc(db, "orders", orderId);
-        await updateDoc(orderDocRef, {
+        // NO await here
+        updateDoc(orderDocRef, {
             courierId: courierId,
             courierName: courierName,
+        }).catch(error => {
+            console.error("Firestore assignCourierToOrder background error: ", error);
         });
     } catch (error) {
-        console.error("Error assigning courier to order: ", error);
+        console.error("Error initiating courier assignment: ", error);
         throw error;
     }
 }

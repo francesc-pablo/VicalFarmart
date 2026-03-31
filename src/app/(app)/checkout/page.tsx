@@ -13,9 +13,9 @@ import { ArrowLeft, CreditCard, Minus, Package, Plus, ShoppingCart, Trash2, Truc
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useCart } from "@/context/CartContext";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -26,7 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { createOrder } from '@/services/orderService';
+import { createOrder, updateOrderStatus } from '@/services/orderService';
 import { getUsers, getUserById } from '@/services/userService';
 import { sendNewOrderEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { sendEmail } from '@/services/emailService';
@@ -191,7 +191,7 @@ export default function CheckoutPage() {
   }, [form]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingFee = 0; // Shipping cost disabled
+  const shippingFee = 0; 
   const total = subtotal + shippingFee;
   const mainCurrency = useMemo(() => getCurrencyForFlutterwave(cartItems[0]?.currency), [cartItems]);
   const mainCurrencySymbol = getCurrencySymbol(mainCurrency);
@@ -206,16 +206,92 @@ export default function CheckoutPage() {
     }
   }, [watchedPaymentMethod, form]);
 
+  /**
+   * Triggers all post-order notifications (Admin, Sellers, Customer)
+   */
+  const triggerOrderNotifications = useCallback(async (orderId: string, orderData: any, isPaid: boolean) => {
+    try {
+        const orderItems = orderData.items;
+        const sellerIds = new Set(orderItems.map((item: any) => item.sellerId));
 
-  const handleCreateOrderInDB = async (
+        // 1. Send receipt/invoice to customer
+        if (isPaid) {
+            await sendOrderConfirmationEmail({
+                customerEmail: orderData.customerEmail,
+                customerName: orderData.customerName,
+                orderId: orderId,
+                totalAmount: orderData.totalAmount,
+                paymentMethod: orderData.paymentMethod,
+                transactionId: String(orderData.paymentDetails?.transactionId || 'N/A'),
+                items: orderItems,
+                shippingAddress: {
+                    address: orderData.shippingAddress.address,
+                    city: orderData.shippingAddress.city,
+                    zipCode: orderData.shippingAddress.zipCode,
+                },
+            });
+        } else if (orderData.paymentMethod === 'Pay on Delivery') {
+            const invoiceHtml = generatePayOnDeliveryInvoiceHtml({
+                id: orderId,
+                customerName: orderData.customerName,
+                items: orderItems,
+                totalAmount: orderData.totalAmount,
+                currency: orderData.currency,
+                shippingAddress: orderData.shippingAddress,
+            });
+            await sendEmail({
+                to: orderData.customerEmail,
+                subject: `Your Vical Farmart Order Invoice (#${orderId.substring(0, 6)})`,
+                htmlBody: invoiceHtml,
+            });
+        }
+
+        // 2. Send notification to admin
+        const allUsers = await getUsers();
+        const adminUser = allUsers.find(u => u.role === 'admin');
+        if (adminUser?.email) {
+            await sendNewOrderEmail({
+                recipientEmail: adminUser.email,
+                recipientName: adminUser.name,
+                recipientRole: 'admin',
+                orderId: orderId,
+                customerName: orderData.customerName,
+                totalAmount: orderData.totalAmount,
+                items: orderItems,
+            });
+        }
+
+        // 3. Send notification to each unique seller
+        for (const sellerId of sellerIds) {
+             const currentSeller = await getUserById(sellerId as string);
+             if (currentSeller?.email) {
+                await sendNewOrderEmail({
+                    recipientEmail: currentSeller.email,
+                    recipientName: currentSeller.name,
+                    recipientRole: 'seller',
+                    orderId: orderId,
+                    customerName: orderData.customerName,
+                    totalAmount: orderData.totalAmount,
+                    items: orderItems.filter((item: any) => item.sellerId === sellerId),
+                });
+             }
+        }
+    } catch (error) {
+        console.error("Failed to send some notification emails:", error);
+    }
+  }, []);
+
+  /**
+   * Core workflow for creating an order record.
+   * On Android, we create it as 'Pending' first to avoid data loss.
+   */
+  const handleOrderCreation = async (
     data: CheckoutFormValues, 
-    status: Order['status'], 
-    paymentMethodType: PaymentMethodType,
-    paymentDetails?: Order['paymentDetails']
+    initialStatus: Order['status'], 
+    paymentMethodType: PaymentMethodType
   ) => {
     if (!currentUser || cartItems.length === 0) return null;
 
-    setIsProcessing(true);
     const orderItems: OrderItem[] = cartItems.map(item => ({
         productId: item.id,
         productName: item.name,
@@ -226,11 +302,9 @@ export default function CheckoutPage() {
         sellerId: item.sellerId,
     }));
     
-    // Determine if it's a single seller order
     const sellerIds = new Set(orderItems.map(item => item.sellerId));
     const isSingleSeller = sellerIds.size === 1;
     const singleSellerId = isSingleSeller ? sellerIds.values().next().value : undefined;
-    const seller = singleSellerId ? await getUserById(singleSellerId) : null;
 
     const orderData: Omit<Order, 'id' | 'orderDate'> = {
         customerId: currentUser.id,
@@ -240,7 +314,7 @@ export default function CheckoutPage() {
         items: orderItems,
         totalAmount: total,
         currency: mainCurrency,
-        status: status,
+        status: initialStatus,
         paymentMethod: paymentMethodType,
         shippingAddress: {
             address: data.address,
@@ -248,109 +322,18 @@ export default function CheckoutPage() {
             zipCode: data.zipCode,
             idCardNumber: data.idCardNumber,
         },
-        // Only set sellerId if it's a single seller order
         ...(isSingleSeller && { sellerId: singleSellerId }),
-        sellerName: seller?.name || (isSingleSeller ? cartItems[0]?.sellerName : "Multiple Sellers"),
-        ...(paymentDetails && { paymentDetails }),
+        sellerName: isSingleSeller ? (cartItems[0]?.sellerName || "Seller") : "Multiple Sellers",
     };
 
     const newOrderId = await createOrder(orderData);
     
     if (newOrderId) {
-        toast({
-            title: "Order Placed Successfully!",
-            description: `Your order #${newOrderId.substring(0, 6)} will be processed.`,
-        });
-
-        try {
-            // Send receipt to customer if paid online
-            if (paymentMethodType === 'Online Payment') {
-              await sendOrderConfirmationEmail({
-                customerEmail: data.email,
-                customerName: data.fullName,
-                orderId: newOrderId,
-                totalAmount: total,
-                paymentMethod: 'Online Payment',
-                transactionId: String(paymentDetails?.transactionId || 'N/A'),
-                items: orderItems,
-                shippingAddress: {
-                  address: data.address,
-                  city: data.city,
-                  zipCode: data.zipCode,
-                },
-              });
-            } else if (paymentMethodType === 'Pay on Delivery') {
-                 // Generate and send invoice email directly using Nodemailer service
-                const invoiceHtml = generatePayOnDeliveryInvoiceHtml({
-                    id: newOrderId,
-                    customerName: data.fullName,
-                    items: orderItems,
-                    totalAmount: total,
-                    currency: mainCurrency,
-                    shippingAddress: {
-                        address: data.address,
-                        city: data.city,
-                        zipCode: data.zipCode,
-                    },
-                });
-
-                await sendEmail({
-                    to: data.email,
-                    subject: `Your Vical Farmart Order Invoice (#${newOrderId.substring(0, 6)})`,
-                    htmlBody: invoiceHtml,
-                });
-            }
-
-            // Send notification to admin
-            const allUsers = await getUsers();
-            const adminUser = allUsers.find(u => u.role === 'admin');
-            if (adminUser?.email) {
-                await sendNewOrderEmail({
-                    recipientEmail: adminUser.email,
-                    recipientName: adminUser.name,
-                    recipientRole: 'admin',
-                    orderId: newOrderId,
-                    customerName: data.fullName,
-                    totalAmount: total,
-                    items: orderItems,
-                });
-            }
-
-            // Send notification to each unique seller
-            for (const sellerId of sellerIds) {
-                 const currentSeller = await getUserById(sellerId);
-                 if (currentSeller?.email) {
-                    await sendNewOrderEmail({
-                        recipientEmail: currentSeller.email,
-                        recipientName: currentSeller.name,
-                        recipientRole: 'seller',
-                        orderId: newOrderId,
-                        customerName: data.fullName,
-                        totalAmount: total,
-                        items: orderItems.filter(item => item.sellerId === sellerId),
-                    });
-                 }
-            }
-        } catch (emailError) {
-            console.error("Failed to send notification emails:", emailError);
-            toast({
-                title: "Email Error",
-                description: "Your order was placed, but we couldn't send the notification emails.",
-                variant: "destructive"
-            });
-        }
-
+        // Optimistically clear cart as record is now in Firestore (even if still syncing)
         clearCart();
-        router.push("/my-orders");
-    } else {
-        toast({
-            title: "Order Failed",
-            description: "There was a problem saving your order. Please try again.",
-            variant: "destructive",
-        });
+        return { id: newOrderId, data: orderData };
     }
-    setIsProcessing(false);
-    return newOrderId;
+    return null;
   };
   
   const flutterwaveConfig = {
@@ -384,17 +367,36 @@ export default function CheckoutPage() {
         return;
     }
     
+    setIsProcessing(true);
+
     if (data.paymentMethod === 'cod') {
-        setIsProcessing(true);
-        await handleCreateOrderInDB(data, 'Pending', 'Pay on Delivery');
+        const result = await handleOrderCreation(data, 'Pending', 'Pay on Delivery');
+        if (result) {
+            toast({ title: "Order Placed!", description: "Check your email for the invoice." });
+            await triggerOrderNotifications(result.id, result.data, false);
+            router.push("/my-orders");
+        } else {
+            toast({ title: "Order Failed", description: "Could not save order record.", variant: "destructive" });
+        }
+        setIsProcessing(false);
     } else {
-        setIsProcessing(true); // Set processing early for online payment
+        // ONLINE PAYMENT FLOW
+        // Step 1: Create the record first so it's not lost if redirect fails
+        const result = await handleOrderCreation(data, 'Pending', 'Online Payment');
         
+        if (!result) {
+            toast({ title: "Order Initializing Failed", description: "Could not prepare order record.", variant: "destructive" });
+            setIsProcessing(false);
+            return;
+        }
+
+        const orderId = result.id;
+
         if (isNative) {
             const paymentDetails = {
                 amount: total,
                 currency: mainCurrency,
-                tx_ref: `vicalfarmart-${uuidv4()}`,
+                tx_ref: `vical-native-${orderId}`,
                 customer: {
                     email: data.email,
                     phone_number: data.phone,
@@ -402,7 +404,7 @@ export default function CheckoutPage() {
                 },
                 customizations: {
                     title: 'Vical Farmart',
-                    description: 'Payment for items in cart',
+                    description: `Order #${orderId.substring(0, 6)}`,
                     logo: 'https://res.cloudinary.com/ddvlexmvj/image/upload/v1751434079/VF_logo-removebg-preview_kgzusq.png',
                 },
             };
@@ -411,57 +413,60 @@ export default function CheckoutPage() {
               const response = await handleNativePayment(paymentDetails);
 
               if (response.status === 'successful') {
-                  await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {
+                  const details = {
                       transactionId: response.transaction_id,
                       status: 'successful',
                       gateway: 'Flutterwave (Native)',
-                  });
+                  };
+                  // Step 2: Update status to Paid
+                  await updateOrderStatus(orderId, 'Paid', details);
+                  toast({ title: "Payment Successful!", description: "Your order is being processed." });
+                  
+                  // Step 3: Trigger notifications with updated state
+                  await triggerOrderNotifications(orderId, { ...result.data, paymentDetails: details }, true);
+                  router.push("/my-orders");
               } else {
                   toast({
-                      title: response.status === 'cancelled' ? "Payment Canceled" : "Payment Not Completed",
-                      description: response.status === 'cancelled' ? "You closed the payment window." : "Your payment was not completed. Please try again.",
+                      title: response.status === 'cancelled' ? "Payment Window Closed" : "Payment Incomplete",
+                      description: "Your order is recorded as 'Pending'. You can retry payment from your history.",
                       variant: response.status === 'cancelled' ? 'default' : 'destructive',
                   });
-                  setIsProcessing(false);
+                  router.push("/my-orders");
               }
             } catch (error: any) {
                 toast({
                     title: "Payment Error",
-                    description: error.message || "Could not connect to the payment provider.",
+                    description: error.message || "Problem connecting to payment provider.",
                     variant: "destructive",
                 });
-                setIsProcessing(false);
+                router.push("/my-orders");
             }
         } else {
+            // WEB FLOW
             handleFlutterwavePayment({
                 callback: async (response) => {
-                    closePaymentModal(); // Close the modal immediately
+                    closePaymentModal();
                     if (response.status === 'successful') {
-                        await handleCreateOrderInDB(data, 'Paid', 'Online Payment', {
+                        const details = {
                             transactionId: response.transaction_id,
                             status: response.status,
                             gateway: 'Flutterwave',
-                        });
+                        };
+                        await updateOrderStatus(orderId, 'Paid', details);
+                        await triggerOrderNotifications(orderId, { ...result.data, paymentDetails: details }, true);
+                        router.push("/my-orders");
                     } else {
-                        toast({
-                            title: "Payment Not Completed",
-                            description: "Your payment was not completed successfully. Please try again.",
-                            variant: "destructive"
-                        });
-                         setIsProcessing(false);
+                        toast({ title: "Payment Failed", variant: "destructive" });
+                        router.push("/my-orders");
                     }
                 },
                 onClose: () => {
-                    if (form.formState.isSubmitting) return;
-
-                    toast({
-                        title: "Payment Canceled",
-                        description: "You closed the payment window.",
-                    });
-                    setIsProcessing(false);
+                    toast({ title: "Order Pending", description: "You closed the payment window." });
+                    router.push("/my-orders");
                 },
             });
         }
+        // setIsProcessing is left to be handled by the router push or terminal states
     }
   };
   
@@ -495,7 +500,6 @@ export default function CheckoutPage() {
       />
 
       <div className="grid md:grid-cols-3 gap-8">
-        {/* Order Summary & Payment */}
         <div className="md:col-span-2 space-y-8">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleFormSubmit)} id="shipping-form" className="space-y-8">
@@ -631,7 +635,7 @@ export default function CheckoutPage() {
                                     <CreditCard className="h-6 w-6 text-primary" />
                                     <div>
                                         <span className="block text-sm font-medium">Online Payment</span>
-                                        <span className="block text-xs text-muted-foreground">Pay securely with Card, Mobile Money, etc. via Flutterwave.</span>
+                                        <span className="block text-xs text-muted-foreground">Pay securely with Card, Mobile Money, etc.</span>
                                     </div>
                                     </Label>
                                 </FormControl>
@@ -664,7 +668,6 @@ export default function CheckoutPage() {
             </Form>
         </div>
 
-        {/* Cart Summary */}
         <div className="md:col-span-1">
           <Card className="shadow-lg sticky top-24">
             <CardHeader>
