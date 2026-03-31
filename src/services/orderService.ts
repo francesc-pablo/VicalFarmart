@@ -1,7 +1,7 @@
 
 import { db } from "@/lib/firebase";
 import type { Order, OrderStatus } from "@/types";
-import { collection, getDocs, doc, updateDoc, query, orderBy, where, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, where, setDoc, serverTimestamp, getDoc, deleteDoc } from "firebase/firestore";
 
 const ordersCollectionRef = collection(db, "orders");
 
@@ -38,6 +38,22 @@ export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): P
   } catch (error) {
     console.error("Error initiating order creation: ", error);
     return null;
+  }
+}
+
+/**
+ * Deletes an order from Firestore.
+ * Used for cleaning up stale records if a checkout is cancelled.
+ */
+export async function deleteOrder(orderId: string): Promise<void> {
+  try {
+    const orderDocRef = doc(db, "orders", orderId);
+    // NO await here
+    deleteDoc(orderDocRef).catch(error => {
+      console.error("Firestore deleteOrder background error: ", error);
+    });
+  } catch (error) {
+    console.error("Error initiating order deletion: ", error);
   }
 }
 

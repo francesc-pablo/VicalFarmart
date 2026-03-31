@@ -26,7 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { createOrder, updateOrderStatus } from '@/services/orderService';
+import { createOrder, updateOrderStatus, deleteOrder } from '@/services/orderService';
 import { getUsers, getUserById } from '@/services/userService';
 import { sendNewOrderEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { sendEmail } from '@/services/emailService';
@@ -329,8 +329,8 @@ export default function CheckoutPage() {
     const newOrderId = await createOrder(orderData);
     
     if (newOrderId) {
-        // Optimistically clear cart as record is now in Firestore (even if still syncing)
-        clearCart();
+        // We no longer clear the cart here optimistically. 
+        // We only clear it after confirmed payment success or COD confirmation.
         return { id: newOrderId, data: orderData };
     }
     return null;
@@ -372,6 +372,7 @@ export default function CheckoutPage() {
     if (data.paymentMethod === 'cod') {
         const result = await handleOrderCreation(data, 'Pending', 'Pay on Delivery');
         if (result) {
+            clearCart(); // Clear cart immediately for Pay on Delivery
             toast({ title: "Order Placed!", description: "Check your email for the invoice." });
             await triggerOrderNotifications(result.id, result.data, false);
             router.push("/my-orders");
@@ -420,18 +421,29 @@ export default function CheckoutPage() {
                   };
                   // Step 2: Update status to Paid
                   await updateOrderStatus(orderId, 'Paid', details);
+                  clearCart(); // Only clear cart on confirmed success
                   toast({ title: "Payment Successful!", description: "Your order is being processed." });
                   
                   // Step 3: Trigger notifications with updated state
                   await triggerOrderNotifications(orderId, { ...result.data, paymentDetails: details }, true);
                   router.push("/my-orders");
               } else {
+                  // CLEANUP: If explicitly cancelled, we remove the pending record to keep DB clean
+                  if (response.status === 'cancelled') {
+                      await deleteOrder(orderId);
+                  }
+                  
                   toast({
                       title: response.status === 'cancelled' ? "Payment Window Closed" : "Payment Incomplete",
-                      description: "Your order is recorded as 'Pending'. You can retry payment from your history.",
+                      description: response.status === 'cancelled' ? "Your checkout was cancelled. Your cart is still full." : "Your order is recorded as 'Pending'. You can retry payment from your history.",
                       variant: response.status === 'cancelled' ? 'default' : 'destructive',
                   });
-                  router.push("/my-orders");
+                  
+                  if (response.status !== 'cancelled') {
+                      router.push("/my-orders");
+                  } else {
+                      setIsProcessing(false);
+                  }
               }
             } catch (error: any) {
                 toast({
@@ -439,7 +451,7 @@ export default function CheckoutPage() {
                     description: error.message || "Problem connecting to payment provider.",
                     variant: "destructive",
                 });
-                router.push("/my-orders");
+                setIsProcessing(false);
             }
         } else {
             // WEB FLOW
@@ -453,20 +465,21 @@ export default function CheckoutPage() {
                             gateway: 'Flutterwave',
                         };
                         await updateOrderStatus(orderId, 'Paid', details);
+                        clearCart();
                         await triggerOrderNotifications(orderId, { ...result.data, paymentDetails: details }, true);
                         router.push("/my-orders");
                     } else {
                         toast({ title: "Payment Failed", variant: "destructive" });
-                        router.push("/my-orders");
+                        setIsProcessing(false);
                     }
                 },
-                onClose: () => {
-                    toast({ title: "Order Pending", description: "You closed the payment window." });
-                    router.push("/my-orders");
+                onClose: async () => {
+                    await deleteOrder(orderId); // Remove pending record on explicit close
+                    toast({ title: "Order Cancelled", description: "You closed the payment window." });
+                    setIsProcessing(false);
                 },
             });
         }
-        // setIsProcessing is left to be handled by the router push or terminal states
     }
   };
   
