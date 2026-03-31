@@ -66,7 +66,6 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
       }
     } catch (e: any) {
       console.error("Native Scanner Error:", e);
-      // "plugin not implemented" handling
       if (e.message?.includes('not implemented')) {
           setError({ message: 'The scanner plugin is not currently ready on your device. Please ensure you have synced the native project.', showSettings: false });
       } else {
@@ -101,28 +100,37 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
   }
 
   return (
-    <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center text-white">
-      {/* Dimmed overlays around the clear scan area */}
-      <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 right-0 h-[calc(50%-128px)] bg-black/40"></div>
-          <div className="absolute bottom-0 left-0 right-0 h-[calc(50%-128px)] bg-black/40"></div>
-          <div className="absolute top-[calc(50%-128px)] bottom-[calc(50%-128px)] left-0 w-[calc(50%-128px)] bg-black/40"></div>
-          <div className="absolute top-[calc(50%-128px)] bottom-[calc(50%-128px)] right-0 w-[calc(50%-128px)] bg-black/40"></div>
-      </div>
-
+    <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center text-white overflow-hidden">
+      {/* 
+          This container holds the UI elements. 
+          The "shadow trick" on the central frame automatically creates the dimmed cutout 
+          that is perfectly aligned with the visual box.
+      */}
       <div className="z-10 flex flex-col items-center">
-        <p className="text-lg font-medium text-center mb-8 drop-shadow-md">Focus the QR code within the frame</p>
+        <p className="text-lg font-medium text-center mb-8 drop-shadow-lg px-6">
+          Focus the QR code within the frame
+        </p>
         
-        <div className="relative w-64 h-64 rounded-lg border-2 border-white/40 shadow-[0_0_0_100vmax_rgba(0,0,0,0.2)]">
+        {/* 
+            THE FRAME & CUTOUT
+            The 100vmax shadow creates the semi-transparent overlay. 
+            Because it's a shadow of THIS div, it's always centered exactly on it.
+        */}
+        <div className="relative w-64 h-64 rounded-xl border-2 border-white/20 shadow-[0_0_0_100vmax_rgba(0,0,0,0.6)]">
+            {/* Animated scan line */}
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 animate-scan-line rounded-full"></div>
-            <div className="absolute -top-1 -left-1 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-white"></div>
-            <div className="absolute -top-1 -right-1 h-12 w-12 rounded-tr-lg border-t-4 border-r-4 border-white"></div>
-            <div className="absolute -bottom-1 -left-1 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white"></div>
-            <div className="absolute -bottom-1 -right-1 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white"></div>
+            
+            {/* Corner Accents */}
+            <div className="absolute -top-1 -left-1 h-12 w-12 rounded-tl-xl border-t-4 border-l-4 border-primary"></div>
+            <div className="absolute -top-1 -right-1 h-12 w-12 rounded-tr-xl border-t-4 border-r-4 border-primary"></div>
+            <div className="absolute -bottom-1 -left-1 h-12 w-12 rounded-bl-xl border-b-4 border-l-4 border-primary"></div>
+            <div className="absolute -bottom-1 -right-1 h-12 w-12 rounded-br-xl border-b-4 border-r-4 border-primary"></div>
         </div>
 
-        <div className="mt-12 w-64">
-            <Button onClick={onCancel} variant="secondary" size="lg" className="w-full opacity-90">Stop Scanning</Button>
+        <div className="mt-12 w-64 px-4">
+            <Button onClick={onCancel} variant="secondary" size="lg" className="w-full bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md">
+              Stop Scanning
+            </Button>
         </div>
       </div>
     </div>
@@ -179,14 +187,14 @@ const WebScanner = ({ onScanSuccess, onError }: { onScanSuccess: (result: string
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
-      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 shadow-inner">
+      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 shadow-inner border border-border">
         <div id={scannerRegionId} />
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4">
           <div className="relative w-2/3 max-w-[250px] aspect-square">
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white/50 rounded-tl-lg"></div>
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white/50 rounded-tr-lg"></div>
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white/50 rounded-bl-lg"></div>
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white/50 rounded-br-lg"></div>
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary/50 rounded-tl-lg"></div>
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary/50 rounded-tr-lg"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary/50 rounded-bl-lg"></div>
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary/50 rounded-br-lg"></div>
           </div>
         </div>
       </div>
