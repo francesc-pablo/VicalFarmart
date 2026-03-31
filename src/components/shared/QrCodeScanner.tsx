@@ -24,6 +24,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
 
   const stopScanner = useCallback(async () => {
     try {
+      document.documentElement.classList.remove('scanner-active');
       document.body.classList.remove('scanner-active');
       await BarcodeScanner.showBackground();
       await BarcodeScanner.stopScan();
@@ -41,6 +42,7 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
       
       if (status.granted) {
         // Native UI preparation: make body transparent to see camera through webview
+        document.documentElement.classList.add('scanner-active');
         document.body.classList.add('scanner-active');
         await BarcodeScanner.hideBackground();
         
@@ -99,18 +101,29 @@ const NativeScanner = ({ onScanSuccess, onCancel }: { onScanSuccess: (result: st
   }
 
   return (
-    <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 text-white p-8">
-      <p className="text-lg font-medium text-center mb-4">Focus the QR code within the frame</p>
-      <div className="relative w-64 h-64 rounded-lg overflow-hidden border-2 border-white/20 shadow-2xl">
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 animate-scan-line rounded-full shadow-[0_0_15px_rgba(var(--primary),0.8)]"></div>
-        <div className="absolute top-0 left-0 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-white/90"></div>
-        <div className="absolute top-0 right-0 h-12 w-12 rounded-tr-lg border-t-4 border-r-4 border-white/90"></div>
-        <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white/90"></div>
-        <div className="absolute bottom-0 right-0 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white/90"></div>
+    <div id="native-scanner-ui" className="fixed inset-0 z-[100] flex flex-col items-center justify-center text-white">
+      {/* Dimmed overlays around the clear scan area */}
+      <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-0 right-0 h-[calc(50%-128px)] bg-black/40"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-[calc(50%-128px)] bg-black/40"></div>
+          <div className="absolute top-[calc(50%-128px)] bottom-[calc(50%-128px)] left-0 w-[calc(50%-128px)] bg-black/40"></div>
+          <div className="absolute top-[calc(50%-128px)] bottom-[calc(50%-128px)] right-0 w-[calc(50%-128px)] bg-black/40"></div>
       </div>
-      <div className="absolute bottom-8 w-full px-8 text-center">
-        <Button onClick={onCancel} variant="secondary" size="lg" className="w-full">Stop Scanning</Button>
-        <p className="text-xs text-white/50 mt-4">Scanner Active</p>
+
+      <div className="z-10 flex flex-col items-center">
+        <p className="text-lg font-medium text-center mb-8 drop-shadow-md">Focus the QR code within the frame</p>
+        
+        <div className="relative w-64 h-64 rounded-lg border-2 border-white/40 shadow-[0_0_0_100vmax_rgba(0,0,0,0.2)]">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 animate-scan-line rounded-full"></div>
+            <div className="absolute -top-1 -left-1 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-white"></div>
+            <div className="absolute -top-1 -right-1 h-12 w-12 rounded-tr-lg border-t-4 border-r-4 border-white"></div>
+            <div className="absolute -bottom-1 -left-1 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white"></div>
+            <div className="absolute -bottom-1 -right-1 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white"></div>
+        </div>
+
+        <div className="mt-12 w-64">
+            <Button onClick={onCancel} variant="secondary" size="lg" className="w-full opacity-90">Stop Scanning</Button>
+        </div>
       </div>
     </div>
   );

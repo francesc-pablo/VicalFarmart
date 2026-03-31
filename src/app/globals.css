@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -82,11 +81,14 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  html.scanner-active,
   body.scanner-active {
     background: transparent !important;
     visibility: hidden;
     overflow: hidden; /* Prevent scrolling/swiping gestures */
   }
+
   /* This ensures the native scanner UI, which is inside the body, remains visible */
   #native-scanner-ui {
     visibility: visible;
