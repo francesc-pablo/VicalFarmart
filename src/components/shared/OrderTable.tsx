@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import type { Order, OrderStatus, User } from "@/types";
@@ -35,17 +34,17 @@ interface OrderTableProps {
 const getStatusBadgeVariant = (status: OrderStatus): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
     case "Pending":
-      return "outline"; // Yellowish or neutral
+      return "outline";
     case "Processing":
-      return "secondary"; // Blueish or informative
+      return "secondary";
     case "Shipped":
-      return "default"; // Primary color (greenish in this theme)
+      return "default";
     case "Delivered":
-      return "default"; // Using a success-like variant (e.g., green-bg if customized)
-    case "Paid": // This status might be combined or handled differently
+      return "default";
+    case "Paid":
       return "default";
     case "Cancelled":
-      return "destructive"; // Red
+      return "destructive";
     default:
       return "outline";
   }
@@ -54,10 +53,10 @@ const getStatusBadgeVariant = (status: OrderStatus): "default" | "secondary" | "
 const getCurrencySymbol = (currencyCode?: string) => {
     if (currencyCode === "GHS") return "₵";
     if (currencyCode === "USD") return "$";
-    return "$"; // Default
+    return "$";
 };
 
-const availableOrderStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
+const availableOrderStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Paid"];
 
 const NO_COURIER_VALUE = "__NONE__";
 

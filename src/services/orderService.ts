@@ -18,20 +18,19 @@ const convertTimestamp = (data: any) => {
 
 /**
  * Creates a new order in Firestore.
- * Follows non-blocking pattern: returns the ID immediately and queues the write.
  */
 export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): Promise<string | null> {
   try {
     const docRef = doc(ordersCollectionRef);
     const id = docRef.id;
     
-    // NO await here to leverage optimistic concurrency and offline sync
+    // Non-blocking write
     setDoc(docRef, {
       ...orderData,
       id,
       orderDate: serverTimestamp(),
     }).catch(error => {
-      console.error("Firestore createOrder background error: ", error);
+      console.error("Firestore createOrder error: ", error);
     });
 
     return id;
@@ -43,14 +42,12 @@ export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): P
 
 /**
  * Deletes an order from Firestore.
- * Used for cleaning up stale records if a checkout is cancelled.
  */
 export async function deleteOrder(orderId: string): Promise<void> {
   try {
     const orderDocRef = doc(db, "orders", orderId);
-    // NO await here
     deleteDoc(orderDocRef).catch(error => {
-      console.error("Firestore deleteOrder background error: ", error);
+      console.error("Firestore deleteOrder error: ", error);
     });
   } catch (error) {
     console.error("Error initiating order deletion: ", error);
@@ -159,7 +156,6 @@ export async function getOrdersByCourierId(courierId: string): Promise<Order[]> 
 
 /**
  * Updates an order status and optional payment details.
- * Follows non-blocking pattern.
  */
 export async function updateOrderStatus(
     orderId: string, 
@@ -173,9 +169,8 @@ export async function updateOrderStatus(
         updateData.paymentDetails = paymentDetails;
     }
     
-    // NO await here
     updateDoc(orderDocRef, updateData).catch(error => {
-        console.error("Firestore updateOrderStatus background error: ", error);
+        console.error("Firestore updateOrderStatus error: ", error);
     });
   } catch (error) {
     console.error("Error initiating order status update: ", error);
@@ -185,17 +180,15 @@ export async function updateOrderStatus(
 
 /**
  * Assigns a courier to an order.
- * Follows non-blocking pattern.
  */
 export async function assignCourierToOrder(orderId: string, courierId: string, courierName: string): Promise<void> {
     try {
         const orderDocRef = doc(db, "orders", orderId);
-        // NO await here
         updateDoc(orderDocRef, {
             courierId: courierId,
             courierName: courierName,
         }).catch(error => {
-            console.error("Firestore assignCourierToOrder background error: ", error);
+            console.error("Firestore assignCourierToOrder error: ", error);
         });
     } catch (error) {
         console.error("Error initiating courier assignment: ", error);

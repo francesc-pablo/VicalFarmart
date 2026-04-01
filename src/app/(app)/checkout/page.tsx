@@ -26,7 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { createOrder, updateOrderStatus, deleteOrder } from '@/services/orderService';
+import { createOrder, updateOrderStatus } from '@/services/orderService';
 import { getUsers, getUserById } from '@/services/userService';
 import { sendNewOrderEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { sendEmail } from '@/services/emailService';
@@ -44,14 +44,14 @@ const getCurrencyForFlutterwave = (currencyCode?: string) => {
     if (currencyCode && supportedCurrencies.includes(currencyCode)) {
         return currencyCode;
     }
-    return "GHS"; // Default to GHS if not supported or undefined
+    return "GHS"; 
 };
 
 const getCurrencySymbol = (currencyCode?: string) => {
   const code = currencyCode || "GHS";
   if (code === "GHS") return "₵";
   if (code === "USD") return "$";
-  return "$"; // Default symbol
+  return "$";
 };
 
 const checkoutSchemaBase = z.object({
@@ -81,7 +81,6 @@ const checkoutSchema = checkoutSchemaBase.refine(
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
-// Helper function to generate HTML for the Pay on Delivery invoice
 const generatePayOnDeliveryInvoiceHtml = (
     order: {
         id: string,
@@ -132,7 +131,7 @@ const generatePayOnDeliveryInvoiceHtml = (
                 ${order.shippingAddress.city}, ${order.shippingAddress.zipCode}
             </p>
 
-            <p>You will receive another notification once your order has been shipped. If you have any questions, please contact our support.</p>
+            <p>You will receive another notification once your order has been shipped.</p>
             <p>Thanks,<br>The Vical Farmart Team</p>
         </div>
     `;
@@ -206,15 +205,11 @@ export default function CheckoutPage() {
     }
   }, [watchedPaymentMethod, form]);
 
-  /**
-   * Triggers all post-order notifications (Admin, Sellers, Customer)
-   */
   const triggerOrderNotifications = useCallback(async (orderId: string, orderData: any, isPaid: boolean) => {
     try {
         const orderItems = orderData.items;
         const sellerIds = new Set(orderItems.map((item: any) => item.sellerId));
 
-        // 1. Send receipt/invoice to customer
         if (isPaid) {
             await sendOrderConfirmationEmail({
                 customerEmail: orderData.customerEmail,
@@ -246,7 +241,6 @@ export default function CheckoutPage() {
             });
         }
 
-        // 2. Send notification to admin
         const allUsers = await getUsers();
         const adminUser = allUsers.find(u => u.role === 'admin');
         if (adminUser?.email) {
@@ -261,7 +255,6 @@ export default function CheckoutPage() {
             });
         }
 
-        // 3. Send notification to each unique seller
         for (const sellerId of sellerIds) {
              const currentSeller = await getUserById(sellerId as string);
              if (currentSeller?.email) {
@@ -281,14 +274,11 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  /**
-   * Core workflow for creating an order record.
-   * On Android, we create it as 'Pending' first to avoid data loss.
-   */
   const handleOrderCreation = async (
     data: CheckoutFormValues, 
     initialStatus: Order['status'], 
-    paymentMethodType: PaymentMethodType
+    paymentMethodType: PaymentMethodType,
+    paymentDetails?: Order['paymentDetails']
   ) => {
     if (!currentUser || cartItems.length === 0) return null;
 
@@ -322,15 +312,13 @@ export default function CheckoutPage() {
             zipCode: data.zipCode,
             idCardNumber: data.idCardNumber,
         },
+        paymentDetails,
         ...(isSingleSeller && { sellerId: singleSellerId }),
         sellerName: isSingleSeller ? (cartItems[0]?.sellerName || "Seller") : "Multiple Sellers",
     };
 
     const newOrderId = await createOrder(orderData);
-    
     if (newOrderId) {
-        // We no longer clear the cart here optimistically. 
-        // We only clear it after confirmed payment success or COD confirmation.
         return { id: newOrderId, data: orderData };
     }
     return null;
@@ -372,7 +360,7 @@ export default function CheckoutPage() {
     if (data.paymentMethod === 'cod') {
         const result = await handleOrderCreation(data, 'Pending', 'Pay on Delivery');
         if (result) {
-            clearCart(); // Clear cart immediately for Pay on Delivery
+            clearCart();
             toast({ title: "Order Placed!", description: "Check your email for the invoice." });
             await triggerOrderNotifications(result.id, result.data, false);
             router.push("/my-orders");
@@ -381,23 +369,12 @@ export default function CheckoutPage() {
         }
         setIsProcessing(false);
     } else {
-        // ONLINE PAYMENT FLOW
-        // Step 1: Create the record first so it's not lost if redirect fails
-        const result = await handleOrderCreation(data, 'Pending', 'Online Payment');
-        
-        if (!result) {
-            toast({ title: "Order Initializing Failed", description: "Could not prepare order record.", variant: "destructive" });
-            setIsProcessing(false);
-            return;
-        }
-
-        const orderId = result.id;
-
+        // ONLINE PAYMENT FLOW - Standard success-after creation
         if (isNative) {
             const paymentDetails = {
                 amount: total,
                 currency: mainCurrency,
-                tx_ref: `vical-native-${orderId}`,
+                tx_ref: `vical-native-${Date.now()}`,
                 customer: {
                     email: data.email,
                     phone_number: data.phone,
@@ -405,7 +382,7 @@ export default function CheckoutPage() {
                 },
                 customizations: {
                     title: 'Vical Farmart',
-                    description: `Order #${orderId.substring(0, 6)}`,
+                    description: `Vical Farmart Marketplace Purchase`,
                     logo: 'https://res.cloudinary.com/ddvlexmvj/image/upload/v1751434079/VF_logo-removebg-preview_kgzusq.png',
                 },
             };
@@ -419,31 +396,21 @@ export default function CheckoutPage() {
                       status: 'successful',
                       gateway: 'Flutterwave (Native)',
                   };
-                  // Step 2: Update status to Paid
-                  await updateOrderStatus(orderId, 'Paid', details);
-                  clearCart(); // Only clear cart on confirmed success
-                  toast({ title: "Payment Successful!", description: "Your order is being processed." });
                   
-                  // Step 3: Trigger notifications with updated state
-                  await triggerOrderNotifications(orderId, { ...result.data, paymentDetails: details }, true);
-                  router.push("/my-orders");
-              } else {
-                  // CLEANUP: If explicitly cancelled, we remove the pending record to keep DB clean
-                  if (response.status === 'cancelled') {
-                      await deleteOrder(orderId);
+                  const orderResult = await handleOrderCreation(data, 'Paid', 'Online Payment', details);
+                  if (orderResult) {
+                      clearCart();
+                      toast({ title: "Payment Successful!", description: "Your order is being processed." });
+                      await triggerOrderNotifications(orderResult.id, orderResult.data, true);
+                      router.push("/my-orders");
                   }
-                  
+              } else {
                   toast({
                       title: response.status === 'cancelled' ? "Payment Window Closed" : "Payment Incomplete",
-                      description: response.status === 'cancelled' ? "Your checkout was cancelled. Your cart is still full." : "Your order is recorded as 'Pending'. You can retry payment from your history.",
+                      description: response.status === 'cancelled' ? "Your checkout was cancelled." : "Payment failed. Please try again.",
                       variant: response.status === 'cancelled' ? 'default' : 'destructive',
                   });
-                  
-                  if (response.status !== 'cancelled') {
-                      router.push("/my-orders");
-                  } else {
-                      setIsProcessing(false);
-                  }
+                  setIsProcessing(false);
               }
             } catch (error: any) {
                 toast({
@@ -464,18 +431,18 @@ export default function CheckoutPage() {
                             status: response.status,
                             gateway: 'Flutterwave',
                         };
-                        await updateOrderStatus(orderId, 'Paid', details);
-                        clearCart();
-                        await triggerOrderNotifications(orderId, { ...result.data, paymentDetails: details }, true);
-                        router.push("/my-orders");
+                        const orderResult = await handleOrderCreation(data, 'Paid', 'Online Payment', details);
+                        if (orderResult) {
+                            clearCart();
+                            await triggerOrderNotifications(orderResult.id, orderResult.data, true);
+                            router.push("/my-orders");
+                        }
                     } else {
                         toast({ title: "Payment Failed", variant: "destructive" });
                         setIsProcessing(false);
                     }
                 },
-                onClose: async () => {
-                    await deleteOrder(orderId); // Remove pending record on explicit close
-                    toast({ title: "Order Cancelled", description: "You closed the payment window." });
+                onClose: () => {
                     setIsProcessing(false);
                 },
             });
