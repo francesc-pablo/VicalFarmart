@@ -1,6 +1,7 @@
 'use client';
 
 import { Browser } from '@capacitor/browser';
+import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import type { PluginListenerHandle } from '@capacitor/core';
 
@@ -27,8 +28,8 @@ interface PaymentResponse {
 }
 
 /**
- * Handles the native payment flow using Capacitor Browser.
- * Follows the reliable "Detect Success -> Close Browser" flow.
+ * Handles the native payment flow using Capacitor Browser and Deep Linking.
+ * Follows the "Deep Link Intercept" pattern for maximum reliability on Android.
  */
 export const handleNativePayment = (details: PaymentInitiationDetails): Promise<PaymentResponse> => {
     return new Promise(async (resolve) => {
@@ -37,14 +38,20 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
              return;
         }
 
-        // Production Origin for reliable callback detection
         const production_origin = 'https://vicalfarmart.com';
         const redirect_url = `${production_origin}/payment-callback`;
         
         let isResolved = false;
+        let appUrlListener: PluginListenerHandle | null = null;
+        let browserFinishedListener: PluginListenerHandle | null = null;
+
+        const cleanup = async () => {
+            if (appUrlListener) await appUrlListener.remove();
+            if (browserFinishedListener) await browserFinishedListener.remove();
+        };
 
         try {
-            // 1. Obtain secure payment link from our backend initiation route
+            // 1. Obtain secure payment link
             const response = await fetch('/api/payments/initiate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -56,65 +63,30 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
                 throw new Error(data.message || 'Failed to initiate payment.');
             }
             
-            const paymentLink = data.paymentLink;
-
-            let pageLoadedListener: PluginListenerHandle | null = null;
-            let browserFinishedListener: PluginListenerHandle | null = null;
-
-            const cleanup = async () => {
-                if (pageLoadedListener) await pageLoadedListener.remove();
-                if (browserFinishedListener) await browserFinishedListener.remove();
-            };
-
-            // Triggers when user manually closes the window
-            browserFinishedListener = await Browser.addListener('browserFinished', () => {
-                // Ignore if we already detected success/redirect
-                if (!isResolved) {
-                    isResolved = true;
-                    cleanup();
-                    resolve({ status: 'cancelled' });
-                }
-            });
-
-            // RELIABLE DETECTION: Monitor URL changes
-            pageLoadedListener = await Browser.addListener('browserPageLoaded', async (info) => {
+            // 2. Setup DEEP LINK listener (Reliable return path)
+            appUrlListener = await App.addListener('appUrlOpen', async (info) => {
                 if (isResolved) return;
 
-                const url = info.url || '';
-                const lowerUrl = url.toLowerCase();
-                
-                console.log("[PaymentService] Native Intercept:", url);
-
-                // Success markers in the redirect URL
-                const isCallbackPage = lowerUrl.includes('/payment-callback');
-                const hasSuccessParams = lowerUrl.includes('status=successful') || 
-                                       lowerUrl.includes('status=completed') || 
-                                       lowerUrl.includes('status=success');
-
-                if (isCallbackPage || hasSuccessParams) {
+                const url = info.url;
+                if (url.includes('payment-result')) {
                     isResolved = true;
+                    console.log("[PaymentService] Deep Link Caught:", url);
                     
                     try {
-                        const urlObj = new URL(url);
+                        const urlObj = new URL(url.replace('vicalfarmart://', 'http://vical.temp/'));
                         const status = urlObj.searchParams.get('status');
-                        const transaction_id = urlObj.searchParams.get('transaction_id') || urlObj.searchParams.get('transactionId');
+                        const transaction_id = urlObj.searchParams.get('transaction_id');
                         const tx_ref = urlObj.searchParams.get('tx_ref');
 
-                        // 🔥 CLOSE browser immediately to return to native app
                         await Browser.close();
                         await cleanup();
 
                         if (status === 'failed') {
                             resolve({ status: 'failed' });
                         } else {
-                            resolve({ 
-                                status: 'successful', 
-                                transaction_id: transaction_id || undefined, 
-                                tx_ref: tx_ref || undefined 
-                            });
+                            resolve({ status: 'successful', transaction_id: transaction_id || undefined, tx_ref: tx_ref || undefined });
                         }
                     } catch (e) {
-                        // Fallback: If URL parsing fails but we hit the domain, treat as success signal
                         await Browser.close();
                         await cleanup();
                         resolve({ status: 'successful' });
@@ -122,11 +94,22 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
                 }
             });
 
-            // 2. Open the Flutterwave checkout in the system-standard browser view
-            await Browser.open({ url: paymentLink });
+            // 3. Setup Browser Close listener (Fallback for manual cancel)
+            browserFinishedListener = await Browser.addListener('browserFinished', () => {
+                if (!isResolved) {
+                    isResolved = true;
+                    cleanup();
+                    // We treat a manual close as cancellation IF no deep link happened
+                    resolve({ status: 'cancelled' });
+                }
+            });
+
+            // 4. Open browser
+            await Browser.open({ url: data.paymentLink });
 
         } catch (error) {
-            console.error("Payment Initiation Error:", error);
+            console.error("Native Payment Error:", error);
+            cleanup();
             resolve({ status: 'failed' });
         }
     });

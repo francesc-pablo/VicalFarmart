@@ -6,22 +6,39 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 
 /**
  * Landing destination for payment redirects.
- * Extremely lightweight to ensure the native App listener intercepts it quickly.
+ * Triggers a deep link to return to the native app with transaction results.
  */
 export default function PaymentCallbackPage() {
   
   useEffect(() => {
-    // If the native listener fails to close the browser (e.g. desktop testing),
-    // provide a manual escape or a redirect after a timeout.
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status') || params.get('resp');
+    const transaction_id = params.get('transaction_id') || params.get('transactionId');
+    const tx_ref = params.get('tx_ref');
+
+    // Trigger deep link back to the app
+    // The native app listener handles Browser.close() and final verification
+    const deepLinkUrl = `vicalfarmart://payment-result?status=${status}&transaction_id=${transaction_id}&tx_ref=${tx_ref}`;
+    
+    // Fallback redirect if deep link isn't intercepted immediately
     const timer = setTimeout(() => {
+      window.location.href = deepLinkUrl;
+    }, 500);
+
+    // Final fallback for desktop testing
+    const desktopTimer = setTimeout(() => {
       window.location.href = '/my-orders';
-    }, 3000);
-    return () => clearTimeout(timer);
+    }, 5000);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(desktopTimer);
+    };
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
-      <Card className="w-full max-w-sm shadow-xl border-primary/20">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background text-foreground">
+      <Card className="w-full max-w-sm shadow-xl border-primary/20 bg-card">
         <CardContent className="pt-12 pb-12 flex flex-col items-center text-center space-y-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center justify-center">
@@ -32,10 +49,10 @@ export default function PaymentCallbackPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-bold font-headline">Payment Received</h1>
             <p className="text-muted-foreground">
-              Finalizing your order record...
+              Returning you to the app...
             </p>
             <p className="text-xs font-semibold text-primary animate-pulse uppercase tracking-wider">
-              Returning to App
+              Finishing Order
             </p>
           </div>
         </CardContent>

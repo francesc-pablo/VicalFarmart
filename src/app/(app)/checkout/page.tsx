@@ -273,12 +273,7 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  const handleOrderCreationSync = (
-    data: CheckoutFormValues, 
-    initialStatus: Order['status'], 
-    paymentMethodType: PaymentMethodType,
-    paymentDetails?: Order['paymentDetails']
-  ) => {
+  const prepareOrderData = (data: CheckoutFormValues) => {
     if (!currentUser || cartItems.length === 0) return null;
 
     const orderItems: OrderItem[] = cartItems.map(item => ({
@@ -295,7 +290,7 @@ export default function CheckoutPage() {
     const isSingleSeller = sellerIds.size === 1;
     const singleSellerId = isSingleSeller ? sellerIds.values().next().value : undefined;
 
-    const orderData: Omit<Order, 'id' | 'orderDate'> = {
+    return {
         customerId: currentUser.id,
         customerName: data.fullName,
         customerEmail: data.email,
@@ -303,43 +298,18 @@ export default function CheckoutPage() {
         items: orderItems,
         totalAmount: total,
         currency: mainCurrency,
-        status: initialStatus,
-        paymentMethod: paymentMethodType,
+        status: 'Pending' as Order['status'],
+        paymentMethod: (data.paymentMethod === 'cod' ? 'Pay on Delivery' : 'Online Payment') as PaymentMethodType,
         shippingAddress: {
             address: data.address,
             city: data.city,
             zipCode: data.zipCode,
             idCardNumber: data.idCardNumber || "", 
         },
-        ...(paymentDetails ? { paymentDetails } : {}),
         ...(isSingleSeller && { sellerId: singleSellerId }),
         sellerName: isSingleSeller ? (cartItems[0]?.sellerName || "Seller") : "Multiple Sellers",
     };
-
-    const newOrderIdPromise = createOrder(orderData);
-    
-    return { promise: newOrderIdPromise, data: orderData };
   };
-  
-  const flutterwaveConfig = {
-      public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '',
-      tx_ref: `vicalfarmart-${uuidv4()}`,
-      amount: total,
-      currency: mainCurrency,
-      payment_options: 'card,mobilemoney,ussd',
-      customer: {
-        email: form.getValues('email'),
-        phone_number: form.getValues('phone'),
-        name: form.getValues('fullName'),
-      },
-      customizations: {
-        title: 'Vical Farmart',
-        description: 'Payment for items in cart',
-        logo: 'https://res.cloudinary.com/ddvlexmvj/image/upload/v1751434079/VF_logo-removebg-preview_kgzusq.png',
-      },
-  };
-  
-  const handleFlutterwavePayment = useFlutterwave(flutterwaveConfig);
 
   async function handleFormSubmit(data: CheckoutFormValues) {
     if (!currentUser) {
@@ -353,17 +323,21 @@ export default function CheckoutPage() {
     }
     
     setIsProcessing(true);
+    const orderData = prepareOrderData(data);
+    if (!orderData) {
+        setIsProcessing(false);
+        return;
+    }
 
     if (data.paymentMethod === 'cod') {
-        const result = handleOrderCreationSync(data, 'Pending', 'Pay on Delivery');
-        if (result) {
-            const orderId = await result.promise;
+        const orderId = await createOrder(orderData);
+        if (orderId) {
             clearCart();
             toast({ title: "Order Placed!", description: "Check your email for the invoice." });
-            triggerOrderNotifications(orderId!, result.data, false);
+            triggerOrderNotifications(orderId, orderData, false);
             router.push("/my-orders");
         } else {
-            toast({ title: "Order Failed", description: "Could not initialize order record.", variant: "destructive" });
+            toast({ title: "Order Failed", description: "Could not save order record.", variant: "destructive" });
             setIsProcessing(false);
         }
     } else {
@@ -389,36 +363,29 @@ export default function CheckoutPage() {
               const nativeResponse = await handleNativePayment(paymentDetailsRequest);
 
               if (nativeResponse.status === 'successful' && nativeResponse.transaction_id) {
-                  // 🔥 SECURE VERIFICATION: Call backend to verify with secret key
+                  // 🔥 ATOMIC SERVER CONFIRMATION: Verify AND Save Order in one call
                   const verifyResponse = await fetch('/api/payments/verify', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ transaction_id: nativeResponse.transaction_id }),
+                      body: JSON.stringify({ 
+                          transaction_id: nativeResponse.transaction_id,
+                          orderData: orderData // Pass the full order data for server-side recording
+                      }),
                   });
 
                   const verifyData = await verifyResponse.json();
 
                   if (verifyResponse.ok && verifyData.success) {
-                      const details = {
-                          transactionId: nativeResponse.transaction_id,
-                          status: 'successful',
-                          gateway: 'Flutterwave (Verified)',
-                      };
-                      
-                      const orderResult = handleOrderCreationSync(data, 'Paid', 'Online Payment', details);
-                      if (orderResult) {
-                          const orderId = await orderResult.promise;
-                          clearCart();
-                          toast({ title: "Payment Successful!", description: "Your order is being processed." });
-                          triggerOrderNotifications(orderId!, orderResult.data, true);
-                          router.push("/my-orders");
-                      }
+                      clearCart();
+                      toast({ title: "Payment Successful!", description: "Your order has been recorded." });
+                      triggerOrderNotifications(verifyData.orderId, orderData, true);
+                      router.push("/my-orders");
                   } else {
                       throw new Error(verifyData.message || "Payment verification failed.");
                   }
               } else {
                   if (nativeResponse.status !== 'cancelled') {
-                      toast({ title: "Payment Incomplete", description: "Payment failed. Please try again.", variant: "destructive" });
+                      toast({ title: "Payment Incomplete", description: "The transaction was not completed.", variant: "destructive" });
                   }
                   setIsProcessing(false);
               }
@@ -428,20 +395,44 @@ export default function CheckoutPage() {
             }
         } else {
             // WEB FLOW
+            const flutterwaveConfig = {
+                public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '',
+                tx_ref: `vical-web-${uuidv4()}`,
+                amount: total,
+                currency: mainCurrency,
+                payment_options: 'card,mobilemoney,ussd',
+                customer: {
+                  email: data.email,
+                  phone_number: data.phone,
+                  name: data.fullName,
+                },
+                customizations: {
+                  title: 'Vical Farmart',
+                  description: 'Marketplace Checkout',
+                  logo: 'https://res.cloudinary.com/ddvlexmvj/image/upload/v1751434079/VF_logo-removebg-preview_kgzusq.png',
+                },
+            };
+
+            // @ts-ignore
+            const handleFlutterwavePayment = useFlutterwave(flutterwaveConfig);
+
             handleFlutterwavePayment({
-                callback: async (response) => {
+                callback: async (response: any) => {
                     closePaymentModal();
                     if (response.status === 'successful') {
-                        const details = {
-                            transactionId: response.transaction_id,
-                            status: response.status,
-                            gateway: 'Flutterwave',
-                        };
-                        const orderResult = handleOrderCreationSync(data, 'Paid', 'Online Payment', details);
-                        if (orderResult) {
-                            const orderId = await orderResult.promise;
+                        // Atomic verify + save for web too
+                        const verifyResponse = await fetch('/api/payments/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                transaction_id: response.transaction_id,
+                                orderData: orderData
+                            }),
+                        });
+                        const verifyData = await verifyResponse.json();
+                        if (verifyData.success) {
                             clearCart();
-                            triggerOrderNotifications(orderId!, orderResult.data, true);
+                            triggerOrderNotifications(verifyData.orderId, orderData, true);
                             router.push("/my-orders");
                         }
                     } else {
@@ -666,7 +657,7 @@ export default function CheckoutPage() {
               {cartItems.map(item => (
                 <div key={item.id} className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <Image src={item.imageUrl ? item.imageUrl : "https://placehold.co/60x60.png"} alt={item.name} width={60} height={60} className="rounded-md object-cover" data-ai-hint={`${item.category} item`} />
+                    <Image src={item.imageUrl ? item.imageUrl : "https://placehold.co/60x60.png"} alt={item.name} width={60} height={60} className="rounded-md object-cover" />
                     <div>
                       <p className="font-medium text-sm line-clamp-2">{item.name}</p>
                       <p className="text-xs text-muted-foreground">{getCurrencySymbol(item.currency)}{item.price.toFixed(2)} each</p>
