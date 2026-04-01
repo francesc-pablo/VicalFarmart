@@ -21,7 +21,8 @@ const db = getFirestore(app);
 
 // Optimize persistence for Native/WebView environments
 if (typeof window !== "undefined") {
-    // indexedDB is much more reliable in Capacitor than default sessionStorage
+    // indexedDB is much more reliable in Capacitor than default sessionStorage/cookies
+    // It prevents session loss when redirecting back from external payment browsers
     const persistence = Capacitor.isNativePlatform() ? indexedDBLocalPersistence : browserLocalPersistence;
     setPersistence(auth, persistence).catch((err) => {
         console.warn("Firebase persistence error:", err);

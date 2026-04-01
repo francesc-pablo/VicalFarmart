@@ -5,27 +5,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 /**
- * This page serves as the landing destination for payment redirects.
- * Its primary purpose is to provide a valid URL for the payment gateway 
- * to redirect to, which is then intercepted by the native app listener.
+ * Landing destination for payment redirects.
+ * Extremely lightweight to ensure the native App listener intercepts it quickly.
  */
 export default function PaymentCallbackPage() {
   
-  // Script fallback: If for some reason the native listener fails to close the window,
-  // we provide a manual escape or a redirect after a long timeout.
   useEffect(() => {
+    // If the native listener fails to close the browser (e.g. desktop testing),
+    // provide a manual escape or a redirect after a timeout.
     const timer = setTimeout(() => {
-      // In a web environment, we'd redirect home. 
-      // In native, the browser should already be closed by the service listener.
       window.location.href = '/my-orders';
-    }, 5000);
+    }, 3000);
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-      <Card className="w-full max-w-md shadow-lg border-primary/20">
-        <CardContent className="pt-10 pb-10 flex flex-col items-center text-center space-y-6">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
+      <Card className="w-full max-w-sm shadow-xl border-primary/20">
+        <CardContent className="pt-12 pb-12 flex flex-col items-center text-center space-y-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center justify-center">
               <CheckCircle2 className="h-12 w-12 text-primary opacity-20" />
@@ -35,15 +32,12 @@ export default function PaymentCallbackPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-bold font-headline">Payment Received</h1>
             <p className="text-muted-foreground">
-              We are finalizing your order and returning you to the app. 
+              Finalizing your order record...
             </p>
-            <p className="text-sm font-medium text-primary animate-pulse">
-              Syncing with dashboard...
+            <p className="text-xs font-semibold text-primary animate-pulse uppercase tracking-wider">
+              Returning to App
             </p>
           </div>
-          <p className="text-xs text-muted-foreground italic">
-            This window should close automatically.
-          </p>
         </CardContent>
       </Card>
     </div>
