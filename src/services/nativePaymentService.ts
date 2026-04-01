@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Browser } from '@capacitor/browser';
@@ -29,7 +28,7 @@ interface PaymentResponse {
 
 /**
  * Handles the native payment flow using Capacitor Browser.
- * Detects redirects to confirm payment success.
+ * Detects redirects to confirm payment success and automatically closes the browser.
  */
 export const handleNativePayment = (details: PaymentInitiationDetails): Promise<PaymentResponse> => {
     return new Promise(async (resolve) => {
@@ -38,7 +37,7 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
              return;
         }
 
-        // Use a specific path that we have now created a route for
+        // The specific path the payment gateway will redirect to upon success/callback
         const redirect_path = '/payment-callback';
         const redirect_url = `${window.location.origin}${redirect_path}`;
         
@@ -73,29 +72,29 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
             browserFinishedListener?.remove();
         };
 
-        // This triggers when the user manually closes the browser
+        // This triggers when the user manually closes the browser window
         browserFinishedListener = await Browser.addListener('browserFinished', () => {
             if (!isResolved) {
                 isResolved = true;
                 cleanupListeners();
-                // If it wasn't resolved by a redirect detection, it was a user cancellation
+                // If it wasn't resolved by a redirect detection, it was a manual user cancellation
                 resolve({ status: 'cancelled' });
             }
         });
 
-        // This triggers when a page finishes loading in the browser
-        pageLoadedListener = await Browser.addListener('browserPageLoaded', (info) => {
-            console.log("Native Browser URL Changed:", info.url);
+        // This triggers whenever a page finishes loading in the in-app browser
+        pageLoadedListener = await Browser.addListener('browserPageLoaded', async (info) => {
+            console.log("Native Browser navigated to:", info.url);
             
             const lowerUrl = info.url.toLowerCase();
             const lowerRedirectPath = redirect_path.toLowerCase();
 
-            // Detect success indicators or the presence of our callback path
+            // Detect success indicators in the URL params or the presence of our internal callback path
             const isSuccess = lowerUrl.includes('status=successful') || lowerUrl.includes('status=completed');
             const isRedirectPath = lowerUrl.includes(lowerRedirectPath);
 
             if (!isResolved && (isSuccess || isRedirectPath)) {
-                // IMPORTANT: Mark as resolved IMMEDIATELY to prevent 'browserFinished' from triggering 'cancelled'
+                // Lock the resolution to prevent the 'browserFinished' event from triggering a cancellation
                 isResolved = true;
                 
                 try {
@@ -104,34 +103,33 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
                     
                     if (status === 'failed') {
                         cleanupListeners();
-                        Browser.close();
+                        await Browser.close();
                         resolve({ status: 'failed' });
                     } else {
                         const tx_ref = url.searchParams.get('tx_ref');
                         const transaction_id = url.searchParams.get('transaction_id');
 
-                        // Provide a slight delay before closing to ensure state is clean
-                        setTimeout(() => {
-                            cleanupListeners();
-                            Browser.close();
-                            resolve({ 
-                                status: 'successful', 
-                                transaction_id: transaction_id || undefined, 
-                                tx_ref: tx_ref || undefined 
-                            });
-                        }, 800);
+                        // Clean up and close the browser IMMEDIATELY to return control to the app UI
+                        cleanupListeners();
+                        await Browser.close();
+                        
+                        resolve({ 
+                            status: 'successful', 
+                            transaction_id: transaction_id || undefined, 
+                            tx_ref: tx_ref || undefined 
+                        });
                     }
                 } catch (e) {
-                    // Fallback for malformed URLs that still match our success criteria
+                    // Fallback resolution for valid redirects that might have malformed query strings
                     cleanupListeners();
-                    Browser.close();
+                    await Browser.close();
                     resolve({ status: 'successful' });
                 }
             }
         });
 
         try {
-            // 2. Open the payment link in the secure browser
+            // 2. Open the payment gateway in the secure in-app browser
             await Browser.open({ url: paymentLink });
         } catch (error) {
             console.error("Error opening In-App Browser:", error);
