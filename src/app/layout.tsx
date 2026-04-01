@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { CartProvider } from '@/context/CartContext';
 import { Suspense } from 'react';
+import { FirebaseErrorListener } from '@/components/shared/FirebaseErrorListener';
 
 export const metadata: Metadata = {
   title: 'Vical Farmart',
@@ -60,8 +61,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  // This check is for the client-side Firebase SDK. The app can't function without it.
-  // Other variables like GOOGLE_API_KEY are used server-side, and will have their own errors if missing.
   if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
     return <MissingEnvError />;
   }
@@ -69,6 +68,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${ptSans.variable} antialiased font-sans`}>
+        <FirebaseErrorListener />
         <CartProvider>
           <div className="flex flex-col min-h-screen">
             <Suspense>

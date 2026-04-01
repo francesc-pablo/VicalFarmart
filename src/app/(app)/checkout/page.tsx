@@ -273,7 +273,7 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  const handleOrderCreation = async (
+  const handleOrderCreationSync = (
     data: CheckoutFormValues, 
     initialStatus: Order['status'], 
     paymentMethodType: PaymentMethodType,
@@ -316,11 +316,11 @@ export default function CheckoutPage() {
         sellerName: isSingleSeller ? (cartItems[0]?.sellerName || "Seller") : "Multiple Sellers",
     };
 
-    const newOrderId = await createOrder(orderData);
-    if (newOrderId) {
-        return { id: newOrderId, data: orderData };
-    }
-    return null;
+    // createOrder is now an async function that returns a string ID instantly due to pre-generation.
+    // We don't necessarily need to await it for the UI to proceed.
+    const newOrderIdPromise = createOrder(orderData);
+    
+    return { promise: newOrderIdPromise, data: orderData };
   };
   
   const flutterwaveConfig = {
@@ -357,16 +357,18 @@ export default function CheckoutPage() {
     setIsProcessing(true);
 
     if (data.paymentMethod === 'cod') {
-        const result = await handleOrderCreation(data, 'Pending', 'Pay on Delivery');
+        const result = handleOrderCreationSync(data, 'Pending', 'Pay on Delivery');
         if (result) {
+            const orderId = await result.promise;
             clearCart();
             toast({ title: "Order Placed!", description: "Check your email for the invoice." });
-            await triggerOrderNotifications(result.id, result.data, false);
+            // Notifications can happen in the background
+            triggerOrderNotifications(orderId!, result.data, false);
             router.push("/my-orders");
         } else {
-            toast({ title: "Order Failed", description: "Could not save order record.", variant: "destructive" });
+            toast({ title: "Order Failed", description: "Could not initialize order record.", variant: "destructive" });
+            setIsProcessing(false);
         }
-        setIsProcessing(false);
     } else {
         // ONLINE PAYMENT FLOW
         if (isNative) {
@@ -396,14 +398,16 @@ export default function CheckoutPage() {
                       gateway: 'Flutterwave (Native)',
                   };
                   
-                  const orderResult = await handleOrderCreation(data, 'Paid', 'Online Payment', details);
+                  const orderResult = handleOrderCreationSync(data, 'Paid', 'Online Payment', details);
                   if (orderResult) {
+                      const orderId = await orderResult.promise;
                       clearCart();
                       toast({ title: "Payment Successful!", description: "Your order is being processed." });
-                      await triggerOrderNotifications(orderResult.id, orderResult.data, true);
+                      triggerOrderNotifications(orderId!, orderResult.data, true);
                       router.push("/my-orders");
                   } else {
                       toast({ title: "Order Recording Failed", description: "Payment was successful but we couldn't record your order. Please contact support.", variant: "destructive" });
+                      setIsProcessing(false);
                   }
               } else {
                   toast({
@@ -432,10 +436,11 @@ export default function CheckoutPage() {
                             status: response.status,
                             gateway: 'Flutterwave',
                         };
-                        const orderResult = await handleOrderCreation(data, 'Paid', 'Online Payment', details);
+                        const orderResult = handleOrderCreationSync(data, 'Paid', 'Online Payment', details);
                         if (orderResult) {
+                            const orderId = await orderResult.promise;
                             clearCart();
-                            await triggerOrderNotifications(orderResult.id, orderResult.data, true);
+                            triggerOrderNotifications(orderId!, orderResult.data, true);
                             router.push("/my-orders");
                         }
                     } else {

@@ -1,6 +1,20 @@
 import { db } from "@/lib/firebase";
 import type { Product } from "@/types";
-import { collection, getDocs, doc, getDoc, query, where, limit, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { 
+  collection, 
+  getDocs, 
+  doc, 
+  getDoc, 
+  query, 
+  where, 
+  limit, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp, 
+  setDoc 
+} from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 const productsCollectionRef = collection(db, "products");
 
@@ -84,38 +98,49 @@ export async function getRelatedProducts(category: string, currentProductId: str
     }
 }
 
-// Admin/Seller functions
 export async function addProduct(productData: Omit<Product, 'id'>): Promise<Product | null> {
-  try {
-    const docRef = await addDoc(productsCollectionRef, {
-      ...productData,
-      createdAt: serverTimestamp(),
-    });
-    // Ensure ID is part of the data
-    await updateDoc(docRef, { id: docRef.id });
-    return { id: docRef.id, ...productData };
-  } catch (error) {
-    console.error("Error adding product: ", error);
-    return null;
-  }
+  const docRef = doc(collection(db, "products"));
+  const productId = docRef.id;
+  const finalData = {
+    ...productData,
+    id: productId,
+    createdAt: serverTimestamp(),
+  };
+
+  setDoc(docRef, finalData).catch(async (error) => {
+    const permissionError = new FirestorePermissionError({
+      path: docRef.path,
+      operation: 'create',
+      requestResourceData: finalData,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
+
+  return { id: productId, ...productData } as Product;
 }
 
 export async function updateProduct(productId: string, productData: Partial<Product>): Promise<void> {
-  try {
-    const productDocRef = doc(db, "products", productId);
-    const dataToUpdate = { ...productData };
-    delete dataToUpdate.id; 
-    await updateDoc(productDocRef, dataToUpdate);
-  } catch (error) {
-    console.error("Error updating product: ", error);
-  }
+  const productDocRef = doc(db, "products", productId);
+  const dataToUpdate = { ...productData };
+  delete dataToUpdate.id; 
+  
+  updateDoc(productDocRef, dataToUpdate).catch(async (error) => {
+    const permissionError = new FirestorePermissionError({
+      path: productDocRef.path,
+      operation: 'update',
+      requestResourceData: dataToUpdate,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
 export async function deleteProduct(productId: string): Promise<void> {
-  try {
-    const productDocRef = doc(db, "products", productId);
-    await deleteDoc(productDocRef);
-  } catch (error) {
-    console.error("Error deleting product: ", error);
-  }
+  const productDocRef = doc(db, "products", productId);
+  deleteDoc(productDocRef).catch(async (error) => {
+    const permissionError = new FirestorePermissionError({
+      path: productDocRef.path,
+      operation: 'delete',
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }

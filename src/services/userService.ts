@@ -1,10 +1,22 @@
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { 
+  collection, 
+  getDocs, 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp, 
+  query, 
+  orderBy 
+} from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
-// Helper to convert Firestore Timestamps to a plain, serializable format
 const convertTimestamp = (data: any) => {
   if (!data) return data;
   const convertedData = { ...data };
@@ -17,7 +29,6 @@ const convertTimestamp = (data: any) => {
 };
 
 
-// Function to get all users, sorted by most recently created
 export async function getUsers(): Promise<User[]> {
   try {
     const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
@@ -33,7 +44,6 @@ export async function getUsers(): Promise<User[]> {
     return users;
   } catch (error) {
     console.error("Error fetching users with sorting: ", error);
-    // Fallback if sorting query fails (e.g., no composite index)
     try {
         const fallbackSnapshot = await getDocs(collection(db, "users"));
         const fallbackUsers = fallbackSnapshot.docs.map((doc) => {
@@ -49,7 +59,6 @@ export async function getUsers(): Promise<User[]> {
   }
 }
 
-// Function to get a single user by ID
 export async function getUserById(userId: string): Promise<User | null> {
   try {
     const docRef = doc(db, "users", userId);
@@ -68,7 +77,6 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
-// Function to add a new user. This will log the creator out as the session is replaced.
 export async function addUser(userData: Partial<User>): Promise<User | null> {
     const { email, password, name, role } = userData;
     if (!email || !password || !name || !role) {
@@ -90,7 +98,6 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
             address: userData.address || "",
             region: userData.region || "",
             town: userData.town || "",
-            // Seller fields
             businessName: userData.businessName || "",
             businessOwnerName: userData.businessOwnerName || "",
             businessAddress: userData.businessAddress || "",
@@ -100,7 +107,6 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
             geoCoordinatesLat: userData.geoCoordinatesLat || "",
             geoCoordinatesLng: userData.geoCoordinatesLng || "",
             businessType: userData.businessType || "",
-            // Courier fields
             businessRegistrationNumber: userData.businessRegistrationNumber || "",
             businessLocation: userData.businessLocation || "",
             tradeLicenseUrl: userData.tradeLicenseUrl || "",
@@ -114,12 +120,19 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
             vehicleRegistrationNumber: userData.vehicleRegistrationNumber || "",
             vehicleInsuranceUrl: userData.vehicleInsuranceUrl || "",
             roadworthinessUrl: userData.roadworthinessUrl || "",
-            // Login tracking
             failedLoginAttempts: 0,
             lockoutUntil: null,
         };
 
-        await setDoc(doc(db, "users", user.uid), newUserProfile);
+        const userDocRef = doc(db, "users", user.uid);
+        setDoc(userDocRef, newUserProfile).catch(async (error) => {
+          const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'create',
+            requestResourceData: newUserProfile,
+          } satisfies SecurityRuleContext);
+          errorEmitter.emit('permission-error', permissionError);
+        });
         
         try {
             await sendWelcomeEmail({ name, email });
@@ -136,46 +149,47 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
 }
 
 
-// Function to update a user's details
 export async function updateUser(userId: string, data: Partial<User>): Promise<void> {
-    try {
-        const userDocRef = doc(db, "users", userId);
-        const updateData: { [key: string]: any } = {};
+    const userDocRef = doc(db, "users", userId);
+    const updateData: { [key: string]: any } = {};
 
-        const userFields: (keyof User)[] = [
-            'name', 'role', 'avatarUrl', 'isActive', 'phone', 'address', 'region', 'town',
-            'businessName', 'businessOwnerName', 'businessAddress', 'contactNumber', 'businessLocationRegion', 
-            'businessLocationTown', 'geoCoordinatesLat', 'geoCoordinatesLng', 'businessType',
-            'businessRegistrationNumber', 'businessLocation', 'tradeLicenseUrl', 'tinNumber', 'nationalIdUrl',
-            'residentialAddress', 'policeClearanceUrl', 'driverLicenseUrl', 'licenseCategory',
-            'vehicleType', 'vehicleRegistrationNumber', 'vehicleInsuranceUrl', 'roadworthinessUrl'
-        ];
+    const userFields: (keyof User)[] = [
+        'name', 'role', 'avatarUrl', 'isActive', 'phone', 'address', 'region', 'town',
+        'businessName', 'businessOwnerName', 'businessAddress', 'contactNumber', 'businessLocationRegion', 
+        'businessLocationTown', 'geoCoordinatesLat', 'geoCoordinatesLng', 'businessType',
+        'businessRegistrationNumber', 'businessLocation', 'tradeLicenseUrl', 'tinNumber', 'nationalIdUrl',
+        'residentialAddress', 'policeClearanceUrl', 'driverLicenseUrl', 'licenseCategory',
+        'vehicleType', 'vehicleRegistrationNumber', 'vehicleInsuranceUrl', 'roadworthinessUrl'
+    ];
 
-        for (const key of userFields) {
-            if (key in data) {
-                updateData[key] = (data as any)[key];
-            }
+    for (const key of userFields) {
+        if (key in data) {
+            updateData[key] = (data as any)[key];
         }
-        
-        delete updateData.id; 
-        delete updateData.password; 
-        delete updateData.createdAt;
-        delete updateData.email;
-
-        await updateDoc(userDocRef, updateData);
-    } catch (error) {
-        console.error("Error updating user: ", error);
-        throw error;
     }
+    
+    delete updateData.id; 
+    delete updateData.password; 
+    delete updateData.createdAt;
+    delete updateData.email;
+
+    updateDoc(userDocRef, updateData).catch(async (error) => {
+      const permissionError = new FirestorePermissionError({
+        path: userDocRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
+    });
 }
 
-// Function to delete a user's Firestore document
 export async function deleteUser(userId: string): Promise<void> {
-  try {
-    const userDocRef = doc(db, "users", userId);
-    await deleteDoc(userDocRef);
-  } catch (error) {
-    console.error("Error deleting user document: ", error);
-    throw error;
-  }
+  const userDocRef = doc(db, "users", userId);
+  deleteDoc(userDocRef).catch(async (error) => {
+    const permissionError = new FirestorePermissionError({
+      path: userDocRef.path,
+      operation: 'delete',
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }

@@ -1,10 +1,23 @@
 import { db } from "@/lib/firebase";
 import type { Order, OrderStatus } from "@/types";
-import { collection, getDocs, doc, updateDoc, query, orderBy, where, setDoc, serverTimestamp, getDoc, deleteDoc, addDoc } from "firebase/firestore";
+import { 
+  collection, 
+  getDocs, 
+  doc, 
+  updateDoc, 
+  query, 
+  orderBy, 
+  where, 
+  setDoc, 
+  serverTimestamp, 
+  getDoc, 
+  deleteDoc 
+} from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 const ordersCollectionRef = collection(db, "orders");
 
-// Helper to convert Firestore Timestamps to a plain, serializable format
 const convertTimestamp = (data: any) => {
   const convertedData = { ...data };
   for (const key in convertedData) {
@@ -16,35 +29,41 @@ const convertTimestamp = (data: any) => {
 };
 
 /**
- * Creates a new order in Firestore.
+ * Creates a new order in Firestore using a non-blocking write.
+ * This pattern ensures the local cache is updated immediately for responsive UI.
  */
 export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): Promise<string | null> {
-  try {
-    const docRef = await addDoc(ordersCollectionRef, {
-      ...orderData,
-      orderDate: serverTimestamp(),
-    });
-    
-    // Update the document with its own ID for easier reference
-    await updateDoc(docRef, { id: docRef.id });
+  const orderRef = doc(collection(db, "orders"));
+  const orderId = orderRef.id;
 
-    return docRef.id;
-  } catch (error) {
-    console.error("Error creating order: ", error);
-    return null;
-  }
+  const finalData = {
+    ...orderData,
+    id: orderId,
+    orderDate: serverTimestamp(),
+  };
+
+  // Initiate non-blocking write
+  setDoc(orderRef, finalData).catch(async (error) => {
+    const permissionError = new FirestorePermissionError({
+      path: orderRef.path,
+      operation: 'create',
+      requestResourceData: finalData,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
+
+  return orderId;
 }
 
-/**
- * Deletes an order from Firestore.
- */
 export async function deleteOrder(orderId: string): Promise<void> {
-  try {
-    const orderDocRef = doc(db, "orders", orderId);
-    await deleteDoc(orderDocRef);
-  } catch (error) {
-    console.error("Error deleting order: ", error);
-  }
+  const orderDocRef = doc(db, "orders", orderId);
+  deleteDoc(orderDocRef).catch(async (error) => {
+    const permissionError = new FirestorePermissionError({
+      path: orderDocRef.path,
+      operation: 'delete',
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
 export async function getOrderById(orderId: string): Promise<Order | null> {
@@ -147,40 +166,39 @@ export async function getOrdersByCourierId(courierId: string): Promise<Order[]> 
   }
 }
 
-/**
- * Updates an order status and optional payment details.
- */
 export async function updateOrderStatus(
     orderId: string, 
     status: OrderStatus, 
     paymentDetails?: Order['paymentDetails']
 ): Promise<void> {
-  try {
-    const orderDocRef = doc(db, "orders", orderId);
-    const updateData: any = { status };
-    if (paymentDetails) {
-        updateData.paymentDetails = paymentDetails;
-    }
-    
-    await updateDoc(orderDocRef, updateData);
-  } catch (error) {
-    console.error("Error updating order status: ", error);
-    throw error;
+  const orderDocRef = doc(db, "orders", orderId);
+  const updateData: any = { status };
+  if (paymentDetails) {
+      updateData.paymentDetails = paymentDetails;
   }
+  
+  updateDoc(orderDocRef, updateData).catch(async (error) => {
+    const permissionError = new FirestorePermissionError({
+      path: orderDocRef.path,
+      operation: 'update',
+      requestResourceData: updateData,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
-/**
- * Assigns a courier to an order.
- */
 export async function assignCourierToOrder(orderId: string, courierId: string, courierName: string): Promise<void> {
-    try {
-        const orderDocRef = doc(db, "orders", orderId);
-        await updateDoc(orderDocRef, {
-            courierId: courierId,
-            courierName: courierName,
-        });
-    } catch (error) {
-        console.error("Error assigning courier to order: ", error);
-        throw error;
-    }
+    const orderDocRef = doc(db, "orders", orderId);
+    const updateData = {
+        courierId: courierId,
+        courierName: courierName,
+    };
+    updateDoc(orderDocRef, updateData).catch(async (error) => {
+      const permissionError = new FirestorePermissionError({
+        path: orderDocRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
+    });
 }
