@@ -163,7 +163,8 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
     ];
 
     for (const key of userFields) {
-        if (key in data) {
+        // Ensure we don't pass undefined values to Firestore
+        if (key in data && (data as any)[key] !== undefined) {
             updateData[key] = (data as any)[key];
         }
     }

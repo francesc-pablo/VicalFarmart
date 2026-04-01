@@ -18,6 +18,21 @@ import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/e
 
 const productsCollectionRef = collection(db, "products");
 
+/**
+ * Helper to remove undefined properties from an object.
+ * Firestore does not support 'undefined' as a field value.
+ */
+function scrubUndefined(obj: any): any {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(scrubUndefined);
+  
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([_, v]) => v !== undefined)
+      .map(([k, v]) => [k, scrubUndefined(v)])
+  );
+}
+
 export async function getProducts(): Promise<Product[]> {
   try {
     const querySnapshot = await getDocs(productsCollectionRef);
@@ -101,8 +116,12 @@ export async function getRelatedProducts(category: string, currentProductId: str
 export async function addProduct(productData: Omit<Product, 'id'>): Promise<Product | null> {
   const docRef = doc(collection(db, "products"));
   const productId = docRef.id;
+  
+  // Scrub undefined values
+  const cleanProductData = scrubUndefined(productData);
+
   const finalData = {
-    ...productData,
+    ...cleanProductData,
     id: productId,
     createdAt: serverTimestamp(),
   };
@@ -121,7 +140,9 @@ export async function addProduct(productData: Omit<Product, 'id'>): Promise<Prod
 
 export async function updateProduct(productId: string, productData: Partial<Product>): Promise<void> {
   const productDocRef = doc(db, "products", productId);
-  const dataToUpdate = { ...productData };
+  
+  // Scrub undefined values
+  const dataToUpdate = scrubUndefined({ ...productData });
   delete dataToUpdate.id; 
   
   updateDoc(productDocRef, dataToUpdate).catch(async (error) => {

@@ -309,15 +309,14 @@ export default function CheckoutPage() {
             address: data.address,
             city: data.city,
             zipCode: data.zipCode,
-            idCardNumber: data.idCardNumber,
+            idCardNumber: data.idCardNumber || "", // Use empty string instead of undefined
         },
-        paymentDetails,
+        // Conditionally add paymentDetails only if provided to avoid 'undefined' error in Firestore
+        ...(paymentDetails ? { paymentDetails } : {}),
         ...(isSingleSeller && { sellerId: singleSellerId }),
         sellerName: isSingleSeller ? (cartItems[0]?.sellerName || "Seller") : "Multiple Sellers",
     };
 
-    // createOrder is now an async function that returns a string ID instantly due to pre-generation.
-    // We don't necessarily need to await it for the UI to proceed.
     const newOrderIdPromise = createOrder(orderData);
     
     return { promise: newOrderIdPromise, data: orderData };
@@ -362,7 +361,6 @@ export default function CheckoutPage() {
             const orderId = await result.promise;
             clearCart();
             toast({ title: "Order Placed!", description: "Check your email for the invoice." });
-            // Notifications can happen in the background
             triggerOrderNotifications(orderId!, result.data, false);
             router.push("/my-orders");
         } else {

@@ -18,6 +18,21 @@ import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/e
 
 const ordersCollectionRef = collection(db, "orders");
 
+/**
+ * Helper to remove undefined properties from an object recursively.
+ * Firestore does not support 'undefined' as a field value.
+ */
+function scrubUndefined(obj: any): any {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(scrubUndefined);
+  
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([_, v]) => v !== undefined)
+      .map(([k, v]) => [k, scrubUndefined(v)])
+  );
+}
+
 const convertTimestamp = (data: any) => {
   const convertedData = { ...data };
   for (const key in convertedData) {
@@ -36,8 +51,11 @@ export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): P
   const orderRef = doc(collection(db, "orders"));
   const orderId = orderRef.id;
 
+  // Scrub undefined values to prevent Firestore validation errors
+  const cleanOrderData = scrubUndefined(orderData);
+
   const finalData = {
-    ...orderData,
+    ...cleanOrderData,
     id: orderId,
     orderDate: serverTimestamp(),
   };
@@ -172,10 +190,12 @@ export async function updateOrderStatus(
     paymentDetails?: Order['paymentDetails']
 ): Promise<void> {
   const orderDocRef = doc(db, "orders", orderId);
-  const updateData: any = { status };
-  if (paymentDetails) {
-      updateData.paymentDetails = paymentDetails;
-  }
+  
+  // Scrub undefined to prevent SDK crashes
+  const updateData: any = scrubUndefined({ 
+    status,
+    paymentDetails
+  });
   
   updateDoc(orderDocRef, updateData).catch(async (error) => {
     const permissionError = new FirestorePermissionError({
