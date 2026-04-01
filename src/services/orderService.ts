@@ -45,7 +45,6 @@ const convertTimestamp = (data: any) => {
 
 /**
  * Creates a new order in Firestore using a non-blocking write.
- * This pattern ensures the local cache is updated immediately for responsive UI.
  */
 export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): Promise<string | null> {
   const orderRef = doc(collection(db, "orders"));

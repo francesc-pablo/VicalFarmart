@@ -38,6 +38,7 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
         }
 
         // IMPORTANT: Use the production domain for redirects in native mode.
+        // WebViews often lose session context during redirects, so we use a public domain.
         const production_origin = 'https://vicalfarmart.com';
         const redirect_path = '/payment-callback';
         const redirect_url = `${production_origin}${redirect_path}`;
@@ -74,7 +75,6 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
         };
 
         // This triggers when the user manually closes the browser window.
-        // We only resolve as 'cancelled' if the pageLoadedListener hasn't already resolved as 'successful'.
         browserFinishedListener = await Browser.addListener('browserFinished', () => {
             if (!isResolved) {
                 isResolved = true;
@@ -84,36 +84,33 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
         });
 
         // Intercept redirects back to our site.
-        // Even if session cookies are lost and it bounces to /login, the presence 
-        // of our domain indicates the payment gateway is finished with the user.
         pageLoadedListener = await Browser.addListener('browserPageLoaded', async (info) => {
             if (isResolved) return;
 
             const url = info.url || '';
             const lowerUrl = url.toLowerCase();
             
-            console.log("[PaymentService] Redirect Intercepted:", url);
+            console.log("[PaymentService] URL Intercepted:", url);
 
             // Robust success detection:
             // 1. Hits the specific callback path
-            // 2. Or contains success-related query parameters
-            // 3. Or bounces back to our main site (even /login) which implies the gateway redirect happened.
-            const isAtCallbackPath = lowerUrl.includes('/payment-callback');
+            // 2. Or hits our main site (vicalfarmart.com) after being at the gateway
+            // 3. Or contains success-related query parameters
+            const isReturningToSite = lowerUrl.includes('vicalfarmart.com');
             const hasSuccessParams = lowerUrl.includes('status=successful') || 
                                    lowerUrl.includes('status=completed') || 
                                    lowerUrl.includes('status=success');
-            const isOurDomain = lowerUrl.includes('vicalfarmart.com');
 
-            if (isAtCallbackPath || hasSuccessParams || (isOurDomain && lowerUrl.includes('/login'))) {
+            if (isReturningToSite || hasSuccessParams) {
                 isResolved = true;
                 
                 try {
                     const urlObj = new URL(url);
                     const status = urlObj.searchParams.get('status');
-                    const transaction_id = urlObj.searchParams.get('transaction_id');
+                    const transaction_id = urlObj.searchParams.get('transaction_id') || urlObj.searchParams.get('transactionId');
                     const tx_ref = urlObj.searchParams.get('tx_ref');
 
-                    // FORCE CLOSE the browser immediately to return to native app context
+                    // FORCE CLOSE the browser immediately
                     await Browser.close();
                     await cleanup();
 
@@ -122,7 +119,7 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
                     } else {
                         resolve({ 
                             status: 'successful', 
-                            transaction_id: transaction_id || undefined, 
+                            transaction_id: transaction_id || 'N/A', 
                             tx_ref: tx_ref || undefined 
                         });
                     }

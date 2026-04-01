@@ -17,6 +17,21 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
+/**
+ * Helper to remove undefined properties from an object recursively.
+ * Firestore does not support 'undefined' as a field value.
+ */
+function scrubUndefined(obj: any): any {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(scrubUndefined);
+  
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([_, v]) => v !== undefined)
+      .map(([k, v]) => [k, scrubUndefined(v)])
+  );
+}
+
 const convertTimestamp = (data: any) => {
   if (!data) return data;
   const convertedData = { ...data };
@@ -151,23 +166,9 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
 
 export async function updateUser(userId: string, data: Partial<User>): Promise<void> {
     const userDocRef = doc(db, "users", userId);
-    const updateData: { [key: string]: any } = {};
-
-    const userFields: (keyof User)[] = [
-        'name', 'role', 'avatarUrl', 'isActive', 'phone', 'address', 'region', 'town',
-        'businessName', 'businessOwnerName', 'businessAddress', 'contactNumber', 'businessLocationRegion', 
-        'businessLocationTown', 'geoCoordinatesLat', 'geoCoordinatesLng', 'businessType',
-        'businessRegistrationNumber', 'businessLocation', 'tradeLicenseUrl', 'tinNumber', 'nationalIdUrl',
-        'residentialAddress', 'policeClearanceUrl', 'driverLicenseUrl', 'licenseCategory',
-        'vehicleType', 'vehicleRegistrationNumber', 'vehicleInsuranceUrl', 'roadworthinessUrl'
-    ];
-
-    for (const key of userFields) {
-        // Ensure we don't pass undefined values to Firestore
-        if (key in data && (data as any)[key] !== undefined) {
-            updateData[key] = (data as any)[key];
-        }
-    }
+    
+    // Ensure we don't pass undefined values to Firestore
+    const updateData: any = scrubUndefined({ ...data });
     
     delete updateData.id; 
     delete updateData.password; 
