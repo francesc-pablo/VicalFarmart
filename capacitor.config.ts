@@ -1,9 +1,11 @@
+
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.vicalfarmart.app',
   appName: 'Vical Farmart',
-  webDir: 'out',
+  /* Use a minimal local folder to satisfy Capacitor requirements without bloating the AAB size */
+  webDir: 'www',
   server: {
     url: 'https://vicalfarmart.com',
     cleartext: true,

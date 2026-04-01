@@ -2,8 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* Enable static export for Capacitor compatibility and size reduction */
-  output: 'export',
+  /* Enable static export removed per user request to use server mode */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -11,7 +10,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    /* Required for static export: Next.js cannot optimize images at runtime on device */
     unoptimized: true,
     remotePatterns: [
       {

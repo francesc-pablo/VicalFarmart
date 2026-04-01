@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 9002",
-    "build": "rm -rf out && next build",
+    "build": "rimraf out && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsx --noEmit",
@@ -74,6 +74,7 @@
     "@types/uuid": "^10.0.0",
     "eslint-config-next": "15.0.0",
     "postcss": "^8",
+    "rimraf": "^5.0.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   },
