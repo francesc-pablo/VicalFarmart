@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Browser } from '@capacitor/browser';
@@ -37,7 +38,7 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
              return;
         }
 
-        // We use a specific path to look for in the redirect URL
+        // Use a specific path that we have now created a route for
         const redirect_path = '/payment-callback';
         const redirect_url = `${window.location.origin}${redirect_path}`;
         
@@ -77,6 +78,7 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
             if (!isResolved) {
                 isResolved = true;
                 cleanupListeners();
+                // If it wasn't resolved by a redirect detection, it was a user cancellation
                 resolve({ status: 'cancelled' });
             }
         });
@@ -85,37 +87,45 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
         pageLoadedListener = await Browser.addListener('browserPageLoaded', (info) => {
             console.log("Native Browser URL Changed:", info.url);
             
-            // Check if the URL contains the success status or our redirect path
-            // We use .includes for robustness against www/non-www or trailing slashes
-            const isSuccess = info.url.includes('status=successful') || info.url.includes('status=completed');
-            const isRedirect = info.url.includes(redirect_path);
+            const lowerUrl = info.url.toLowerCase();
+            const lowerRedirectPath = redirect_path.toLowerCase();
 
-            if (!isResolved && (isSuccess || isRedirect)) {
-                const url = new URL(info.url);
-                const status = url.searchParams.get('status');
+            // Detect success indicators or the presence of our callback path
+            const isSuccess = lowerUrl.includes('status=successful') || lowerUrl.includes('status=completed');
+            const isRedirectPath = lowerUrl.includes(lowerRedirectPath);
+
+            if (!isResolved && (isSuccess || isRedirectPath)) {
+                // IMPORTANT: Mark as resolved IMMEDIATELY to prevent 'browserFinished' from triggering 'cancelled'
+                isResolved = true;
                 
-                // If it explicitly says failed, we handle that, otherwise treat redirect as success
-                if (status === 'failed') {
-                    isResolved = true;
+                try {
+                    const url = new URL(info.url);
+                    const status = url.searchParams.get('status');
+                    
+                    if (status === 'failed') {
+                        cleanupListeners();
+                        Browser.close();
+                        resolve({ status: 'failed' });
+                    } else {
+                        const tx_ref = url.searchParams.get('tx_ref');
+                        const transaction_id = url.searchParams.get('transaction_id');
+
+                        // Provide a slight delay before closing to ensure state is clean
+                        setTimeout(() => {
+                            cleanupListeners();
+                            Browser.close();
+                            resolve({ 
+                                status: 'successful', 
+                                transaction_id: transaction_id || undefined, 
+                                tx_ref: tx_ref || undefined 
+                            });
+                        }, 800);
+                    }
+                } catch (e) {
+                    // Fallback for malformed URLs that still match our success criteria
                     cleanupListeners();
                     Browser.close();
-                    resolve({ status: 'failed' });
-                } else if (isSuccess || status === 'successful') {
-                    isResolved = true;
-                    cleanupListeners();
-                    
-                    const tx_ref = url.searchParams.get('tx_ref');
-                    const transaction_id = url.searchParams.get('transaction_id');
-
-                    // Small delay to ensure Browser.close doesn't interrupt the transition
-                    setTimeout(() => {
-                        Browser.close();
-                        resolve({ 
-                            status: 'successful', 
-                            transaction_id: transaction_id || undefined, 
-                            tx_ref: tx_ref || undefined 
-                        });
-                    }, 500);
+                    resolve({ status: 'successful' });
                 }
             }
         });
