@@ -1,3 +1,4 @@
+
 "use client";
 
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -37,6 +38,7 @@ import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { v4 as uuidv4 } from 'uuid';
 import { Capacitor } from '@capacitor/core';
 
+const PRODUCTION_URL = 'https://vicalfarmart.com';
 
 const getCurrencyForFlutterwave = (currencyCode?: string) => {
     const supportedCurrencies = ["GHS", "USD", "NGN", "XOF", "SLL", "LRD", "GMD", "GNF", "CVE", "EUR", "GBP"];
@@ -363,13 +365,13 @@ export default function CheckoutPage() {
               const nativeResponse = await handleNativePayment(paymentDetailsRequest);
 
               if (nativeResponse.status === 'successful' && nativeResponse.transaction_id) {
-                  // 🔥 ATOMIC SERVER CONFIRMATION: Verify AND Save Order in one call
-                  const verifyResponse = await fetch('/api/payments/verify', {
+                  // Use absolute URL for native verification to reach the server
+                  const verifyResponse = await fetch(`${PRODUCTION_URL}/api/payments/verify`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ 
                           transaction_id: nativeResponse.transaction_id,
-                          orderData: orderData // Pass the full order data for server-side recording
+                          orderData: orderData
                       }),
                   });
 
@@ -420,7 +422,6 @@ export default function CheckoutPage() {
                 callback: async (response: any) => {
                     closePaymentModal();
                     if (response.status === 'successful') {
-                        // Atomic verify + save for web too
                         const verifyResponse = await fetch('/api/payments/verify', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
