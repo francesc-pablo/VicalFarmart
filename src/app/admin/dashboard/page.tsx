@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -43,7 +42,7 @@ export default function AdminDashboardPage() {
       const activeSellers = users.filter(u => u.role === 'seller' && u.isActive).length;
       const totalOrders = orders.length;
 
-      // Group revenue by currency
+      // Group revenue by currency, including both Delivered and Paid orders
       const revenueByCurrency: { [key: string]: number } = {};
       orders
         .filter(o => o.status === 'Delivered' || o.status === 'Paid')
@@ -52,8 +51,6 @@ export default function AdminDashboardPage() {
           revenueByCurrency[currency] = (revenueByCurrency[currency] || 0) + order.totalAmount;
         });
 
-      // For simplicity, we'll just show GHS revenue on the dashboard for now.
-      // A more complex implementation could show multiple currency totals.
       const platformRevenue = revenueByCurrency['GHS'] || 0;
       const mainCurrencySymbol = getCurrencySymbol('GHS');
 
@@ -160,7 +157,6 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-center py-4">Order trends data will be shown here.</p>
-            {/* Placeholder for order trends chart or list */}
           </CardContent>
         </Card>
       </div>

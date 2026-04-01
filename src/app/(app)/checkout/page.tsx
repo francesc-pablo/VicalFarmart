@@ -1,4 +1,3 @@
-
 "use client";
 
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -26,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { createOrder, updateOrderStatus } from '@/services/orderService';
+import { createOrder } from '@/services/orderService';
 import { getUsers, getUserById } from '@/services/userService';
 import { sendNewOrderEmail, sendOrderConfirmationEmail } from '@/ai/flows/emailFlows';
 import { sendEmail } from '@/services/emailService';
@@ -369,12 +368,12 @@ export default function CheckoutPage() {
         }
         setIsProcessing(false);
     } else {
-        // ONLINE PAYMENT FLOW - Standard success-after creation
+        // ONLINE PAYMENT FLOW
         if (isNative) {
             const paymentDetails = {
+                tx_ref: `vical-native-${Date.now()}`,
                 amount: total,
                 currency: mainCurrency,
-                tx_ref: `vical-native-${Date.now()}`,
                 customer: {
                     email: data.email,
                     phone_number: data.phone,
@@ -403,11 +402,13 @@ export default function CheckoutPage() {
                       toast({ title: "Payment Successful!", description: "Your order is being processed." });
                       await triggerOrderNotifications(orderResult.id, orderResult.data, true);
                       router.push("/my-orders");
+                  } else {
+                      toast({ title: "Order Recording Failed", description: "Payment was successful but we couldn't record your order. Please contact support.", variant: "destructive" });
                   }
               } else {
                   toast({
                       title: response.status === 'cancelled' ? "Payment Window Closed" : "Payment Incomplete",
-                      description: response.status === 'cancelled' ? "Your checkout was cancelled." : "Payment failed. Please try again.",
+                      description: response.status === 'cancelled' ? "Your checkout was cancelled. No charges were made." : "Payment failed. Please try again.",
                       variant: response.status === 'cancelled' ? 'default' : 'destructive',
                   });
                   setIsProcessing(false);

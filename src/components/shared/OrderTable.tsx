@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { Order, OrderStatus, User } from "@/types";
@@ -35,13 +34,13 @@ const getStatusBadgeVariant = (status: OrderStatus): "default" | "secondary" | "
   switch (status) {
     case "Pending":
       return "outline";
+    case "Paid":
+      return "secondary";
     case "Processing":
       return "secondary";
     case "Shipped":
       return "default";
     case "Delivered":
-      return "default";
-    case "Paid":
       return "default";
     case "Cancelled":
       return "destructive";
@@ -56,7 +55,7 @@ const getCurrencySymbol = (currencyCode?: string) => {
     return "$";
 };
 
-const availableOrderStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Paid"];
+const availableOrderStatuses: OrderStatus[] = ["Pending", "Paid", "Processing", "Shipped", "Delivered", "Cancelled"];
 
 const NO_COURIER_VALUE = "__NONE__";
 

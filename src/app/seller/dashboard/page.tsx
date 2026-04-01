@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -52,7 +51,6 @@ export default function SellerDashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  // Use the currency from the first order as the primary currency for display, or default.
   const mainCurrency = orders[0]?.currency || 'GHS';
   const mainCurrencySymbol = getCurrencySymbol(mainCurrency);
 
@@ -63,22 +61,24 @@ export default function SellerDashboardPage() {
       .reduce((sum, item) => sum + item.price * item.quantity, 0);
   };
 
+  // Include "Paid" orders in revenue calculation
   const totalRevenue = orders
     .filter(o => o.status === 'Delivered' || o.status === 'Paid')
     .reduce((sum, order) => sum + calculateSellerSubtotal(order), 0);
   
   const totalOrders = orders.length;
-  const pendingOrders = orders.filter(o => o.status === 'Pending' || o.status === 'Processing').length;
+  // Pending orders include those confirmed but not yet processed
+  const pendingOrders = orders.filter(o => o.status === 'Pending' || o.status === 'Paid' || o.status === 'Processing').length;
   
   const recentOrders = orders.slice(0, 5).map(order => ({
     ...order,
-    totalAmount: calculateSellerSubtotal(order) // Recalculate for display
+    totalAmount: calculateSellerSubtotal(order)
   }));
 
   const statCards = [
     { title: "Total Revenue", value: `${mainCurrencySymbol}${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-500" },
     { title: "Total Orders", value: totalOrders, icon: Package, color: "text-primary" },
-    { title: "Pending Orders", value: pendingOrders, icon: Clock, color: "text-orange-500" },
+    { title: "Active Orders", value: pendingOrders, icon: Clock, color: "text-orange-500" },
   ];
   
   return (

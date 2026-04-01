@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
-import { getAllOrders, updateOrderStatus, getOrderById, assignCourierToOrder } from '@/services/orderService';
+import { getAllOrders, updateOrderStatus, assignCourierToOrder } from '@/services/orderService';
 import { getUserById, getUsers } from '@/services/userService';
 import { sendOrderStatusUpdateEmail, sendOrderConfirmationEmail, sendCourierAssignmentEmail } from '@/ai/flows/emailFlows';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -98,7 +98,7 @@ export default function AdminOrdersPage() {
                         orderId: order.id,
                         newStatus: newStatus,
                         items: order.items.map(i => ({ productName: i.productName, quantity: i.quantity })),
-                        courierName: order.courierName, // Pass courier name
+                        courierName: order.courierName,
                     });
                 }
             }
@@ -129,10 +129,8 @@ export default function AdminOrdersPage() {
           await assignCourierToOrder(orderId, courierId, courierName);
           toast({ title: "Courier Assigned", description: `${courierName} has been assigned to order #${orderId.substring(0, 6)}.` });
           
-          // Update local state
           setAllOrders(prev => prev.map(o => o.id === orderId ? { ...o, courierId, courierName } : o));
 
-          // Trigger Courier Email
           const courierDetails = await getUserById(courierId);
           const orderDetails = allOrders.find(o => o.id === orderId);
 
@@ -161,7 +159,7 @@ export default function AdminOrdersPage() {
       (order.sellerName && order.sellerName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   
-  const orderStatuses: (OrderStatus | "All")[] = ["All", "Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Paid"];
+  const orderStatuses: (OrderStatus | "All")[] = ["All", "Pending", "Paid", "Processing", "Shipped", "Delivered", "Cancelled"];
   
   const getCurrencySymbol = (currencyCode?: string) => {
     if (currencyCode === "GHS") return "₵";

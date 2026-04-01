@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -59,6 +58,7 @@ export default function MyOrdersPage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Ongoing orders include those awaiting payment confirmation or in progress
   const ongoingStatuses: OrderStatus[] = ["Pending", "Processing", "Shipped", "Paid"];
   const pastStatuses: OrderStatus[] = ["Delivered", "Cancelled"];
 

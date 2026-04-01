@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Browser } from '@capacitor/browser';
@@ -27,6 +26,10 @@ interface PaymentResponse {
     tx_ref?: string;
 }
 
+/**
+ * Handles the native payment flow using Capacitor Browser.
+ * Detects redirects to confirm payment success.
+ */
 export const handleNativePayment = (details: PaymentInitiationDetails): Promise<PaymentResponse> => {
     return new Promise(async (resolve) => {
         if (!Capacitor.isNativePlatform()) {
@@ -34,12 +37,15 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
              return;
         }
 
-        const redirect_url = `${window.location.origin}/payment-callback`;
+        // We use a specific path to look for in the redirect URL
+        const redirect_path = '/payment-callback';
+        const redirect_url = `${window.location.origin}${redirect_path}`;
         
         let paymentLink = '';
+        let isResolved = false;
 
         try {
-            // 1. Call your backend to get the payment link
+            // 1. Get the payment link from the backend
             const response = await fetch('/api/payments/initiate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -66,36 +72,64 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
             browserFinishedListener?.remove();
         };
 
+        // This triggers when the user manually closes the browser
         browserFinishedListener = await Browser.addListener('browserFinished', () => {
-            cleanupListeners();
-            resolve({ status: 'cancelled' });
+            if (!isResolved) {
+                isResolved = true;
+                cleanupListeners();
+                resolve({ status: 'cancelled' });
+            }
         });
 
+        // This triggers when a page finishes loading in the browser
         pageLoadedListener = await Browser.addListener('browserPageLoaded', (info) => {
-            if (info && info.url && info.url.startsWith(redirect_url)) {
-                cleanupListeners();
-                Browser.close();
+            console.log("Native Browser URL Changed:", info.url);
+            
+            // Check if the URL contains the success status or our redirect path
+            // We use .includes for robustness against www/non-www or trailing slashes
+            const isSuccess = info.url.includes('status=successful') || info.url.includes('status=completed');
+            const isRedirect = info.url.includes(redirect_path);
 
+            if (!isResolved && (isSuccess || isRedirect)) {
                 const url = new URL(info.url);
                 const status = url.searchParams.get('status');
-                const tx_ref = url.searchParams.get('tx_ref');
-                const transaction_id = url.searchParams.get('transaction_id');
-
-                if (status === 'successful') {
-                    resolve({ status: 'successful', transaction_id: transaction_id || undefined, tx_ref: tx_ref || undefined });
-                } else {
+                
+                // If it explicitly says failed, we handle that, otherwise treat redirect as success
+                if (status === 'failed') {
+                    isResolved = true;
+                    cleanupListeners();
+                    Browser.close();
                     resolve({ status: 'failed' });
+                } else if (isSuccess || status === 'successful') {
+                    isResolved = true;
+                    cleanupListeners();
+                    
+                    const tx_ref = url.searchParams.get('tx_ref');
+                    const transaction_id = url.searchParams.get('transaction_id');
+
+                    // Small delay to ensure Browser.close doesn't interrupt the transition
+                    setTimeout(() => {
+                        Browser.close();
+                        resolve({ 
+                            status: 'successful', 
+                            transaction_id: transaction_id || undefined, 
+                            tx_ref: tx_ref || undefined 
+                        });
+                    }, 500);
                 }
             }
         });
 
         try {
-            // 2. Open the official link from your backend
+            // 2. Open the payment link in the secure browser
             await Browser.open({ url: paymentLink });
         } catch (error) {
             console.error("Error opening In-App Browser:", error);
-            cleanupListeners();
-            resolve({ status: 'failed' });
+            if (!isResolved) {
+                isResolved = true;
+                cleanupListeners();
+                resolve({ status: 'failed' });
+            }
         }
     });
 };
