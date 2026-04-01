@@ -370,7 +370,7 @@ export default function CheckoutPage() {
     } else {
         // ONLINE PAYMENT FLOW
         if (isNative) {
-            const paymentDetails = {
+            const paymentDetailsRequest = {
                 tx_ref: `vical-native-${Date.now()}`,
                 amount: total,
                 currency: mainCurrency,
@@ -387,11 +387,11 @@ export default function CheckoutPage() {
             };
 
             try {
-              const response = await handleNativePayment(paymentDetails);
+              const response = await handleNativePayment(paymentDetailsRequest);
 
               if (response.status === 'successful') {
                   const details = {
-                      transactionId: response.transaction_id,
+                      transactionId: response.transaction_id || 'N/A',
                       status: 'successful',
                       gateway: 'Flutterwave (Native)',
                   };

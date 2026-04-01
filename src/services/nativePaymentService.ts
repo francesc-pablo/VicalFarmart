@@ -37,9 +37,11 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
              return;
         }
 
-        // We use a dedicated callback path that our listener can easily identify
+        // IMPORTANT: Use the production domain for redirects in native mode.
+        // Flutterwave's servers need a public URL to redirect the user back to.
+        const production_origin = 'https://vicalfarmart.com';
         const redirect_path = '/payment-callback';
-        const redirect_url = `${window.location.origin}${redirect_path}`;
+        const redirect_url = `${production_origin}${redirect_path}`;
         
         let paymentLink = '';
         let isResolved = false;
@@ -72,7 +74,7 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
             if (browserFinishedListener) await browserFinishedListener.remove();
         };
 
-        // Triggers when the user manually swipes away or closes the browser window
+        // Triggers when the user manually closes the browser
         browserFinishedListener = await Browser.addListener('browserFinished', () => {
             if (!isResolved) {
                 isResolved = true;
@@ -81,31 +83,35 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
             }
         });
 
-        // Triggers every time a page finish loading in the in-app browser overlay
+        // Intercept redirects to your site
         pageLoadedListener = await Browser.addListener('browserPageLoaded', async (info) => {
             if (isResolved) return;
 
             const url = info.url || '';
             const lowerUrl = url.toLowerCase();
             
-            // Be extremely broad in detection to catch redirects on all Android browser implementations
+            // Log for debugging in Android Studio
+            console.log("[PaymentListener] URL Loaded:", url);
+
+            // We look for ANY sign that the gateway is returning to our site.
+            // Even if the browser session bounces to /login (due to missing cookies), 
+            // the presence of our domain confirms the payment process is done.
+            const isOurSite = lowerUrl.includes('vicalfarmart.com');
+            const isAtCallbackPath = lowerUrl.includes('payment-callback');
             const hasSuccessParams = lowerUrl.includes('status=successful') || 
                                    lowerUrl.includes('status=completed') || 
                                    lowerUrl.includes('status=success');
-            
-            const isAtCallbackPath = lowerUrl.includes('payment-callback');
 
-            if (hasSuccessParams || isAtCallbackPath) {
-                // Lock resolution immediately to prevent browserFinished from firing a cancellation
+            if (isAtCallbackPath || hasSuccessParams || (isOurSite && lowerUrl.includes('/login'))) {
                 isResolved = true;
                 
                 try {
                     const urlObj = new URL(url);
                     const status = urlObj.searchParams.get('status');
-                    const tx_ref = urlObj.searchParams.get('tx_ref');
                     const transaction_id = urlObj.searchParams.get('transaction_id');
+                    const tx_ref = urlObj.searchParams.get('tx_ref');
 
-                    // Close browser first, then resolve
+                    // Close browser immediately
                     await Browser.close();
                     await cleanup();
 
@@ -119,7 +125,7 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
                         });
                     }
                 } catch (e) {
-                    // Fallback for valid redirects with complex or missing query strings
+                    // Fallback for malformed URLs that still hit our domain
                     await Browser.close();
                     await cleanup();
                     resolve({ status: 'successful' });
@@ -128,7 +134,7 @@ export const handleNativePayment = (details: PaymentInitiationDetails): Promise<
         });
 
         try {
-            // 2. Open the gateway in the secure Capacitor browser
+            // 2. Open the gateway
             await Browser.open({ url: paymentLink });
         } catch (error) {
             console.error("Browser Open Error:", error);
