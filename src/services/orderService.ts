@@ -1,7 +1,6 @@
-
 import { db } from "@/lib/firebase";
 import type { Order, OrderStatus } from "@/types";
-import { collection, getDocs, doc, updateDoc, query, orderBy, where, setDoc, serverTimestamp, getDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, where, setDoc, serverTimestamp, getDoc, deleteDoc, addDoc } from "firebase/firestore";
 
 const ordersCollectionRef = collection(db, "orders");
 
@@ -21,21 +20,17 @@ const convertTimestamp = (data: any) => {
  */
 export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): Promise<string | null> {
   try {
-    const docRef = doc(ordersCollectionRef);
-    const id = docRef.id;
-    
-    // Non-blocking write
-    setDoc(docRef, {
+    const docRef = await addDoc(ordersCollectionRef, {
       ...orderData,
-      id,
       orderDate: serverTimestamp(),
-    }).catch(error => {
-      console.error("Firestore createOrder error: ", error);
     });
+    
+    // Update the document with its own ID for easier reference
+    await updateDoc(docRef, { id: docRef.id });
 
-    return id;
+    return docRef.id;
   } catch (error) {
-    console.error("Error initiating order creation: ", error);
+    console.error("Error creating order: ", error);
     return null;
   }
 }
@@ -46,11 +41,9 @@ export async function createOrder(orderData: Omit<Order, 'id' | 'orderDate'>): P
 export async function deleteOrder(orderId: string): Promise<void> {
   try {
     const orderDocRef = doc(db, "orders", orderId);
-    deleteDoc(orderDocRef).catch(error => {
-      console.error("Firestore deleteOrder error: ", error);
-    });
+    await deleteDoc(orderDocRef);
   } catch (error) {
-    console.error("Error initiating order deletion: ", error);
+    console.error("Error deleting order: ", error);
   }
 }
 
@@ -169,11 +162,9 @@ export async function updateOrderStatus(
         updateData.paymentDetails = paymentDetails;
     }
     
-    updateDoc(orderDocRef, updateData).catch(error => {
-        console.error("Firestore updateOrderStatus error: ", error);
-    });
+    await updateDoc(orderDocRef, updateData);
   } catch (error) {
-    console.error("Error initiating order status update: ", error);
+    console.error("Error updating order status: ", error);
     throw error;
   }
 }
@@ -184,14 +175,12 @@ export async function updateOrderStatus(
 export async function assignCourierToOrder(orderId: string, courierId: string, courierName: string): Promise<void> {
     try {
         const orderDocRef = doc(db, "orders", orderId);
-        updateDoc(orderDocRef, {
+        await updateDoc(orderDocRef, {
             courierId: courierId,
             courierName: courierName,
-        }).catch(error => {
-            console.error("Firestore assignCourierToOrder error: ", error);
         });
     } catch (error) {
-        console.error("Error initiating courier assignment: ", error);
+        console.error("Error assigning courier to order: ", error);
         throw error;
     }
 }

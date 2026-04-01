@@ -1,4 +1,3 @@
-
 import { db } from "@/lib/firebase";
 import type { Product } from "@/types";
 import { collection, getDocs, doc, getDoc, query, where, limit, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
@@ -27,7 +26,6 @@ export async function getProductById(productId: string): Promise<Product | null>
     if (docSnap.exists()) {
       return { id: docSnap.id, ...docSnap.data() } as Product;
     } else {
-      console.log("No such product found!");
       return null;
     }
   } catch (error) {
@@ -53,8 +51,6 @@ export async function getProductsBySellerId(sellerId: string): Promise<Product[]
 
 export async function getFeaturedProducts(count: number = 4): Promise<Product[]> {
     try {
-        // This is a simple implementation. For a real app, you might query
-        // for products with a specific "featured" flag.
         const q = query(productsCollectionRef, limit(count));
         const querySnapshot = await getDocs(q);
         const products = querySnapshot.docs.map((doc) => ({
@@ -73,7 +69,7 @@ export async function getRelatedProducts(category: string, currentProductId: str
         const q = query(
             productsCollectionRef,
             where("category", "==", category),
-            where("__name__", "!=", currentProductId), // Exclude the current product
+            where("__name__", "!=", currentProductId),
             limit(count)
         );
         const querySnapshot = await getDocs(q);
@@ -88,13 +84,15 @@ export async function getRelatedProducts(category: string, currentProductId: str
     }
 }
 
-// Admin functions
+// Admin/Seller functions
 export async function addProduct(productData: Omit<Product, 'id'>): Promise<Product | null> {
   try {
     const docRef = await addDoc(productsCollectionRef, {
       ...productData,
       createdAt: serverTimestamp(),
     });
+    // Ensure ID is part of the data
+    await updateDoc(docRef, { id: docRef.id });
     return { id: docRef.id, ...productData };
   } catch (error) {
     console.error("Error adding product: ", error);
@@ -106,7 +104,7 @@ export async function updateProduct(productId: string, productData: Partial<Prod
   try {
     const productDocRef = doc(db, "products", productId);
     const dataToUpdate = { ...productData };
-    delete dataToUpdate.id; // Don't try to update the ID
+    delete dataToUpdate.id; 
     await updateDoc(productDocRef, dataToUpdate);
   } catch (error) {
     console.error("Error updating product: ", error);

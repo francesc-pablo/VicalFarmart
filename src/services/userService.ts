@@ -1,12 +1,8 @@
-
-
-'use server';
-
 import { db, auth } from "@/lib/firebase";
 import type { User } from "@/types";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
-import { createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 // Helper to convert Firestore Timestamps to a plain, serializable format
 const convertTimestamp = (data: any) => {
@@ -36,10 +32,9 @@ export async function getUsers(): Promise<User[]> {
     });
     return users;
   } catch (error) {
-    console.error("Error fetching users with sorting (index might be missing): ", error);
+    console.error("Error fetching users with sorting: ", error);
     // Fallback if sorting query fails (e.g., no composite index)
     try {
-        console.log("Attempting to fetch users without sorting as a fallback.");
         const fallbackSnapshot = await getDocs(collection(db, "users"));
         const fallbackUsers = fallbackSnapshot.docs.map((doc) => {
             const data = doc.data();
@@ -65,7 +60,6 @@ export async function getUserById(userId: string): Promise<User | null> {
       const convertedData = convertTimestamp(data);
       return { id: docSnap.id, ...convertedData } as User;
     } else {
-      console.log("No such user found!");
       return null;
     }
   } catch (error) {
@@ -74,18 +68,13 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
-// Function to add a new user. This will log the admin out.
+// Function to add a new user. This will log the creator out as the session is replaced.
 export async function addUser(userData: Partial<User>): Promise<User | null> {
     const { email, password, name, role } = userData;
     if (!email || !password || !name || !role) {
         throw new Error("Missing required fields for user creation.");
     }
     
-    // IMPORTANT: The client-side SDK is not designed for admin-style user creation.
-    // Calling `createUserWithEmailAndPassword` will sign IN the NEW user in the admin's browser,
-    // replacing the admin's session. The admin will need to log back in.
-    // This is a known limitation of using the client SDK for this purpose. A backend with the Admin SDK is the standard solution.
-
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
@@ -130,22 +119,18 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
             lockoutUntil: null,
         };
 
-        // This operation relies on the admin being authenticated.
         await setDoc(doc(db, "users", user.uid), newUserProfile);
         
         try {
             await sendWelcomeEmail({ name, email });
         } catch (emailError) {
-            console.error("Failed to send welcome email, but user was created:", emailError);
+            console.warn("User created, but welcome email failed:", emailError);
         }
 
-        const finalUser = { id: user.uid, ...newUserProfile };
-        return finalUser as User;
+        return { id: user.uid, ...newUserProfile } as User;
 
     } catch (error) {
-        console.error("Error creating user:", error);
-        // Because the admin is now logged out (as the new user), re-throw the error
-        // so the UI can handle the redirect to the login page.
+        console.error("Error in addUser service:", error);
         throw error;
     }
 }
@@ -157,7 +142,6 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
         const userDocRef = doc(db, "users", userId);
         const updateData: { [key: string]: any } = {};
 
-        // List of all possible fields in the User type
         const userFields: (keyof User)[] = [
             'name', 'role', 'avatarUrl', 'isActive', 'phone', 'address', 'region', 'town',
             'businessName', 'businessOwnerName', 'businessAddress', 'contactNumber', 'businessLocationRegion', 
@@ -167,23 +151,21 @@ export async function updateUser(userId: string, data: Partial<User>): Promise<v
             'vehicleType', 'vehicleRegistrationNumber', 'vehicleInsuranceUrl', 'roadworthinessUrl'
         ];
 
-        // Construct the update object from the provided data
         for (const key of userFields) {
             if (key in data) {
                 updateData[key] = (data as any)[key];
             }
         }
         
-        // Ensure non-updatable fields are not included
         delete updateData.id; 
         delete updateData.password; 
         delete updateData.createdAt;
-        delete updateData.email; // Do not allow email to be updated
+        delete updateData.email;
 
         await updateDoc(userDocRef, updateData);
     } catch (error) {
         console.error("Error updating user: ", error);
-        throw error; // Re-throw to be handled by the caller
+        throw error;
     }
 }
 
@@ -194,8 +176,6 @@ export async function deleteUser(userId: string): Promise<void> {
     await deleteDoc(userDocRef);
   } catch (error) {
     console.error("Error deleting user document: ", error);
-    throw error; // Re-throw to be handled by the caller
+    throw error;
   }
 }
-
-    
