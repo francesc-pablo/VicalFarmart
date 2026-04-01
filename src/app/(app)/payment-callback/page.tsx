@@ -1,16 +1,27 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 /**
  * This page serves as the landing destination for payment redirects.
  * Its primary purpose is to provide a valid URL for the payment gateway 
- * to redirect to, preventing 404 errors in the in-app browser.
- * The native app's listener detects this URL and handles closing the window.
+ * to redirect to, which is then intercepted by the native app listener.
  */
 export default function PaymentCallbackPage() {
+  
+  // Script fallback: If for some reason the native listener fails to close the window,
+  // we provide a manual escape or a redirect after a long timeout.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // In a web environment, we'd redirect home. 
+      // In native, the browser should already be closed by the service listener.
+      window.location.href = '/my-orders';
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
       <Card className="w-full max-w-md shadow-lg border-primary/20">
@@ -27,11 +38,11 @@ export default function PaymentCallbackPage() {
               We are finalizing your order and returning you to the app. 
             </p>
             <p className="text-sm font-medium text-primary animate-pulse">
-              Returning to Dashboard...
+              Syncing with dashboard...
             </p>
           </div>
           <p className="text-xs text-muted-foreground italic">
-            This window will close automatically.
+            This window should close automatically.
           </p>
         </CardContent>
       </Card>
