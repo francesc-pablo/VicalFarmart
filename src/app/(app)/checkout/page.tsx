@@ -309,9 +309,8 @@ export default function CheckoutPage() {
             address: data.address,
             city: data.city,
             zipCode: data.zipCode,
-            idCardNumber: data.idCardNumber || "", // Use empty string instead of undefined
+            idCardNumber: data.idCardNumber || "", 
         },
-        // Conditionally add paymentDetails only if provided to avoid 'undefined' error in Firestore
         ...(paymentDetails ? { paymentDetails } : {}),
         ...(isSingleSeller && { sellerId: singleSellerId }),
         sellerName: isSingleSeller ? (cartItems[0]?.sellerName || "Seller") : "Multiple Sellers",
@@ -387,40 +386,44 @@ export default function CheckoutPage() {
             };
 
             try {
-              const response = await handleNativePayment(paymentDetailsRequest);
+              const nativeResponse = await handleNativePayment(paymentDetailsRequest);
 
-              if (response.status === 'successful') {
-                  const details = {
-                      transactionId: response.transaction_id || 'N/A',
-                      status: 'successful',
-                      gateway: 'Flutterwave (Native)',
-                  };
-                  
-                  const orderResult = handleOrderCreationSync(data, 'Paid', 'Online Payment', details);
-                  if (orderResult) {
-                      const orderId = await orderResult.promise;
-                      clearCart();
-                      toast({ title: "Payment Successful!", description: "Your order is being processed." });
-                      triggerOrderNotifications(orderId!, orderResult.data, true);
-                      router.push("/my-orders");
+              if (nativeResponse.status === 'successful' && nativeResponse.transaction_id) {
+                  // 🔥 SECURE VERIFICATION: Call backend to verify with secret key
+                  const verifyResponse = await fetch('/api/payments/verify', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ transaction_id: nativeResponse.transaction_id }),
+                  });
+
+                  const verifyData = await verifyResponse.json();
+
+                  if (verifyResponse.ok && verifyData.success) {
+                      const details = {
+                          transactionId: nativeResponse.transaction_id,
+                          status: 'successful',
+                          gateway: 'Flutterwave (Verified)',
+                      };
+                      
+                      const orderResult = handleOrderCreationSync(data, 'Paid', 'Online Payment', details);
+                      if (orderResult) {
+                          const orderId = await orderResult.promise;
+                          clearCart();
+                          toast({ title: "Payment Successful!", description: "Your order is being processed." });
+                          triggerOrderNotifications(orderId!, orderResult.data, true);
+                          router.push("/my-orders");
+                      }
                   } else {
-                      toast({ title: "Order Recording Failed", description: "Payment was successful but we couldn't record your order. Please contact support.", variant: "destructive" });
-                      setIsProcessing(false);
+                      throw new Error(verifyData.message || "Payment verification failed.");
                   }
               } else {
-                  toast({
-                      title: response.status === 'cancelled' ? "Payment Window Closed" : "Payment Incomplete",
-                      description: response.status === 'cancelled' ? "Your checkout was cancelled. No charges were made." : "Payment failed. Please try again.",
-                      variant: response.status === 'cancelled' ? 'default' : 'destructive',
-                  });
+                  if (nativeResponse.status !== 'cancelled') {
+                      toast({ title: "Payment Incomplete", description: "Payment failed. Please try again.", variant: "destructive" });
+                  }
                   setIsProcessing(false);
               }
             } catch (error: any) {
-                toast({
-                    title: "Payment Error",
-                    description: error.message || "Problem connecting to payment provider.",
-                    variant: "destructive",
-                });
+                toast({ title: "Payment Error", description: error.message || "Problem connecting to payment provider.", variant: "destructive" });
                 setIsProcessing(false);
             }
         } else {

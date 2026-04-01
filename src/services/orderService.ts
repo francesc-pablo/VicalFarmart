@@ -22,7 +22,7 @@ const ordersCollectionRef = collection(db, "orders");
  * Helper to remove undefined properties from an object recursively.
  * Firestore does not support 'undefined' as a field value.
  */
-function scrubUndefined(obj: any): any {
+export function scrubUndefined(obj: any): any {
   if (obj === null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(scrubUndefined);
   

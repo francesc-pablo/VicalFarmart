@@ -16,21 +16,7 @@ import { sendWelcomeEmail } from "@/ai/flows/emailFlows";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
-
-/**
- * Helper to remove undefined properties from an object recursively.
- * Firestore does not support 'undefined' as a field value.
- */
-function scrubUndefined(obj: any): any {
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(scrubUndefined);
-  
-  return Object.fromEntries(
-    Object.entries(obj)
-      .filter(([_, v]) => v !== undefined)
-      .map(([k, v]) => [k, scrubUndefined(v)])
-  );
-}
+import { scrubUndefined } from "./orderService";
 
 const convertTimestamp = (data: any) => {
   if (!data) return data;

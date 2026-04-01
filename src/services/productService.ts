@@ -15,23 +15,9 @@ import {
 } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
+import { scrubUndefined } from "./orderService";
 
 const productsCollectionRef = collection(db, "products");
-
-/**
- * Helper to remove undefined properties from an object.
- * Firestore does not support 'undefined' as a field value.
- */
-function scrubUndefined(obj: any): any {
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(scrubUndefined);
-  
-  return Object.fromEntries(
-    Object.entries(obj)
-      .filter(([_, v]) => v !== undefined)
-      .map(([k, v]) => [k, scrubUndefined(v)])
-  );
-}
 
 export async function getProducts(): Promise<Product[]> {
   try {
